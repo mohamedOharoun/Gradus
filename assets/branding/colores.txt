@@ -1,0 +1,11 @@
+Gradus — colores
+
+Violeta        #5B34C9   nodos, fondo del icono
+Violeta medio  #8B63F0   la escalera (línea)
+Lavanda        #B9A2F5   nodos y línea sobre fondos oscuros o violeta
+Ámbar          #F0A93B   el último nodo (la cima / lo siguiente)
+Tinta          #1E1636   texto y fondos oscuros
+Fondo claro    #F5F2FA   fondos claros
+
+Tipografías: Literata SemiBold (logotipo y títulos), Source Sans 3 (texto).
+Ambas son de Google Fonts, con licencia SIL Open Font License.

@@ -1,0 +1,59 @@
+GRADUS — KIT DE MARCA
+=====================
+
+Símbolo: «escalera de nodos». Logotipo: «Gradus» en Literata SemiBold.
+Todo el texto de los SVG está convertido a trazos: no hace falta tener la fuente instalada.
+
+hoja-de-marca.png   Todas las piezas de un vistazo.
+colores.txt         Colores (hex) y tipografías.
+
+
+QUÉ HAY EN CADA CARPETA
+-----------------------
+svg/   Vectoriales. Úsalos siempre que puedas (escalan sin perder calidad).
+png/   Las mismas piezas en PNG, con fondo transparente.
+
+  simbolo/     El símbolo solo, sin texto.
+  logotipo/    Solo la palabra «Gradus».
+  horizontal/  Símbolo a la izquierda del nombre: cabeceras, barras de la app, diapositivas.
+  vertical/    Símbolo encima del nombre. «-lema» añade «Aprendizaje por dominio».
+  icono/       Icono de app: redondeado, cuadrado (para la ficha de Play Store) y circular.
+
+Variantes, según el final del nombre del archivo:
+  (sin sufijo)         para fondos claros
+  -fondo-oscuro        para fondos oscuros
+  -monocromo-oscuro    una sola tinta, para fondos claros, impresión o sellos
+  -monocromo-blanco    blanco, para fotos o fondos de color
+
+
+NORMAS BÁSICAS
+--------------
+- Espacio libre: deja alrededor del logo, como mínimo, el diámetro del nodo ámbar.
+- Tamaño mínimo: símbolo, 24 px de alto; versión horizontal, 120 px de ancho.
+  Por debajo de eso, usa solo el símbolo.
+- El último nodo va siempre en ámbar (salvo en monocromo): es la cima, lo siguiente.
+- No estires, inclines ni recolorees el logo. Sobre fotos o colores, usa el monocromo blanco.
+
+
+ANDROID: ICONO DE LA APP
+------------------------
+android/res/                    Icono adaptativo listo para el proyecto.
+android/play-store-icono-512.png  Icono para la ficha de Google Play (512 × 512).
+
+1. Copia el contenido de android/res/ en app/src/main/res/ de tu proyecto y acepta reemplazar.
+   Los nombres coinciden con los de la plantilla de Android Studio:
+     drawable/ic_launcher_foreground.xml   el símbolo (vectorial)
+     drawable/ic_launcher_background.xml   el fondo violeta
+     drawable/ic_launcher_monochrome.xml   capa para los iconos temáticos de Android 13+
+     mipmap-anydpi-v26/ic_launcher*.xml    el icono adaptativo (Android 8+)
+     mipmap-*dpi/ic_launcher*.webp         iconos clásicos para Android 7 o anterior
+2. Si tu proyecto tiene res/mipmap-anydpi/ (sin «-v26»), sustituye sus ic_launcher.xml e
+   ic_launcher_round.xml por los de mipmap-anydpi-v26/, o borra esa carpeta.
+3. Si tu proyecto tiene ic_launcher.png o ic_launcher_round.png en las carpetas mipmap-*dpi,
+   bórralos: junto a los .webp darían un error de recursos duplicados al compilar.
+4. El AndroidManifest.xml de la plantilla ya apunta a @mipmap/ic_launcher y
+   @mipmap/ic_launcher_round; no hay que tocarlo.
+
+El símbolo ocupa la zona segura de 66 dp del icono adaptativo, así que ninguna máscara
+(círculo, squircle, gota…) lo recorta. Antes de entregar, abre
+res/mipmap-anydpi-v26/ic_launcher.xml en Android Studio y mira la vista previa.
