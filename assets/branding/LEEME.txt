@@ -2,7 +2,7 @@ GRADUS — KIT DE MARCA
 =====================
 
 Símbolo: «escalera de nodos». Logotipo: «Gradus» en Literata SemiBold.
-Todo el texto de los SVG está convertido a trazos: no hace falta tener la fuente instalada.
+La totalidad del texto de los SVG está convertido a trazos: no hace falta tener la fuente instalada.
 
 hoja-de-marca.png   Todas las piezas de un vistazo.
 colores.txt         Colores (hex) y tipografías.
