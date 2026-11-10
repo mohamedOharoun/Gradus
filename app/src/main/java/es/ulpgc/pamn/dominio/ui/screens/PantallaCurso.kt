@@ -1,4 +1,4 @@
-package es.ulpgc.pamn.dominio.ui.theme.screens
+package es.ulpgc.pamn.dominio.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,8 +10,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.tooling.preview.Preview
 import es.ulpgc.pamn.dominio.data.conceptosDemo
 import es.ulpgc.pamn.dominio.model.ConceptoUi
-import es.ulpgc.pamn.dominio.ui.theme.components.TarjetaConcepto
-import es.ulpgc.pamn.dominio.ui.theme.theme.DominioTheme
+import es.ulpgc.pamn.dominio.ui.components.TarjetaConcepto
+import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 @Composable
 fun PantallaCurso(
@@ -58,7 +58,7 @@ fun PantallaCurso(
 @Preview(showBackground = true)
 @Composable
 fun PantallaCursoClaroPreview() {
-    DominioTheme(darkTheme = false) { 
+    GradusTheme(darkTheme = false) { 
         PantallaCurso("Estructuras de datos", conceptosDemo) 
     }
 }
@@ -66,7 +66,7 @@ fun PantallaCursoClaroPreview() {
 @Preview(showBackground = true)
 @Composable
 fun PantallaCursoOscuroPreview() {
-    DominioTheme(darkTheme = true) { 
+    GradusTheme(darkTheme = true) { 
         PantallaCurso("Estructuras de datos", conceptosDemo) 
     }
 }
