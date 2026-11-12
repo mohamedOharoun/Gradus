@@ -55,13 +55,13 @@ Cada tarea se hace en una rama propia y se fusiona cuando cumple sus criterios.
 - [x] **T6 · Validación con tests.** `model/Validation.kt` (con `FieldError` y `PasswordRequirement`): nombre, correo, requisitos de
   contraseña (8 caracteres, letra y número, carácter especial) y que coincidan. Test primero.
   *Criterios:* todos los tests de `ValidationTest` pasan; no importa nada de Android.
-- [ ] **T7 · Inicio de sesión.** Pantalla con correo, contraseña y «Entrar».
+- [x] **T7 · Inicio de sesión.** Pantalla con correo, contraseña y «Entrar».
   *Criterios:* los errores salen solo tras pulsar «Entrar»; con datos válidos llega a Inicio.
-- [ ] **T8 · Registro, pasos 1 y 2.** Estado del paso, campos de nombre y correo, botón
+- [x] **T8 · Registro, pasos 1 y 2.** Estado del paso, campos de nombre y correo, botón
   «Siguiente», ilustración y chips de datos añadidos.
   *Criterios:* no avanza con datos no válidos; al girar el móvil no se pierde nada; atrás del
   sistema retrocede un paso.
-- [ ] **T9 · Indicador de pasos.** Puntos unidos por líneas, con ✓ en los pasos hechos.
+- [x] **T9 · Indicador de pasos.** Puntos unidos por líneas, con ✓ en los pasos hechos.
   *Criterios:* se ve como en el Figma en los tres pasos.
 - [ ] **T10 · Registro, paso 3.** Contraseña, repetición, requisitos que se marcan al escribir y
   casilla de términos.
@@ -86,6 +86,17 @@ Cada tarea se hace en una rama propia y se fusiona cuando cumple sus criterios.
 
 - T6 hecha: 26 tests de `ValidationTest` en verde; `model/` sin imports de Android.
 
+- T7 hecha: `LoginForm` (12 tests), `LoginViewModel`, `FormTopBar`, `FieldError.toMessage()` y
+  `ScreenLogin` sin estado. `GradusNavHost` usa `viewModel()` y `dropUnlessResumed` contra el
+  doble toque. Las pantallas provisionales usan `FormTopBar` para volver.
+
+- T8 hecha: `RegisterForm` y `RegisterStep` (17 tests), `RegisterViewModel`, `AddedDataChip`,
+  `UnlockGraphIllustration`, `PromptLink` y `ScreenRegister` sin estado (pasos 1 y 2).
+  Atrás (barra y sistema con `BackHandler`) retrocede un paso; tocar un chip vuelve a su paso.
+  Sin `SavedStateHandle` de momento (decisión nuestra).
+
+- T9 hecha: `StepIndicator` genérico (etiquetas + posición), con TalkBack «Paso X de 3: …».
+
 ## Siguiente paso
 
-T7 · Inicio de sesión.
+T10 · Registro, paso 3.

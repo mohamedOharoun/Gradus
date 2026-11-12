@@ -2,10 +2,8 @@ package es.ulpgc.pamn.dominio.ui.screens
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -15,9 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -29,6 +25,7 @@ import es.ulpgc.pamn.dominio.ui.components.FormTopBar
 import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
 import es.ulpgc.pamn.dominio.ui.components.PasswordField
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
+import es.ulpgc.pamn.dominio.ui.components.PromptLink
 import es.ulpgc.pamn.dominio.ui.components.toMessage
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
@@ -64,7 +61,7 @@ fun ScreenLogin(
             }
             Spacer(Modifier.height(16.dp))
             PrimaryButton(text = "Entrar", onClick = onSubmit, trailingIcon = R.drawable.ic_arrow_forward)
-            CreateAccountLink(onClick = onCreateAccount)
+            PromptLink(prompt = "¿No tienes cuenta?", action = "Crear cuenta", onClick = onCreateAccount)
         }
     }
 }
@@ -100,24 +97,6 @@ private fun LoginFields(
         onValueChange = onPasswordChange,
         error = form.passwordError?.toMessage(),
     )
-}
-
-@Composable
-private fun CreateAccountLink(onClick: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            "¿No tienes cuenta?",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        TextButton(onClick = onClick) {
-            Text("Crear cuenta", style = MaterialTheme.typography.titleSmall)
-        }
-    }
 }
 
 @LightDarkPreviews
