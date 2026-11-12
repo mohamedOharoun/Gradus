@@ -4,8 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import es.ulpgc.pamn.dominio.data.conceptosDemo
-import es.ulpgc.pamn.dominio.ui.screens.PantallaCurso
+import es.ulpgc.pamn.dominio.ui.navigation.GradusNavHost
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 class MainActivity : ComponentActivity() {
@@ -14,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GradusTheme {
-                PantallaCurso("Estructuras de datos", conceptosDemo)
+                GradusNavHost()
             }
         }
     }

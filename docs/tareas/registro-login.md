@@ -73,8 +73,11 @@ Cada tarea se hace en una rama propia y se fusiona cuando cumple sus criterios.
 - T1 implementada: colores de Figma en `Color.kt` y conectados al `colorScheme` (Figma no tiene
   modo oscuro; se construye con noche, lila y sobre-oscuro), fuentes en `res/font` y `Type.kt`,
   tema renombrado a `GradusTheme` y muestrario en `ui/theme/ThemePreview.kt`.
-  Pendiente: revisar las previews en claro y oscuro para marcarla como hecha.
+  Revisada y hecha.
+- T2 implementada: Navigation Compose 2.10.2 con rutas `@Serializable` (`ui/navigation/Routes.kt`),
+  `GradusNavHost` y cuatro pantallas provisionales sobre `PlaceholderScreen`. `MainActivity`
+  arranca en Bienvenida. Pendiente: probar en el emulador para marcarla como hecha.
 
 ## Siguiente paso
 
-Revisar las previews de T1 y, si cumplen los criterios, empezar T2 · Navegación.
+Probar T2 en el emulador y, si cumple los criterios, empezar T3 · Bienvenida (sin grafo).
