@@ -39,20 +39,22 @@ Cada tarea se hace en una rama propia y se fusiona cuando cumple sus criterios.
   a `GradusTheme`.
   *Criterios:* una preview de prueba se ve con fondo lavanda, botón morado y tarjeta blanca; en
   oscuro cambia sin tocar la preview; los títulos salen en serif.
-- [ ] **T2 · Navegación.** Navigation Compose con cuatro pantallas vacías (solo un título):
+- [x] **T2 · Navegación.** Navigation Compose con cuatro pantallas vacías (solo un título):
   Bienvenida, Registro, Inicio de sesión e Inicio.
   *Criterios:* se puede ir y volver entre ellas; tras «entrar», el botón atrás no vuelve al registro.
-- [ ] **T3 · Bienvenida (sin grafo).** Logotipo, título, texto y los tres botones, siempre en oscuro.
-  *Criterios:* coincide con el Figma; los iconos de la barra de estado se ven blancos; los botones
-  navegan a su pantalla.
-- [ ] **T4 · Grafo de la bienvenida.** Dibujo con `Canvas` y leyenda de estados.
+- [x] **T3 · Bienvenida (sin grafo).** Logotipo, título, texto y los tres botones. Sigue el modo
+  claro u oscuro del móvil (decisión nuestra, distinta del Figma); la ilustración tiene siempre fondo noche.
+  *Criterios:* coincide con el Figma en oscuro y usa los colores del tema en claro; los iconos de la
+  barra de estado se leen en los dos modos; los botones navegan a su pantalla.
+- [x] **T4 · Ilustración de la bienvenida.** Escalera de conceptos dibujada con `Canvas`
+  (`WelcomeIllustration`), con fondo noche en los dos modos. En el Figma no hay leyenda de estados.
   *Criterios:* se ve como en el Figma y se encoge en móviles pequeños sin cortarse.
-- [ ] **T5 · Componentes de formulario.** `CampoFormulario` (etiqueta encima, error debajo, ojo
-  para contraseñas) y `BotonPrincipal`.
+- [x] **T5 · Componentes de formulario.** `FormField` (etiqueta encima, error debajo),
+  `PasswordField` (con ojo para mostrar u ocultar) y `PrimaryButton`. Iconos de Material Symbols en `res/drawable`.
   *Criterios:* previews de cada estado: vacío, con texto, con error y contraseña oculta y visible.
-- [ ] **T6 · Validación con tests.** `model/Validacion.kt`: nombre, correo, requisitos de
+- [x] **T6 · Validación con tests.** `model/Validation.kt` (con `FieldError` y `PasswordRequirement`): nombre, correo, requisitos de
   contraseña (8 caracteres, letra y número, carácter especial) y que coincidan. Test primero.
-  *Criterios:* todos los tests de `ValidacionTest` pasan; no importa nada de Android.
+  *Criterios:* todos los tests de `ValidationTest` pasan; no importa nada de Android.
 - [ ] **T7 · Inicio de sesión.** Pantalla con correo, contraseña y «Entrar».
   *Criterios:* los errores salen solo tras pulsar «Entrar»; con datos válidos llega a Inicio.
 - [ ] **T8 · Registro, pasos 1 y 2.** Estado del paso, campos de nombre y correo, botón
@@ -76,8 +78,14 @@ Cada tarea se hace en una rama propia y se fusiona cuando cumple sus criterios.
   Revisada y hecha.
 - T2 implementada: Navigation Compose 2.10.2 con rutas `@Serializable` (`ui/navigation/Routes.kt`),
   `GradusNavHost` y cuatro pantallas provisionales sobre `PlaceholderScreen`. `MainActivity`
-  arranca en Bienvenida. Pendiente: probar en el emulador para marcarla como hecha.
+  arranca en Bienvenida. Probada y hecha.
+
+- T3 y T4 hechas: `ScreenWelcome` con `BrandLogo` y `WelcomeIllustration`; sigue el modo del móvil.
+
+- T5 implementada: `FormField`, `PasswordField`, `PrimaryButton` e iconos. Revisada y hecha.
+
+- T6 hecha: 26 tests de `ValidationTest` en verde; `model/` sin imports de Android.
 
 ## Siguiente paso
 
-Probar T2 en el emulador y, si cumple los criterios, empezar T3 · Bienvenida (sin grafo).
+T7 · Inicio de sesión.

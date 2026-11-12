@@ -2,6 +2,7 @@ package es.ulpgc.pamn.dominio.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -11,6 +12,7 @@ import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenLogin
 import es.ulpgc.pamn.dominio.ui.screens.ScreenRegister
 import es.ulpgc.pamn.dominio.ui.screens.ScreenWelcome
+import es.ulpgc.pamn.dominio.ui.screens.login.LoginViewModel
 
 // Único sitio que sabe a dónde lleva cada botón: las pantallas solo avisan con lambdas.
 @Composable
@@ -23,6 +25,7 @@ fun GradusNavHost(
             ScreenWelcome(
                 onCreateAccount = { navController.navigate(Route.Register) },
                 onLogin = { navController.navigate(Route.Login) },
+                onExploreCourses = { /* el catálogo aún no existe (fuera de alcance) */ },
             )
         }
         composable<Route.Register> {
@@ -32,9 +35,15 @@ fun GradusNavHost(
             )
         }
         composable<Route.Login> {
+            val loginViewModel: LoginViewModel = viewModel()
             ScreenLogin(
+                form = loginViewModel.form,
+                onEmailChange = loginViewModel::onEmailChange,
+                onPasswordChange = loginViewModel::onPasswordChange,
+                onSubmit = { if (loginViewModel.onSubmit()) navController.enterHome() },
                 onBack = { navController.popBackStack() },
-                onLoggedIn = { navController.enterHome() },
+                // Cambia Login por Registro: atrás desde el registro vuelve a Bienvenida.
+                onCreateAccount = { navController.navigate(Route.Register) { popUpTo<Route.Welcome>() } },
             )
         }
         composable<Route.Home> {

@@ -12,7 +12,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -32,7 +31,7 @@ fun PlaceholderScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             if (onBack != null) {
-                TextButton(onClick = onBack) { Text("Volver") }
+                FormTopBar(title = title, onBack = onBack)
             }
             Text(title, style = MaterialTheme.typography.headlineLarge)
             Text(
