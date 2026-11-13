@@ -1,0 +1,25 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: gradus-postgres
+    restart: unless-stopped
+    # Credenciales desde backend/.env (no se sube al repositorio). Ver .env.example.
+    environment:
+      POSTGRES_DB: ${GRADUS_DB_NAME}
+      POSTGRES_USER: ${GRADUS_DB_USER}
+      POSTGRES_PASSWORD: ${GRADUS_DB_PASSWORD}
+    ports:
+      - "${GRADUS_DB_PORT:-5432}:5432"
+    volumes:
+      # Los .sql de esta carpeta se ejecutan solo la primera vez (con el volumen vacío)
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+      # En PostgreSQL 18 la imagen guarda los datos bajo /var/lib/postgresql
+      - gradus-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  gradus-pgdata:
