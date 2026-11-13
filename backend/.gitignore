@@ -1,5 +1,9 @@
 target/
 !.mvn/wrapper/maven-wrapper.jar
+
+### Secretos locales (usar .env.example como plantilla) ###
+.env
+
 !**/src/main/**/target/
 !**/src/test/**/target/
 .kotlin
