@@ -1,0 +1,123 @@
+{
+  "yaakVersion": "2026.9.1",
+  "yaakSchema": 4,
+  "resources": {
+    "workspaces": [
+      {
+        "model": "workspace",
+        "id": "GENERATE_ID::WORKSPACE_0",
+        "name": "Gradus · Backend",
+        "description": "Peticiones de prueba del backend de Gradus (Javalin + PostgreSQL). Arranca el servidor con `mvn compile exec:java` desde backend/."
+      }
+    ],
+    "environments": [
+      {
+        "model": "environment",
+        "id": "GENERATE_ID::ENVIRONMENT_0",
+        "name": "Global Variables",
+        "workspaceId": "GENERATE_ID::WORKSPACE_0",
+        "parentModel": "workspace",
+        "parentId": null,
+        "variables": [
+          { "name": "baseUrl", "value": "http://localhost:7070", "enabled": true }
+        ]
+      }
+    ],
+    "folders": [
+      {
+        "model": "folder",
+        "id": "GENERATE_ID::FOLDER_0",
+        "workspaceId": "GENERATE_ID::WORKSPACE_0",
+        "folderId": null,
+        "name": "Usuarios · Registro",
+        "sortPriority": 0
+      }
+    ],
+    "httpRequests": [
+      {
+        "model": "http_request",
+        "id": "GENERATE_ID::HTTP_REQUEST_0",
+        "workspaceId": "GENERATE_ID::WORKSPACE_0",
+        "folderId": "GENERATE_ID::FOLDER_0",
+        "name": "Registro válido (201)",
+        "description": "Correo aleatorio en cada envío, así siempre devuelve 201. El nombre se guarda sin espacios y el correo en minúsculas.",
+        "method": "POST",
+        "url": "${[ baseUrl ]}/api/users",
+        "sortPriority": 0,
+        "headers": [{ "name": "Content-Type", "value": "application/json", "enabled": true }],
+        "bodyType": "application/json",
+        "body": { "text": "{\n  \"name\": \" Ana \",\n  \"email\": \"Ana-${[ uuid.v4() ]}@ULPGC.es\",\n  \"password\": \"Gradus2026!\"\n}" }
+      },
+      {
+        "model": "http_request",
+        "id": "GENERATE_ID::HTTP_REQUEST_1",
+        "workspaceId": "GENERATE_ID::WORKSPACE_0",
+        "folderId": "GENERATE_ID::FOLDER_0",
+        "name": "Correo repetido (409)",
+        "description": "Envíala dos veces: la primera da 201 (si la base de datos está vacía) y la segunda 409.",
+        "method": "POST",
+        "url": "${[ baseUrl ]}/api/users",
+        "sortPriority": 1,
+        "headers": [{ "name": "Content-Type", "value": "application/json", "enabled": true }],
+        "bodyType": "application/json",
+        "body": { "text": "{\n  \"name\": \"Repetido\",\n  \"email\": \"repetido@ulpgc.es\",\n  \"password\": \"Gradus2026!\"\n}" }
+      },
+      {
+        "model": "http_request",
+        "id": "GENERATE_ID::HTTP_REQUEST_2",
+        "workspaceId": "GENERATE_ID::WORKSPACE_0",
+        "folderId": "GENERATE_ID::FOLDER_0",
+        "name": "Datos inválidos (400)",
+        "description": "Devuelve los 5 errores a la vez: 1 del nombre, 1 del correo y 3 de la contraseña.",
+        "method": "POST",
+        "url": "${[ baseUrl ]}/api/users",
+        "sortPriority": 2,
+        "headers": [{ "name": "Content-Type", "value": "application/json", "enabled": true }],
+        "bodyType": "application/json",
+        "body": { "text": "{\n  \"name\": \"A\",\n  \"email\": \"no-es-un-correo\",\n  \"password\": \"abc\"\n}" }
+      },
+      {
+        "model": "http_request",
+        "id": "GENERATE_ID::HTTP_REQUEST_3",
+        "workspaceId": "GENERATE_ID::WORKSPACE_0",
+        "folderId": "GENERATE_ID::FOLDER_0",
+        "name": "Campos ausentes (400)",
+        "description": "Cuerpo vacío: los tres campos dan «Es obligatorio.».",
+        "method": "POST",
+        "url": "${[ baseUrl ]}/api/users",
+        "sortPriority": 3,
+        "headers": [{ "name": "Content-Type", "value": "application/json", "enabled": true }],
+        "bodyType": "application/json",
+        "body": { "text": "{}" }
+      },
+      {
+        "model": "http_request",
+        "id": "GENERATE_ID::HTTP_REQUEST_4",
+        "workspaceId": "GENERATE_ID::WORKSPACE_0",
+        "folderId": "GENERATE_ID::FOLDER_0",
+        "name": "JSON roto (400)",
+        "description": "JSON incompleto a propósito (Yaak lo marcará como inválido). El servidor responde 400 en el campo «body», no 500.",
+        "method": "POST",
+        "url": "${[ baseUrl ]}/api/users",
+        "sortPriority": 4,
+        "headers": [{ "name": "Content-Type", "value": "application/json", "enabled": true }],
+        "bodyType": "application/json",
+        "body": { "text": "{\n  \"name\":" }
+      },
+      {
+        "model": "http_request",
+        "id": "GENERATE_ID::HTTP_REQUEST_5",
+        "workspaceId": "GENERATE_ID::WORKSPACE_0",
+        "folderId": "GENERATE_ID::FOLDER_0",
+        "name": "Campo desconocido (400)",
+        "description": "Un campo que no existe en el contrato (\"admin\") se rechaza: no se pueden colar datos extra.",
+        "method": "POST",
+        "url": "${[ baseUrl ]}/api/users",
+        "sortPriority": 5,
+        "headers": [{ "name": "Content-Type", "value": "application/json", "enabled": true }],
+        "bodyType": "application/json",
+        "body": { "text": "{\n  \"name\": \"Luis\",\n  \"email\": \"luis-${[ uuid.v4() ]}@ulpgc.es\",\n  \"password\": \"Gradus2026!\",\n  \"admin\": true\n}" }
+      }
+    ]
+  }
+}
