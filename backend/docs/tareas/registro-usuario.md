@@ -43,7 +43,8 @@ PostgreSQL con la contraseña hasheada (PBKDF2 con sal aleatoria por usuario).
   `JdbcUserRepository` (`INSERT ... ON CONFLICT (email) DO NOTHING`). Sin test automático del
   repositorio hasta decidir CI/CD: se comprueba a mano en el paso 5.
   *Acepta si:* dos hashes de la misma contraseña son distintos (sal) y ambos se verifican.
-- [ ] **5. Web.** `UserController` en Javalin y `App`.
+- [x] **5. Web.** `UserController`, DTOs, `ExceptionHandlers` (JSON inválido → 400), `DatabaseConfig`
+  y `HttpConfig` (variables de entorno, con test) y `App`. Se arranca con `mvn compile exec:java`.
   *Acepta si:* con `curl` se obtienen 201, 400 y 409 en los casos correspondientes y el
   usuario aparece en la tabla.
 
@@ -53,7 +54,17 @@ PostgreSQL con la contraseña hasheada (PBKDF2 con sal aleatoria por usuario).
 - 2026-11-13: paso 2 hecho (48 tests en verde, sin avisos de compilación).
 - 2026-11-13: paso 3 hecho (57 tests en verde, sin avisos de compilación).
 - 2026-11-13: paso 4 hecho (71 tests en verde; SQL del repositorio probado a mano en PostgreSQL 18).
+- 2026-11-13: paso 5 hecho (77 tests en verde). Probado con `curl`: 201, 409, 400 por validación,
+  400 por campos ausentes, 400 por JSON roto o con campos desconocidos; usuario guardado con hash PBKDF2.
+- **Tarea completada.**
+
+## Pendiente para más adelante
+
+- Test automatizado del repositorio y del endpoint (cuando se decida el CI/CD).
+- Pool de conexiones (HikariCP): ahora se abre una conexión por petición.
+- Errores 500 en formato JSON (ahora Javalin responde texto plano «Server Error»).
+- Actualizar `especificacion.md` §8: el backend es Javalin, no Ktor.
 
 ## Siguiente paso
 
-Paso 5: `UserController` (Javalin) y `App` (composition root), y prueba con `curl`.
+Por decidir: inicio de sesión (`POST /api/sessions`) o integrar el registro en la app Android.
