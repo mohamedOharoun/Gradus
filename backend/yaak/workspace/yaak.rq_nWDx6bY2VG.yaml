@@ -1,0 +1,47 @@
+type: http_request
+model: http_request
+id: rq_nWDx6bY2VG
+createdAt: 2026-11-13T18:58:14.657978395
+updatedAt: 2026-11-13T18:58:14.657978525
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_kEq4fnCn2Q
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "name": "Luis",
+      "email": "luis-${[ uuid.v4() ]}@ulpgc.es",
+      "password": "Gradus2026!",
+      "admin": true
+    }
+bodyType: application/json
+description: 'Un campo que no existe en el contrato ("admin") se rechaza: no se pueden colar datos extra.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Campo desconocido (400)
+sortPriority: 5.0
+url: ${[ baseUrl ]}/api/users
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

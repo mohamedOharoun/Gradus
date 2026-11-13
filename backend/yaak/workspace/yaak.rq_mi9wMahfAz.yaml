@@ -1,0 +1,46 @@
+type: http_request
+model: http_request
+id: rq_mi9wMahfAz
+createdAt: 2026-11-13T18:58:14.656771759
+updatedAt: 2026-11-13T18:58:14.656771910
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_kEq4fnCn2Q
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "name": " Ana ",
+      "email": "Ana-${[ uuid.v4() ]}@ULPGC.es",
+      "password": "Gradus2026!"
+    }
+bodyType: application/json
+description: Correo aleatorio en cada envío, así siempre devuelve 201. El nombre se guarda sin espacios y el correo en minúsculas.
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Registro válido (201)
+sortPriority: 0.0
+url: ${[ baseUrl ]}/api/users
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

@@ -1,0 +1,46 @@
+type: http_request
+model: http_request
+id: rq_UcvkcbTyzC
+createdAt: 2026-11-13T18:58:14.657416236
+updatedAt: 2026-11-13T18:58:14.657416356
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_kEq4fnCn2Q
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "name": "A",
+      "email": "no-es-un-correo",
+      "password": "abc"
+    }
+bodyType: application/json
+description: 'Devuelve los 5 errores a la vez: 1 del nombre, 1 del correo y 3 de la contraseña.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Datos inválidos (400)
+sortPriority: 2.0
+url: ${[ baseUrl ]}/api/users
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

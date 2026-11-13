@@ -1,0 +1,43 @@
+type: http_request
+model: http_request
+id: rq_wmuLbb5NU3
+createdAt: 2026-11-13T18:58:14.657827886
+updatedAt: 2026-11-13T18:58:14.657828006
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_kEq4fnCn2Q
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "name":
+bodyType: application/json
+description: JSON incompleto a propósito (Yaak lo marcará como inválido). El servidor responde 400 en el campo «body», no 500.
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: JSON roto (400)
+sortPriority: 4.0
+url: ${[ baseUrl ]}/api/users
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

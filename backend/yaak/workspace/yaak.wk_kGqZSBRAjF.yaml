@@ -1,0 +1,19 @@
+type: workspace
+model: workspace
+id: wk_kGqZSBRAjF
+createdAt: 2026-11-13T18:58:14.656112905
+updatedAt: 2026-11-13T18:58:14.656113176
+authentication: {}
+authenticationType: null
+description: Peticiones de prueba del backend de Gradus (Javalin + PostgreSQL). Arranca el servidor con `mvn compile exec:java` desde backend/.
+headers: []
+name: Gradus · Backend
+encryptionKeyChallenge: null
+settingValidateCertificates: true
+settingFollowRedirects: true
+settingRequestTimeout: 0
+settingRequestMessageSize: 67108864
+settingDnsOverrides: []
+settingSendCookies: true
+settingStoreCookies: true
+settingHttpVersion: auto
