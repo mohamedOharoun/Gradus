@@ -38,6 +38,7 @@ apliquen las mismas reglas y se entiendan en los errores.
 - [ ] **4. App: llamada real.** Permiso de internet, cliente HTTP, estados de envío y de error en
   `RegisterViewModel`. Se dividirá en pasos al empezarla (necesita aprobar una dependencia y tocar
   el manifiesto). Coordinar con T10 y T11 de `registro-login.md`.
+  Plan por pasos en `conexion-registro-app-backend.md`.
   *Acepta si:* desde el emulador se crea una cuenta que aparece en la tabla `users`; un correo
   repetido se muestra en el paso del correo; sin red se avisa y se puede reintentar.
 

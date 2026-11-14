@@ -7,4 +7,14 @@ plugins {
     alias(libs.plugins.composeCompiler) apply false
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.kotlin.serialization) apply false
+    kotlin("jvm")
+}
+repositories {
+    mavenCentral()
+}
+dependencies {
+    testImplementation(kotlin("test"))
+}
+kotlin {
+    jvmToolchain(8)
 }
