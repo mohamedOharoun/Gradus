@@ -12,7 +12,8 @@ android {
 
     defaultConfig {
         applicationId = "es.ulpgc.pamn.dominio"
-        minSdk = 24
+        // Mismo valor que los módulos multiplataforma (gradle/libs.versions.toml): deben coincidir.
+        minSdk = libs.versions.android.minSdk.get().toInt()
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -38,6 +39,9 @@ android {
 }
 
 dependencies {
+    // Lógica en Kotlin puro (validaciones, formularios, modelo): compartible con iOS.
+    implementation(project(":sharedLogic"))
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)

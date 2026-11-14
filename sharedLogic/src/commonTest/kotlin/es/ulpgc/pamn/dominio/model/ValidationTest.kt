@@ -3,9 +3,9 @@ package es.ulpgc.pamn.dominio.model
 import es.ulpgc.pamn.dominio.model.PasswordRequirement.LETTER_AND_DIGIT
 import es.ulpgc.pamn.dominio.model.PasswordRequirement.MIN_LENGTH
 import es.ulpgc.pamn.dominio.model.PasswordRequirement.SPECIAL_CHARACTER
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
-import org.junit.Test
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class ValidationTest {
 
