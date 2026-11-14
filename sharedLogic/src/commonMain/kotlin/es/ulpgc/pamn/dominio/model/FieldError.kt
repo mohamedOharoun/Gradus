@@ -4,6 +4,7 @@ package es.ulpgc.pamn.dominio.model
 enum class FieldError {
     EMPTY,
     TOO_SHORT,
+    TOO_LONG,
     INVALID_EMAIL,
     WEAK_PASSWORD,
     PASSWORDS_DONT_MATCH,

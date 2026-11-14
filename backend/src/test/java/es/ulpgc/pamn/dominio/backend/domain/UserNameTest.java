@@ -34,9 +34,15 @@ class UserNameTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "A", "   ", " A "})
+    @ValueSource(strings = {"A", " A ", "😀"}) // un emoji es 1 carácter, aunque ocupe 2 unidades UTF-16
     void rejectsNamesThatAreTooShort(String raw) {
         assertEquals(List.of(ErrorCode.TOO_SHORT), codesFor("name", assertFailure(UserName.of(raw))));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "   "})
+    void anEmptyNameIsRequiredNotTooShort(String raw) {
+        assertEquals(List.of(ErrorCode.REQUIRED), codesFor("name", assertFailure(UserName.of(raw))));
     }
 
     @Test

@@ -52,7 +52,7 @@ Cada tarea se hace en una rama propia y se fusiona cuando cumple sus criterios.
 - [x] **T5 · Componentes de formulario.** `FormField` (etiqueta encima, error debajo),
   `PasswordField` (con ojo para mostrar u ocultar) y `PrimaryButton`. Iconos de Material Symbols en `res/drawable`.
   *Criterios:* previews de cada estado: vacío, con texto, con error y contraseña oculta y visible.
-- [x] **T6 · Validación con tests.** `model/Validation.kt` (con `FieldError` y `PasswordRequirement`): nombre, correo, requisitos de
+- [x] **T6 · Validación con tests.** `sharedLogic/src/commonMain/kotlin/es/ulpgc/pamn/dominio/model/Validation.kt` (con `FieldError` y `PasswordRequirement`): nombre, correo, requisitos de
   contraseña (8 caracteres, letra y número, carácter especial) y que coincidan. Test primero.
   *Criterios:* todos los tests de `ValidationTest` pasan; no importa nada de Android.
 - [x] **T7 · Inicio de sesión.** Pantalla con correo, contraseña y «Entrar».
@@ -96,6 +96,9 @@ Cada tarea se hace en una rama propia y se fusiona cuando cumple sus criterios.
   Sin `SavedStateHandle` de momento (decisión nuestra).
 
 - T9 hecha: `StepIndicator` genérico (etiquetas + posición), con TalkBack «Paso X de 3: …».
+
+- 2026-11-14: `model/` y sus tests se trasladan de `app` al módulo multiplataforma `sharedLogic`
+  (`src/commonMain` y `src/commonTest`, con `kotlin.test`). El paquete no cambia. `minSdk` pasa a 29.
 
 ## Siguiente paso
 

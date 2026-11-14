@@ -48,6 +48,18 @@ class RawPasswordTest {
                 codesFor("password", assertFailure(RawPassword.of("abc"))));
     }
 
+    @Test
+    void anEmptyPasswordIsOnlyRequired() {
+        // Antes daba 4 errores (corta, sin letra, sin número, sin especial): ahora uno, como en la app.
+        assertEquals(List.of(ErrorCode.REQUIRED), codesFor("password", assertFailure(RawPassword.of(""))));
+    }
+
+    @Test
+    void countsAnEmojiAsOneCharacter() {
+        // 7 caracteres reales (11 unidades UTF-16): es corta, igual que en la app.
+        assertEquals(List.of(ErrorCode.TOO_SHORT), codesFor("password", assertFailure(RawPassword.of("😀😀😀😀a1!"))));
+    }
+
     @ParameterizedTest
     @NullSource
     void rejectsNull(String raw) {

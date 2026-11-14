@@ -17,8 +17,10 @@ public record Email(String value) {
     public static final int MAX_LENGTH = 254;
 
     private static final String FIELD = "email";
-    // Pragmático, no RFC completo: algo@dominio.ext, sin espacios ni etiquetas de dominio vacías.
-    private static final Pattern FORMAT = Pattern.compile("^[^\\s@]+@[^\\s@.]+(\\.[^\\s@.]+)+$");
+    // Pragmático, no RFC completo: algo@dominio.ext, sin espacios, sin partes del dominio vacías y
+    // con extensión de 2 caracteres o más. Es el mismo patrón que Validation.kt en sharedLogic.
+    private static final Pattern FORMAT =
+            Pattern.compile("^[^\\s@]+@[^\\s@.]+(\\.[^\\s@.]+)*\\.[^\\s@.]{2,}$");
     private static final List<Rule> RULES = List.of(
             Rule.of(v -> FORMAT.matcher(v).matches(), ErrorCode.INVALID_EMAIL, "No tiene un formato de correo válido."),
             Rule.of(v -> lengthOf(v) <= MAX_LENGTH, ErrorCode.TOO_LONG, "No puede superar los " + MAX_LENGTH + " caracteres."));

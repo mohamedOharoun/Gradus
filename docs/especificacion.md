@@ -112,7 +112,7 @@ con cámara.
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
 | API del dispositivo | Cámara para fotografiar apuntes y asociarlos a conceptos |
 | SQLite | Room: cursos descargados, registro de respuestas y notas (fotos como ficheros, solo su ruta en la base de datos) |
-| Backend | Anillo 2: servidor Ktor con catálogo, subida validada, descarga y valoraciones |
+| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga y valoraciones |
 
 ## 9. Plan por anillos
 
@@ -137,4 +137,5 @@ con cámara.
 
 - Chat entre estudiantes e instructores.
 - Ejecutar código enviado por instructores dentro de la app.
-- Versión para iOS (el núcleo en Kotlin puro la deja posible para el futuro).
+- Versión para iOS, de momento. Es una posibilidad futura: la lógica vive en el módulo
+  multiplataforma `sharedLogic` (Kotlin Multiplatform) para poder llevarla a iOS si decidimos hacerla.

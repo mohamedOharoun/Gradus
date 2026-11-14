@@ -10,9 +10,12 @@ public final class Validation {
     private Validation() {
     }
 
-    /** Devuelve todos los errores del campo (lista vacía si es válido). Un {@code null} solo da el error de obligatorio. */
+    /**
+     * Devuelve todos los errores del campo (lista vacía si es válido). Un valor ausente o vacío solo
+     * da el error de obligatorio, igual que el {@code FieldError.EMPTY} de la app.
+     */
     public static List<ValidationError> check(String field, String value, List<Rule> rules) {
-        if (value == null) {
+        if (value == null || value.isEmpty()) {
             return List.of(new ValidationError(field, ErrorCode.REQUIRED, REQUIRED_MESSAGE));
         }
         return rules.stream()

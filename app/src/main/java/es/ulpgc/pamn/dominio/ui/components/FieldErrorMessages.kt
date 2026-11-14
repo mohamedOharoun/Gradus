@@ -8,6 +8,7 @@ import es.ulpgc.pamn.dominio.model.Validation
 fun FieldError.toMessage(): String = when (this) {
     FieldError.EMPTY -> "Este campo es obligatorio"
     FieldError.TOO_SHORT -> "Escribe al menos ${Validation.MIN_NAME_LENGTH} caracteres"
+    FieldError.TOO_LONG -> "Es demasiado largo"
     FieldError.INVALID_EMAIL -> "Escribe un correo válido, como nombre@ejemplo.com"
     FieldError.WEAK_PASSWORD -> "La contraseña no cumple los requisitos"
     FieldError.PASSWORDS_DONT_MATCH -> "Las contraseñas no coinciden"
