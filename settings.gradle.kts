@@ -1,12 +1,10 @@
-rootProject.name = "Gradus"
-
 pluginManagement {
     repositories {
         google {
-            content {
-                includeGroupByRegex("com\\.android.*")
-                includeGroupByRegex("com\\.google.*")
-                includeGroupByRegex("androidx.*")
+            mavenContent {
+                includeGroupAndSubgroups("androidx")
+                includeGroupAndSubgroups("com.android")
+                includeGroupAndSubgroups("com.google")
             }
         }
         mavenCentral()
@@ -18,7 +16,6 @@ plugins {
 }
 
 dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google {
             mavenContent {
@@ -27,14 +24,16 @@ dependencyResolutionManagement {
                 includeGroupAndSubgroups("com.google")
             }
         }
-        google()
         mavenCentral()
     }
 }
 
-rootProject.name = "Dominio"
+rootProject.name = "Gradus"
+
+// App nativa de Android (pantallas y lógica actuales).
 include(":app")
 
+// Módulos multiplataforma (KMP): lógica y UI compartibles con iOS.
 include(":androidApp")
 include(":sharedLogic")
 include(":sharedUI")
