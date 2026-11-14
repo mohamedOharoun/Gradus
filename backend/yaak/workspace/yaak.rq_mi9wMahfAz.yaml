@@ -12,7 +12,8 @@ body:
     {
       "name": " Ana ",
       "email": "Ana-${[ uuid.v4() ]}@ULPGC.es",
-      "password": "Gradus2026!"
+      "password": "Gradus2026!",
+      "acceptedTerms": true
     }
 bodyType: application/json
 description: Correo aleatorio en cada envío, así siempre devuelve 201. El nombre se guarda sin espacios y el correo en minúsculas.

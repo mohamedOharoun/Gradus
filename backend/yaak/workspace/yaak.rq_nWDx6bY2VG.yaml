@@ -13,6 +13,7 @@ body:
       "name": "Luis",
       "email": "luis-${[ uuid.v4() ]}@ulpgc.es",
       "password": "Gradus2026!",
+      "acceptedTerms": true,
       "admin": true
     }
 bodyType: application/json

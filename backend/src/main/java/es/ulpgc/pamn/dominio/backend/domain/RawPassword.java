@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.backend.domain;
 
+import es.ulpgc.pamn.dominio.backend.domain.validation.ErrorCode;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Result;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Rule;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Validation;
@@ -19,10 +20,10 @@ public record RawPassword(String value) {
 
     private static final String FIELD = "password";
     private static final List<Rule> RULES = List.of(
-            Rule.of(v -> lengthOf(v) >= MIN_LENGTH, "Debe tener al menos " + MIN_LENGTH + " caracteres."),
-            Rule.of(v -> contains(v, Character::isLetter), "Debe contener al menos una letra."),
-            Rule.of(v -> contains(v, Character::isDigit), "Debe contener al menos un número."),
-            Rule.of(v -> contains(v, RawPassword::isSpecial), "Debe contener al menos un carácter especial."));
+            Rule.of(v -> lengthOf(v) >= MIN_LENGTH, ErrorCode.TOO_SHORT, "Debe tener al menos " + MIN_LENGTH + " caracteres."),
+            Rule.of(v -> contains(v, Character::isLetter), ErrorCode.MISSING_LETTER, "Debe contener al menos una letra."),
+            Rule.of(v -> contains(v, Character::isDigit), ErrorCode.MISSING_DIGIT, "Debe contener al menos un número."),
+            Rule.of(v -> contains(v, RawPassword::isSpecial), ErrorCode.MISSING_SPECIAL_CHARACTER, "Debe contener al menos un carácter especial."));
 
     public RawPassword {
         Validation.requireValid(FIELD, value, RULES);

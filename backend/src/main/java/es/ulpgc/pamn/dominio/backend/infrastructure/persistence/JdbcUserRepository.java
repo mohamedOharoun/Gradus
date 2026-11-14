@@ -16,8 +16,8 @@ public final class JdbcUserRepository implements UserRepository {
     // ON CONFLICT (email) DO NOTHING: si el correo ya existe no inserta nada (0 filas) y no lanza error.
     // Comprobar e insertar ocurre en una sola sentencia atómica, sin carreras entre peticiones.
     private static final String INSERT_IF_EMAIL_IS_FREE = """
-            INSERT INTO users (id, name, email, password_hash, created_at)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO users (id, name, email, password_hash, created_at, terms_accepted_at)
+            VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT (email) DO NOTHING
             """;
 
@@ -36,6 +36,7 @@ public final class JdbcUserRepository implements UserRepository {
             insert.setString(3, user.email().value());
             insert.setString(4, user.passwordHash().value());
             insert.setObject(5, user.createdAt().atOffset(ZoneOffset.UTC));
+            insert.setObject(6, user.termsAcceptance().acceptedAt().atOffset(ZoneOffset.UTC));
             return insert.executeUpdate() == 1;
         } catch (SQLException e) {
             // Fallo inesperado (base de datos caída, etc.): no es un caso de negocio, así que se propaga.

@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class ResultTest {
 
-    private static final ValidationError ERROR = new ValidationError("field", "message");
+    private static final ValidationError ERROR = new ValidationError("field", ErrorCode.REQUIRED, "message");
 
     @Test
     void mapTransformsTheValueOfASuccess() {
@@ -61,7 +61,7 @@ class ResultTest {
         List<ValidationError> mutable = new ArrayList<>(List.of(ERROR));
         Result<String> result = Result.failure(mutable);
 
-        mutable.add(new ValidationError("other", "other"));
+        mutable.add(new ValidationError("other", ErrorCode.REQUIRED, "other"));
 
         List<ValidationError> errors = assertFailure(result);
         assertEquals(1, errors.size());
@@ -71,29 +71,31 @@ class ResultTest {
     @Test
     void combineAppliesTheFunctionWhenEveryResultIsASuccess() {
         Result<String> combined = Result.combine(
-                Result.success("a"), Result.success(2), Result.success(true),
-                (text, number, flag) -> text + number + flag);
+                Result.success("a"), Result.success(2), Result.success(true), Result.success('z'),
+                (text, number, flag, letter) -> text + number + flag + letter);
 
-        assertEquals("a2true", assertSuccess(combined));
+        assertEquals("a2truez", assertSuccess(combined));
     }
 
     @Test
     void combineAccumulatesTheErrorsOfEveryFailureInOrder() {
-        ValidationError first = new ValidationError("first", "1");
-        ValidationError third = new ValidationError("third", "3");
+        ValidationError first = new ValidationError("first", ErrorCode.TOO_SHORT, "1");
+        ValidationError third = new ValidationError("third", ErrorCode.TOO_LONG, "3");
+        ValidationError fourth = new ValidationError("fourth", ErrorCode.REQUIRED, "4");
 
         Result<String> combined = Result.combine(
-                Result.<String>failure(List.of(first)), Result.success(2), Result.<Boolean>failure(List.of(third)),
-                (text, number, flag) -> text + number + flag);
+                Result.<String>failure(List.of(first)), Result.success(2),
+                Result.<Boolean>failure(List.of(third)), Result.<Character>failure(List.of(fourth)),
+                (text, number, flag, letter) -> text + number + flag + letter);
 
-        assertEquals(List.of(first, third), assertFailure(combined));
+        assertEquals(List.of(first, third, fourth), assertFailure(combined));
     }
 
     @Test
     void combineDoesNotCallTheFunctionWhenThereIsAFailure() {
         Result<String> combined = Result.combine(
-                Result.success("a"), Result.<Integer>failure(List.of(ERROR)), Result.success(true),
-                (text, number, flag) -> {
+                Result.success("a"), Result.<Integer>failure(List.of(ERROR)), Result.success(true), Result.success('z'),
+                (text, number, flag, letter) -> {
                     throw new AssertionError("No debería llamarse");
                 });
 

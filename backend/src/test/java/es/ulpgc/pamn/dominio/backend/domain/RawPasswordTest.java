@@ -1,13 +1,16 @@
 package es.ulpgc.pamn.dominio.backend.domain;
 
+import es.ulpgc.pamn.dominio.backend.domain.validation.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.List;
 
 import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.assertFailure;
 import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.assertSuccess;
-import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.messagesFor;
+import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.codesFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -27,27 +30,28 @@ class RawPasswordTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-            "Ab1!xyz",      // 7 caracteres
-            "12345678!",    // sin letra
-            "Gradus!!!",    // sin número
-            "Gradus2026",   // sin carácter especial
-            "Gradus 2026"   // el espacio no cuenta como carácter especial
+    @CsvSource({
+            "Ab1!xyz,     TOO_SHORT",                  // 7 caracteres
+            "12345678!,   MISSING_LETTER",
+            "Gradus!!!,   MISSING_DIGIT",
+            "Gradus2026,  MISSING_SPECIAL_CHARACTER",
+            "Gradus 2026, MISSING_SPECIAL_CHARACTER"   // el espacio no cuenta como carácter especial
     })
-    void rejectsPasswordsThatBreakOneRule(String raw) {
-        assertEquals(1, messagesFor("password", assertFailure(RawPassword.of(raw))).size());
+    void reportsWhichRuleIsBroken(String raw, ErrorCode expected) {
+        assertEquals(List.of(expected), codesFor("password", assertFailure(RawPassword.of(raw))));
     }
 
     @Test
     void reportsEveryBrokenRuleAtOnce() {
-        // Corta, sin número y sin carácter especial: tres errores.
-        assertEquals(3, messagesFor("password", assertFailure(RawPassword.of("abc"))).size());
+        assertEquals(
+                List.of(ErrorCode.TOO_SHORT, ErrorCode.MISSING_DIGIT, ErrorCode.MISSING_SPECIAL_CHARACTER),
+                codesFor("password", assertFailure(RawPassword.of("abc"))));
     }
 
     @ParameterizedTest
     @NullSource
     void rejectsNull(String raw) {
-        assertEquals(1, messagesFor("password", assertFailure(RawPassword.of(raw))).size());
+        assertEquals(List.of(ErrorCode.REQUIRED), codesFor("password", assertFailure(RawPassword.of(raw))));
     }
 
     @Test

@@ -1,15 +1,17 @@
 package es.ulpgc.pamn.dominio.backend.domain;
 
+import es.ulpgc.pamn.dominio.backend.domain.validation.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
+
 import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.assertFailure;
 import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.assertSuccess;
-import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.messagesFor;
+import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.codesFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class EmailTest {
@@ -28,20 +30,20 @@ class EmailTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "sin-arroba", "a@b", "a@@b.com", "a b@c.com", "a@b..com", "@b.com", "a@.com"})
     void rejectsInvalidFormats(String raw) {
-        assertFalse(messagesFor("email", assertFailure(Email.of(raw))).isEmpty());
+        assertEquals(List.of(ErrorCode.INVALID_EMAIL), codesFor("email", assertFailure(Email.of(raw))));
     }
 
     @Test
     void rejectsEmailsThatAreTooLong() {
         String tooLong = "a".repeat(Email.MAX_LENGTH) + "@b.com";
 
-        assertFalse(messagesFor("email", assertFailure(Email.of(tooLong))).isEmpty());
+        assertEquals(List.of(ErrorCode.TOO_LONG), codesFor("email", assertFailure(Email.of(tooLong))));
     }
 
     @ParameterizedTest
     @NullSource
     void rejectsNull(String raw) {
-        assertEquals(1, messagesFor("email", assertFailure(Email.of(raw))).size());
+        assertEquals(List.of(ErrorCode.REQUIRED), codesFor("email", assertFailure(Email.of(raw))));
     }
 
     @Test

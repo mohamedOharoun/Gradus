@@ -41,22 +41,24 @@ public sealed interface Result<T> permits Result.Success, Result.Failure {
         return errors.isEmpty() ? success(factory.get()) : failure(errors);
     }
 
-    /** Función de tres argumentos (Java solo trae {@code Function} y {@code BiFunction}). */
+    /** Función de cuatro argumentos (Java solo trae {@code Function} y {@code BiFunction}). */
     @FunctionalInterface
-    interface Function3<A, B, C, R> {
-        R apply(A a, B b, C c);
+    interface Function4<A, B, C, D, R> {
+        R apply(A a, B b, C c, D d);
     }
 
     /**
-     * Une tres resultados independientes. Si todos son éxito, aplica {@code combiner} a sus valores;
+     * Une cuatro resultados independientes. Si todos son éxito, aplica {@code combiner} a sus valores;
      * si no, devuelve los errores de <b>todos</b> los fallos (no solo del primero).
      */
-    static <A, B, C, R> Result<R> combine(Result<A> first, Result<B> second, Result<C> third,
-                                          Function3<? super A, ? super B, ? super C, ? extends R> combiner) {
-        if (first instanceof Success<A>(A a) && second instanceof Success<B>(B b) && third instanceof Success<C>(C c)) {
-            return success(combiner.apply(a, b, c));
+    static <A, B, C, D, R> Result<R> combine(
+            Result<A> first, Result<B> second, Result<C> third, Result<D> fourth,
+            Function4<? super A, ? super B, ? super C, ? super D, ? extends R> combiner) {
+        if (first instanceof Success<A>(A a) && second instanceof Success<B>(B b)
+                && third instanceof Success<C>(C c) && fourth instanceof Success<D>(D d)) {
+            return success(combiner.apply(a, b, c, d));
         }
-        return failure(Stream.of(first, second, third).flatMap(Result::errorsOf).toList());
+        return failure(Stream.of(first, second, third, fourth).flatMap(Result::errorsOf).toList());
     }
 
     private static Stream<ValidationError> errorsOf(Result<?> result) {

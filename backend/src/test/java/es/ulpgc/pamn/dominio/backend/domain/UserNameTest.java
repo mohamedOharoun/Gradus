@@ -1,15 +1,17 @@
 package es.ulpgc.pamn.dominio.backend.domain;
 
+import es.ulpgc.pamn.dominio.backend.domain.validation.ErrorCode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.List;
+
 import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.assertFailure;
 import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.assertSuccess;
-import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.messagesFor;
+import static es.ulpgc.pamn.dominio.backend.domain.validation.ResultAssertions.codesFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class UserNameTest {
@@ -34,14 +36,14 @@ class UserNameTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "A", "   ", " A "})
     void rejectsNamesThatAreTooShort(String raw) {
-        assertFalse(messagesFor("name", assertFailure(UserName.of(raw))).isEmpty());
+        assertEquals(List.of(ErrorCode.TOO_SHORT), codesFor("name", assertFailure(UserName.of(raw))));
     }
 
     @Test
     void rejectsNamesThatAreTooLong() {
         String tooLong = "a".repeat(UserName.MAX_LENGTH + 1);
 
-        assertFalse(messagesFor("name", assertFailure(UserName.of(tooLong))).isEmpty());
+        assertEquals(List.of(ErrorCode.TOO_LONG), codesFor("name", assertFailure(UserName.of(tooLong))));
     }
 
     @Test
@@ -55,7 +57,7 @@ class UserNameTest {
     @ParameterizedTest
     @NullSource
     void rejectsNull(String raw) {
-        assertEquals(1, messagesFor("name", assertFailure(UserName.of(raw))).size());
+        assertEquals(List.of(ErrorCode.REQUIRED), codesFor("name", assertFailure(UserName.of(raw))));
     }
 
     @Test

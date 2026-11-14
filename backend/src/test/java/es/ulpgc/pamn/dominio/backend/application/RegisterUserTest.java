@@ -3,6 +3,9 @@ package es.ulpgc.pamn.dominio.backend.application;
 import es.ulpgc.pamn.dominio.backend.domain.User;
 import es.ulpgc.pamn.dominio.backend.domain.validation.ValidationError;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.Clock;
 import java.time.Instant;
@@ -33,7 +36,7 @@ class RegisterUserTest {
 
     @Test
     void registersAValidUser() {
-        var result = registerUser.register(new RegisterUserCommand(" Ana ", "Ana@ULPGC.es", VALID_PASSWORD));
+        var result = registerUser.register(new RegisterUserCommand(" Ana ", "Ana@ULPGC.es", VALID_PASSWORD, true));
 
         User user = assertInstanceOf(RegistrationResult.Registered.class, result).user();
         assertEquals(ID, user.id());
@@ -41,22 +44,35 @@ class RegisterUserTest {
         assertEquals("ana@ulpgc.es", user.email().value());
         assertEquals("fake$" + VALID_PASSWORD, user.passwordHash().value());
         assertEquals(NOW, user.createdAt());
+        assertEquals(NOW, user.termsAcceptance().acceptedAt());
         assertEquals(List.of(user), repository.all());
     }
 
     @Test
     void rejectsInvalidDataReportingEveryFieldAtOnce() {
-        var result = registerUser.register(new RegisterUserCommand("A", "no-es-un-correo", "abc"));
+        var result = registerUser.register(new RegisterUserCommand("A", "no-es-un-correo", "abc", false));
 
         List<ValidationError> errors = assertInstanceOf(RegistrationResult.Rejected.class, result).errors();
         Set<String> fields = errors.stream().map(ValidationError::field).collect(Collectors.toSet());
-        assertEquals(Set.of("name", "email", "password"), fields);
-        assertEquals(5, errors.size()); // 1 del nombre + 1 del correo + 3 de la contraseña
+        assertEquals(Set.of("name", "email", "password", "acceptedTerms"), fields);
+        assertEquals(6, errors.size()); // 1 del nombre + 1 del correo + 3 de la contraseña + 1 de los términos
+    }
+
+    @ParameterizedTest
+    @NullSource
+    @ValueSource(booleans = false)
+    void rejectsValidDataWhenTheTermsAreNotAccepted(Boolean acceptedTerms) {
+        var result = registerUser.register(new RegisterUserCommand("Ana", "ana@ulpgc.es", VALID_PASSWORD, acceptedTerms));
+
+        List<ValidationError> errors = assertInstanceOf(RegistrationResult.Rejected.class, result).errors();
+        assertEquals(List.of("acceptedTerms"), errors.stream().map(ValidationError::field).toList());
+        assertEquals(0, hasher.hashCalls());
+        assertTrue(repository.all().isEmpty());
     }
 
     @Test
     void doesNotHashNorStoreWhenDataIsInvalid() {
-        registerUser.register(new RegisterUserCommand(null, null, null));
+        registerUser.register(new RegisterUserCommand(null, null, null, null));
 
         assertEquals(0, hasher.hashCalls());
         assertTrue(repository.all().isEmpty());
@@ -64,9 +80,9 @@ class RegisterUserTest {
 
     @Test
     void rejectsAnEmailThatIsAlreadyRegisteredIgnoringCase() {
-        registerUser.register(new RegisterUserCommand("Ana", "ana@ulpgc.es", VALID_PASSWORD));
+        registerUser.register(new RegisterUserCommand("Ana", "ana@ulpgc.es", VALID_PASSWORD, true));
 
-        var result = registerUser.register(new RegisterUserCommand("Otra Ana", "ANA@ulpgc.es", VALID_PASSWORD));
+        var result = registerUser.register(new RegisterUserCommand("Otra Ana", "ANA@ulpgc.es", VALID_PASSWORD, true));
 
         var taken = assertInstanceOf(RegistrationResult.EmailAlreadyRegistered.class, result);
         assertEquals("ana@ulpgc.es", taken.email().value());
@@ -75,17 +91,21 @@ class RegisterUserTest {
     }
 
     @Test
-    void storesCreationTimeWithTheMicrosecondPrecisionOfPostgres() {
+    void storesBothMomentsWithTheMicrosecondPrecisionOfPostgres() {
         Instant withNanos = Instant.parse("2026-11-13T10:00:00.123456789Z");
+        Instant withMicros = Instant.parse("2026-11-13T10:00:00.123456Z");
 
-        var result = registerUserAt(withNanos).register(new RegisterUserCommand("Ana", "ana@ulpgc.es", VALID_PASSWORD));
+        var result = registerUserAt(withNanos).register(new RegisterUserCommand("Ana", "ana@ulpgc.es", VALID_PASSWORD, true));
 
         User user = assertInstanceOf(RegistrationResult.Registered.class, result).user();
-        assertEquals(Instant.parse("2026-11-13T10:00:00.123456Z"), user.createdAt());
+        assertEquals(withMicros, user.createdAt());
+        assertEquals(withMicros, user.termsAcceptance().acceptedAt());
     }
 
     @Test
     void commandToStringNeverRevealsThePassword() {
-        assertFalse(new RegisterUserCommand("Ana", "ana@ulpgc.es", VALID_PASSWORD).toString().contains(VALID_PASSWORD));
+        String text = new RegisterUserCommand("Ana", "ana@ulpgc.es", VALID_PASSWORD, true).toString();
+
+        assertFalse(text.contains(VALID_PASSWORD));
     }
 }

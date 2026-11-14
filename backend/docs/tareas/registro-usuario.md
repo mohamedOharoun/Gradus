@@ -57,6 +57,8 @@ PostgreSQL con la contraseña hasheada (PBKDF2 con sal aleatoria por usuario).
 - 2026-11-13: paso 5 hecho (77 tests en verde). Probado con `curl`: 201, 409, 400 por validación,
   400 por campos ausentes, 400 por JSON roto o con campos desconocidos; usuario guardado con hash PBKDF2.
 - **Tarea completada.**
+- 2026-11-14: el contrato cambia en `docs/tareas/registro-cuentas-reales.md` (raíz del repositorio):
+  la petición lleva también `acceptedTerms` y se guarda `terms_accepted_at`.
 
 ## Pendiente para más adelante
 

@@ -31,4 +31,12 @@ public final class ResultAssertions {
                 .map(ValidationError::message)
                 .toList();
     }
+
+    /** Devuelve solo los códigos de error de un campo concreto, en orden. */
+    public static List<ErrorCode> codesFor(String field, List<ValidationError> errors) {
+        return errors.stream()
+                .filter(error -> error.field().equals(field))
+                .map(ValidationError::code)
+                .toList();
+    }
 }

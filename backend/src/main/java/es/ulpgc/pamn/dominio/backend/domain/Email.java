@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.backend.domain;
 
+import es.ulpgc.pamn.dominio.backend.domain.validation.ErrorCode;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Result;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Rule;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Validation;
@@ -19,8 +20,8 @@ public record Email(String value) {
     // Pragmático, no RFC completo: algo@dominio.ext, sin espacios ni etiquetas de dominio vacías.
     private static final Pattern FORMAT = Pattern.compile("^[^\\s@]+@[^\\s@.]+(\\.[^\\s@.]+)+$");
     private static final List<Rule> RULES = List.of(
-            Rule.of(v -> FORMAT.matcher(v).matches(), "No tiene un formato de correo válido."),
-            Rule.of(v -> lengthOf(v) <= MAX_LENGTH, "No puede superar los " + MAX_LENGTH + " caracteres."));
+            Rule.of(v -> FORMAT.matcher(v).matches(), ErrorCode.INVALID_EMAIL, "No tiene un formato de correo válido."),
+            Rule.of(v -> lengthOf(v) <= MAX_LENGTH, ErrorCode.TOO_LONG, "No puede superar los " + MAX_LENGTH + " caracteres."));
 
     public Email {
         value = normalize(value);

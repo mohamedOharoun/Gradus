@@ -2,11 +2,13 @@ package es.ulpgc.pamn.dominio.backend.application;
 
 import es.ulpgc.pamn.dominio.backend.domain.Email;
 import es.ulpgc.pamn.dominio.backend.domain.RawPassword;
+import es.ulpgc.pamn.dominio.backend.domain.TermsAcceptance;
 import es.ulpgc.pamn.dominio.backend.domain.User;
 import es.ulpgc.pamn.dominio.backend.domain.UserName;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Result;
 
 import java.time.Clock;
+import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
@@ -28,19 +30,21 @@ public final class RegisterUser {
     }
 
     public RegistrationResult register(RegisterUserCommand command) {
+        // El reloj se lee una sola vez: el alta y la aceptación de los términos ocurren en el mismo momento.
+        // PostgreSQL guarda microsegundos: truncamos para que lo devuelto coincida con lo guardado.
+        Instant now = clock.instant().truncatedTo(ChronoUnit.MICROS);
         return Result.combine(
                         UserName.of(command.name()),
                         Email.of(command.email()),
                         RawPassword.of(command.password()),
-                        this::newUser)
+                        TermsAcceptance.of(command.acceptedTerms(), now),
+                        (name, email, password, terms) -> newUser(name, email, password, terms, now))
                 .fold(RegistrationResult.Rejected::new, this::store);
     }
 
-    /** Solo se llama si los tres campos son válidos, así que nunca se hashea una contraseña inválida. */
-    private User newUser(UserName name, Email email, RawPassword password) {
-        // PostgreSQL guarda microsegundos: truncamos para que lo devuelto coincida con lo guardado.
-        return new User(idGenerator.get(), name, email, hasher.hash(password),
-                clock.instant().truncatedTo(ChronoUnit.MICROS));
+    /** Solo se llama si todos los datos son válidos, así que nunca se hashea una contraseña inválida. */
+    private User newUser(UserName name, Email email, RawPassword password, TermsAcceptance terms, Instant now) {
+        return new User(idGenerator.get(), name, email, hasher.hash(password), now, terms);
     }
 
     private RegistrationResult store(User user) {

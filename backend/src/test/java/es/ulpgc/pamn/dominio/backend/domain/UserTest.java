@@ -15,19 +15,21 @@ class UserTest {
     private static final Email EMAIL = new Email("ana@ulpgc.es");
     private static final PasswordHash HASH = new PasswordHash("pbkdf2_sha256$1$c2Fs$aGFzaA==");
     private static final Instant CREATED_AT = Instant.parse("2026-11-13T10:00:00Z");
+    private static final TermsAcceptance TERMS = new TermsAcceptance(CREATED_AT);
 
     @Test
     void requiresEveryField() {
-        assertThrows(NullPointerException.class, () -> new User(null, NAME, EMAIL, HASH, CREATED_AT));
-        assertThrows(NullPointerException.class, () -> new User(ID, null, EMAIL, HASH, CREATED_AT));
-        assertThrows(NullPointerException.class, () -> new User(ID, NAME, null, HASH, CREATED_AT));
-        assertThrows(NullPointerException.class, () -> new User(ID, NAME, EMAIL, null, CREATED_AT));
-        assertThrows(NullPointerException.class, () -> new User(ID, NAME, EMAIL, HASH, null));
+        assertThrows(NullPointerException.class, () -> new User(null, NAME, EMAIL, HASH, CREATED_AT, TERMS));
+        assertThrows(NullPointerException.class, () -> new User(ID, null, EMAIL, HASH, CREATED_AT, TERMS));
+        assertThrows(NullPointerException.class, () -> new User(ID, NAME, null, HASH, CREATED_AT, TERMS));
+        assertThrows(NullPointerException.class, () -> new User(ID, NAME, EMAIL, null, CREATED_AT, TERMS));
+        assertThrows(NullPointerException.class, () -> new User(ID, NAME, EMAIL, HASH, null, TERMS));
+        assertThrows(NullPointerException.class, () -> new User(ID, NAME, EMAIL, HASH, CREATED_AT, null));
     }
 
     @Test
     void toStringNeverRevealsThePasswordHash() {
-        User user = new User(ID, NAME, EMAIL, HASH, CREATED_AT);
+        User user = new User(ID, NAME, EMAIL, HASH, CREATED_AT, TERMS);
 
         assertFalse(user.toString().contains(HASH.value()));
     }

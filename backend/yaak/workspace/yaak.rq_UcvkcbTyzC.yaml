@@ -12,10 +12,11 @@ body:
     {
       "name": "A",
       "email": "no-es-un-correo",
-      "password": "abc"
+      "password": "abc",
+      "acceptedTerms": false
     }
 bodyType: application/json
-description: 'Devuelve los 5 errores a la vez: 1 del nombre, 1 del correo y 3 de la contraseña.'
+description: 'Devuelve los 6 errores a la vez: 1 del nombre, 1 del correo, 3 de la contraseña y 1 de los términos sin aceptar.'
 headers:
 - enabled: true
   name: Content-Type

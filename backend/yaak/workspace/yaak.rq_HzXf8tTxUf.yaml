@@ -10,7 +10,7 @@ authenticationType: null
 body:
   text: '{}'
 bodyType: application/json
-description: 'Cuerpo vacío: los tres campos dan «Es obligatorio.».'
+description: 'Cuerpo vacío: nombre, correo y contraseña dan «Es obligatorio.», y los términos, que hay que aceptarlos.'
 headers:
 - enabled: true
   name: Content-Type

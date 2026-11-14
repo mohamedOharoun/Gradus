@@ -12,7 +12,8 @@ body:
     {
       "name": "Repetido",
       "email": "repetido@ulpgc.es",
-      "password": "Gradus2026!"
+      "password": "Gradus2026!",
+      "acceptedTerms": true
     }
 bodyType: application/json
 description: 'Envíala dos veces: la primera da 201 (si la base de datos está vacía) y la segunda 409.'

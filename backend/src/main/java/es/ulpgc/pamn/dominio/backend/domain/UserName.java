@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.backend.domain;
 
+import es.ulpgc.pamn.dominio.backend.domain.validation.ErrorCode;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Result;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Rule;
 import es.ulpgc.pamn.dominio.backend.domain.validation.Validation;
@@ -16,8 +17,8 @@ public record UserName(String value) {
 
     private static final String FIELD = "name";
     private static final List<Rule> RULES = List.of(
-            Rule.of(v -> lengthOf(v) >= MIN_LENGTH, "Debe tener al menos " + MIN_LENGTH + " caracteres."),
-            Rule.of(v -> lengthOf(v) <= MAX_LENGTH, "No puede superar los " + MAX_LENGTH + " caracteres."));
+            Rule.of(v -> lengthOf(v) >= MIN_LENGTH, ErrorCode.TOO_SHORT, "Debe tener al menos " + MIN_LENGTH + " caracteres."),
+            Rule.of(v -> lengthOf(v) <= MAX_LENGTH, ErrorCode.TOO_LONG, "No puede superar los " + MAX_LENGTH + " caracteres."));
 
     public UserName {
         value = normalize(value);

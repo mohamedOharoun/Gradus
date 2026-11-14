@@ -13,11 +13,11 @@ public final class Validation {
     /** Devuelve todos los errores del campo (lista vacía si es válido). Un {@code null} solo da el error de obligatorio. */
     public static List<ValidationError> check(String field, String value, List<Rule> rules) {
         if (value == null) {
-            return List.of(new ValidationError(field, REQUIRED_MESSAGE));
+            return List.of(new ValidationError(field, ErrorCode.REQUIRED, REQUIRED_MESSAGE));
         }
         return rules.stream()
                 .filter(rule -> rule.isBrokenBy(value))
-                .map(rule -> new ValidationError(field, rule.message()))
+                .map(rule -> new ValidationError(field, rule.code(), rule.message()))
                 .toList();
     }
 
