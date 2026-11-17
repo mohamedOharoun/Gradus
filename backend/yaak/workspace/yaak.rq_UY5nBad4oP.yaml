@@ -1,0 +1,36 @@
+type: http_request
+model: http_request
+id: rq_UY5nBad4oP
+createdAt: 2026-11-17T08:45:36.367094788
+updatedAt: 2026-11-17T08:45:36.367095510
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_asqV36HdJ9
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: 'UNAUTHENTICATED y cabecera WWW-Authenticate: Bearer.'
+headers: []
+method: GET
+name: Sin token (401)
+sortPriority: 1.0
+url: ${[ baseUrl ]}/api/users/me
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

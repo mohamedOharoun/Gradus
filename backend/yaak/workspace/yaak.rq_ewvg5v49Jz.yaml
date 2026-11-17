@@ -1,0 +1,45 @@
+type: http_request
+model: http_request
+id: rq_ewvg5v49Jz
+createdAt: 2026-11-17T08:28:36.955779345
+updatedAt: 2026-11-17T08:28:36.955779866
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_tPJCbrSZJ3
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "email": " Repetido@ULPGC.es ",
+      "password": "Gradus2026!"
+    }
+bodyType: application/json
+description: Devuelve token, expiresAt (30 días después) y el usuario. El correo se normaliza igual que en el registro. Necesita que exista la cuenta de «Correo repetido (409)».
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Inicio de sesión válido (201)
+sortPriority: 0.0
+url: ${[ baseUrl ]}/api/sessions
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

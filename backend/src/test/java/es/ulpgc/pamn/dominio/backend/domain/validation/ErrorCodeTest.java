@@ -19,6 +19,7 @@ class ErrorCodeTest {
         assertEquals(Set.of(
                 "REQUIRED", "TOO_SHORT", "TOO_LONG", "INVALID_EMAIL",
                 "MISSING_LETTER", "MISSING_DIGIT", "MISSING_SPECIAL_CHARACTER",
-                "TERMS_NOT_ACCEPTED", "EMAIL_TAKEN", "MALFORMED_BODY"), names);
+                "TERMS_NOT_ACCEPTED", "EMAIL_TAKEN", "MALFORMED_BODY", "INVALID_CREDENTIALS",
+                "UNAUTHENTICATED"), names);
     }
 }

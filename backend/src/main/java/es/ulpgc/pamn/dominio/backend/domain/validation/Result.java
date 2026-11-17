@@ -2,6 +2,7 @@ package es.ulpgc.pamn.dominio.backend.domain.validation;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
@@ -39,6 +40,15 @@ public sealed interface Result<T> permits Result.Success, Result.Failure {
     /** Si no hay errores, construye el valor con {@code factory}; si los hay, ni siquiera lo intenta. */
     static <T> Result<T> validate(List<ValidationError> errors, Supplier<T> factory) {
         return errors.isEmpty() ? success(factory.get()) : failure(errors);
+    }
+
+    /** Como {@link #combine(Result, Result, Result, Result, Function4)}, pero con dos resultados. */
+    static <A, B, R> Result<R> combine(
+            Result<A> first, Result<B> second, BiFunction<? super A, ? super B, ? extends R> combiner) {
+        if (first instanceof Success<A>(A a) && second instanceof Success<B>(B b)) {
+            return success(combiner.apply(a, b));
+        }
+        return failure(Stream.of(first, second).flatMap(Result::errorsOf).toList());
     }
 
     /** Función de cuatro argumentos (Java solo trae {@code Function} y {@code BiFunction}). */

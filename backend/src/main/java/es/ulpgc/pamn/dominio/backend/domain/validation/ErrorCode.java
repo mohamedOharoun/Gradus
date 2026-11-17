@@ -19,5 +19,9 @@ public enum ErrorCode {
     /** Ya existe una cuenta con ese correo (respuesta 409). */
     EMAIL_TAKEN,
     /** El cuerpo no es un JSON válido o no encaja con lo esperado (campo «body»). */
-    MALFORMED_BODY
+    MALFORMED_BODY,
+    /** Correo o contraseña incorrectos al iniciar sesión; nunca se dice cuál de los dos (respuesta 401). */
+    INVALID_CREDENTIALS,
+    /** Falta el token, no existe o ha caducado: hay que volver a iniciar sesión (respuesta 401). */
+    UNAUTHENTICATED
 }

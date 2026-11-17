@@ -1,0 +1,40 @@
+type: http_request
+model: http_request
+id: rq_98hqyXGoVt
+createdAt: 2026-11-17T08:44:59.721430950
+updatedAt: 2026-11-17T08:44:59.721431581
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_asqV36HdJ9
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: Usa el token de la última respuesta de «Inicio de sesión válido (201)». Si da 401, vuelve a enviar esa petición para tener un token nuevo. Cada uso renueva la sesión 30 días.
+headers:
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_ewvg5v49Jz', path='$.token') ]}
+  id: null
+method: GET
+name: Mi usuario (200)
+sortPriority: 0.0
+url: ${[ baseUrl ]}/api/users/me
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

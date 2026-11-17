@@ -1,14 +1,23 @@
 package es.ulpgc.pamn.dominio.backend.infrastructure.persistence;
 
 import es.ulpgc.pamn.dominio.backend.application.UserRepository;
+import es.ulpgc.pamn.dominio.backend.domain.Email;
+import es.ulpgc.pamn.dominio.backend.domain.PasswordHash;
+import es.ulpgc.pamn.dominio.backend.domain.TermsAcceptance;
 import es.ulpgc.pamn.dominio.backend.domain.User;
+import es.ulpgc.pamn.dominio.backend.domain.UserName;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.time.ZoneOffset;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
+
+import static es.ulpgc.pamn.dominio.backend.infrastructure.persistence.Timestamps.fromColumn;
+import static es.ulpgc.pamn.dominio.backend.infrastructure.persistence.Timestamps.toColumn;
 
 /** {@link UserRepository} sobre PostgreSQL con JDBC. */
 public final class JdbcUserRepository implements UserRepository {
@@ -20,6 +29,13 @@ public final class JdbcUserRepository implements UserRepository {
             VALUES (?, ?, ?, ?, ?, ?)
             ON CONFLICT (email) DO NOTHING
             """;
+
+    private static final String SELECT_USER = """
+            SELECT id, name, email, password_hash, created_at, terms_accepted_at
+            FROM users
+            """;
+    private static final String SELECT_BY_EMAIL = SELECT_USER + "WHERE email = ?";
+    private static final String SELECT_BY_ID = SELECT_USER + "WHERE id = ?";
 
     private final DataSource dataSource;
 
@@ -35,12 +51,46 @@ public final class JdbcUserRepository implements UserRepository {
             insert.setString(2, user.name().value());
             insert.setString(3, user.email().value());
             insert.setString(4, user.passwordHash().value());
-            insert.setObject(5, user.createdAt().atOffset(ZoneOffset.UTC));
-            insert.setObject(6, user.termsAcceptance().acceptedAt().atOffset(ZoneOffset.UTC));
+            insert.setObject(5, toColumn(user.createdAt()));
+            insert.setObject(6, toColumn(user.termsAcceptance().acceptedAt()));
             return insert.executeUpdate() == 1;
         } catch (SQLException e) {
             // Fallo inesperado (base de datos caída, etc.): no es un caso de negocio, así que se propaga.
             throw new IllegalStateException("No se pudo guardar el usuario " + user.id(), e);
         }
+    }
+
+    @Override
+    public Optional<User> findByEmail(Email email) {
+        return findOne(SELECT_BY_EMAIL, email.value());
+    }
+
+    @Override
+    public Optional<User> findById(UUID id) {
+        return findOne(SELECT_BY_ID, id);
+    }
+
+    /** Ejecuta una consulta que devuelve como mucho un usuario (correo e id son únicos). */
+    private Optional<User> findOne(String sql, Object key) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement select = connection.prepareStatement(sql)) {
+            select.setObject(1, key);
+            try (ResultSet row = select.executeQuery()) {
+                return row.next() ? Optional.of(toUser(row)) : Optional.empty();
+            }
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo buscar el usuario", e);
+        }
+    }
+
+    /** Convierte la fila actual en un {@link User}; los constructores vuelven a comprobar los datos. */
+    private static User toUser(ResultSet row) throws SQLException {
+        return new User(
+                row.getObject("id", UUID.class),
+                new UserName(row.getString("name")),
+                new Email(row.getString("email")),
+                new PasswordHash(row.getString("password_hash")),
+                fromColumn(row, "created_at"),
+                new TermsAcceptance(fromColumn(row, "terms_accepted_at")));
     }
 }

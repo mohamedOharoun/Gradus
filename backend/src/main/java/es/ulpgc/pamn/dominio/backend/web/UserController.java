@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.backend.web;
 
+import es.ulpgc.pamn.dominio.backend.application.AuthenticationResult;
 import es.ulpgc.pamn.dominio.backend.application.RegisterUser;
 import es.ulpgc.pamn.dominio.backend.application.RegistrationResult;
 import es.ulpgc.pamn.dominio.backend.domain.validation.ErrorCode;
@@ -32,5 +33,10 @@ public final class UserController {
                     .status(HttpStatus.CONFLICT)
                     .json(ErrorResponse.of("email", ErrorCode.EMAIL_TAKEN, "Ya existe una cuenta con este correo."));
         }
+    }
+
+    /** {@code GET /api/users/me}: quién es el dueño del token. Protegida con {@link RequireSession}. */
+    public void me(Context ctx, AuthenticationResult.Authenticated authenticated) {
+        ctx.json(UserResponse.from(authenticated.user()));
     }
 }

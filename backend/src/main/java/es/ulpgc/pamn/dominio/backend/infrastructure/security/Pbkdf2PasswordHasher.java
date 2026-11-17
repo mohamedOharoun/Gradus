@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.backend.infrastructure.security;
 
 import es.ulpgc.pamn.dominio.backend.application.PasswordHasher;
+import es.ulpgc.pamn.dominio.backend.domain.LoginPassword;
 import es.ulpgc.pamn.dominio.backend.domain.PasswordHash;
 import es.ulpgc.pamn.dominio.backend.domain.RawPassword;
 
@@ -22,12 +23,16 @@ public final class Pbkdf2PasswordHasher implements PasswordHasher {
 
     private final int iterations;
     private final SecureRandom random = new SecureRandom();
+    private final PasswordHash decoy;
 
     private Pbkdf2PasswordHasher(int iterations) {
         if (iterations < 1) {
             throw new IllegalArgumentException("Las iteraciones deben ser positivas");
         }
         this.iterations = iterations;
+        // Sal y hash al azar: tiene el formato y las iteraciones de uno real, pero no procede de
+        // ninguna contraseña, así que nada coincide con él (salvo con probabilidad 1 entre 2^256).
+        this.decoy = new PasswordHash(new Pbkdf2Hash(iterations, randomBytes(SALT_BYTES), randomBytes(HASH_BITS / 8)).encode());
     }
 
     public static Pbkdf2PasswordHasher withDefaults() {
@@ -40,21 +45,31 @@ public final class Pbkdf2PasswordHasher implements PasswordHasher {
 
     @Override
     public PasswordHash hash(RawPassword password) {
-        byte[] salt = new byte[SALT_BYTES];
-        random.nextBytes(salt);
-        return new PasswordHash(new Pbkdf2Hash(iterations, salt, derive(password, salt, iterations)).encode());
+        byte[] salt = randomBytes(SALT_BYTES);
+        return new PasswordHash(new Pbkdf2Hash(iterations, salt, derive(password.value(), salt, iterations)).encode());
     }
 
     @Override
-    public boolean matches(RawPassword password, PasswordHash hash) {
+    public boolean matches(LoginPassword password, PasswordHash hash) {
         return Pbkdf2Hash.decode(hash.value())
                 // Se usan la sal y las iteraciones guardadas, no las actuales.
-                .map(stored -> MessageDigest.isEqual(stored.hash(), derive(password, stored.salt(), stored.iterations())))
+                .map(stored -> MessageDigest.isEqual(stored.hash(), derive(password.value(), stored.salt(), stored.iterations())))
                 .orElse(false);
     }
 
-    private static byte[] derive(RawPassword password, byte[] salt, int iterations) {
-        PBEKeySpec spec = new PBEKeySpec(password.value().toCharArray(), salt, iterations, HASH_BITS);
+    @Override
+    public PasswordHash decoyHash() {
+        return decoy;
+    }
+
+    private byte[] randomBytes(int count) {
+        byte[] bytes = new byte[count];
+        random.nextBytes(bytes);
+        return bytes;
+    }
+
+    private static byte[] derive(String password, byte[] salt, int iterations) {
+        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, iterations, HASH_BITS);
         try {
             return SecretKeyFactory.getInstance(JCA_ALGORITHM).generateSecret(spec).getEncoded();
         } catch (GeneralSecurityException e) {

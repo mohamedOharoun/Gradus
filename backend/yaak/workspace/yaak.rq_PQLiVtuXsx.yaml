@@ -1,0 +1,45 @@
+type: http_request
+model: http_request
+id: rq_PQLiVtuXsx
+createdAt: 2026-11-17T08:28:37.054215266
+updatedAt: 2026-11-17T08:28:37.054215997
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_tPJCbrSZJ3
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "email": "no-es-un-correo",
+      "password": "Gradus2026!"
+    }
+bodyType: application/json
+description: 'INVALID_EMAIL. No se busca en la base de datos: el formato ya dice que no puede existir.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Correo mal formado (400)
+sortPriority: 4.0
+url: ${[ baseUrl ]}/api/sessions
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

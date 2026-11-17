@@ -1,0 +1,34 @@
+type: folder
+model: folder
+id: fl_tPJCbrSZJ3
+createdAt: 2026-11-17T08:27:42.667384225
+updatedAt: 2026-11-17T08:27:42.667393313
+workspaceId: wk_kGqZSBRAjF
+folderId: null
+authentication: {}
+authenticationType: null
+description: 'POST /api/sessions. Usa la cuenta de «Correo repetido (409)»: envíala antes una vez si la base de datos está vacía.'
+headers: []
+name: Sesiones · Inicio de sesión
+sortPriority: 1.0
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingRequestMessageSize:
+  enabled: false
+  value: 67108864
+settingHttpVersion:
+  enabled: false
+  value: auto

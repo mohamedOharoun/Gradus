@@ -1,0 +1,45 @@
+type: http_request
+model: http_request
+id: rq_fTcRHgDrWn
+createdAt: 2026-11-17T08:28:36.978142695
+updatedAt: 2026-11-17T08:28:36.978143216
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_tPJCbrSZJ3
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "email": "repetido@ulpgc.es",
+      "password": "Otra2026!!"
+    }
+bodyType: application/json
+description: 'INVALID_CREDENTIALS. Respuesta idéntica a «Correo inexistente (401)»: no se revela cuál de los dos falla.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Contraseña incorrecta (401)
+sortPriority: 1.0
+url: ${[ baseUrl ]}/api/sessions
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

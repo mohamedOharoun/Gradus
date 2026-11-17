@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.backend.infrastructure.security;
 
+import es.ulpgc.pamn.dominio.backend.domain.LoginPassword;
 import es.ulpgc.pamn.dominio.backend.domain.PasswordHash;
 import es.ulpgc.pamn.dominio.backend.domain.RawPassword;
 import org.junit.jupiter.api.Test;
@@ -18,7 +19,9 @@ class Pbkdf2PasswordHasherTest {
     private static final int FAST_ITERATIONS = 1_000;
 
     private static final RawPassword PASSWORD = new RawPassword("Gradus2026!");
-    private static final RawPassword OTHER_PASSWORD = new RawPassword("Otra2026!!");
+    // Lo que escribe el usuario al iniciar sesión.
+    private static final LoginPassword SAME_ATTEMPT = new LoginPassword("Gradus2026!");
+    private static final LoginPassword OTHER_ATTEMPT = new LoginPassword("Otra2026!!");
 
     private final Pbkdf2PasswordHasher hasher = Pbkdf2PasswordHasher.withIterations(FAST_ITERATIONS);
 
@@ -46,13 +49,13 @@ class Pbkdf2PasswordHasherTest {
         PasswordHash first = hasher.hash(PASSWORD);
         PasswordHash second = hasher.hash(PASSWORD);
 
-        assertTrue(hasher.matches(PASSWORD, first));
-        assertTrue(hasher.matches(PASSWORD, second));
+        assertTrue(hasher.matches(SAME_ATTEMPT, first));
+        assertTrue(hasher.matches(SAME_ATTEMPT, second));
     }
 
     @Test
     void doesNotMatchADifferentPassword() {
-        assertFalse(hasher.matches(OTHER_PASSWORD, hasher.hash(PASSWORD)));
+        assertFalse(hasher.matches(OTHER_ATTEMPT, hasher.hash(PASSWORD)));
     }
 
     @Test
@@ -60,7 +63,7 @@ class Pbkdf2PasswordHasherTest {
         // Si algún día subimos las iteraciones, los usuarios antiguos deben poder seguir entrando.
         PasswordHash oldHash = hasher.hash(PASSWORD);
 
-        assertTrue(Pbkdf2PasswordHasher.withIterations(FAST_ITERATIONS * 2).matches(PASSWORD, oldHash));
+        assertTrue(Pbkdf2PasswordHasher.withIterations(FAST_ITERATIONS * 2).matches(SAME_ATTEMPT, oldHash));
     }
 
     @ParameterizedTest
@@ -73,7 +76,23 @@ class Pbkdf2PasswordHasherTest {
             "pbkdf2_sha256$1000$c2Fs"
     })
     void aMalformedHashSimplyDoesNotMatch(String malformed) {
-        assertFalse(hasher.matches(PASSWORD, new PasswordHash(malformed)));
+        assertFalse(hasher.matches(SAME_ATTEMPT, new PasswordHash(malformed)));
+    }
+
+    @Test
+    void theDecoyHashCostsTheSameToCheckAsARealOne() {
+        // Mismo algoritmo y mismas iteraciones: comprobarlo tarda lo mismo que con un usuario real.
+        String[] parts = hasher.decoyHash().value().split("\\$");
+
+        assertEquals(4, parts.length);
+        assertEquals("pbkdf2_sha256", parts[0]);
+        assertEquals(String.valueOf(FAST_ITERATIONS), parts[1]);
+    }
+
+    @Test
+    void noPasswordMatchesTheDecoyHash() {
+        assertFalse(hasher.matches(SAME_ATTEMPT, hasher.decoyHash()));
+        assertFalse(hasher.matches(OTHER_ATTEMPT, hasher.decoyHash()));
     }
 
     @Test

@@ -1,0 +1,40 @@
+type: http_request
+model: http_request
+id: rq_ffQVenqeRS
+createdAt: 2026-11-17T08:45:36.408398369
+updatedAt: 2026-11-17T08:45:36.408398900
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_asqV36HdJ9
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: Cierra solo la sesión de este token; las de otros dispositivos siguen abiertas. Después, «Mi usuario» da 401 hasta que vuelvas a enviar «Inicio de sesión válido (201)».
+headers:
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_ewvg5v49Jz', path='$.token') ]}
+  id: null
+method: DELETE
+name: Cerrar sesión (204)
+sortPriority: 3.0
+url: ${[ baseUrl ]}/api/sessions/current
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

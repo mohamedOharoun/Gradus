@@ -103,6 +103,36 @@ class ResultTest {
     }
 
     @Test
+    void combineOfTwoAppliesTheFunctionWhenBothAreSuccesses() {
+        Result<String> combined = Result.combine(Result.success("a"), Result.success(2), (text, number) -> text + number);
+
+        assertEquals("a2", assertSuccess(combined));
+    }
+
+    @Test
+    void combineOfTwoAccumulatesTheErrorsOfBothFailuresInOrder() {
+        ValidationError first = new ValidationError("first", ErrorCode.TOO_SHORT, "1");
+        ValidationError second = new ValidationError("second", ErrorCode.REQUIRED, "2");
+
+        Result<String> combined = Result.combine(
+                Result.<String>failure(List.of(first)), Result.<Integer>failure(List.of(second)),
+                (text, number) -> text + number);
+
+        assertEquals(List.of(first, second), assertFailure(combined));
+    }
+
+    @Test
+    void combineOfTwoDoesNotCallTheFunctionWhenThereIsAFailure() {
+        Result<String> combined = Result.combine(
+                Result.success("a"), Result.<Integer>failure(List.of(ERROR)),
+                (text, number) -> {
+                    throw new AssertionError("No debería llamarse");
+                });
+
+        assertEquals(List.of(ERROR), assertFailure(combined));
+    }
+
+    @Test
     void successDoesNotAcceptNull() {
         assertThrows(NullPointerException.class, () -> Result.success(null));
     }
