@@ -10,9 +10,9 @@ services:
       POSTGRES_PASSWORD: ${GRADUS_DB_PASSWORD}
     ports:
       - "${GRADUS_DB_PORT:-5432}:5432"
+    # Las tablas no las crea Docker: las migraciones de db/init las aplica ./gradus.sh, que lleva la
+    # cuenta de cuáles faltan en la tabla schema_migrations.
     volumes:
-      # Los .sql de esta carpeta se ejecutan solo la primera vez (con el volumen vacío)
-      - ./db/init:/docker-entrypoint-initdb.d:ro
       # En PostgreSQL 18 la imagen guarda los datos bajo /var/lib/postgresql
       - gradus-pgdata:/var/lib/postgresql
     healthcheck:

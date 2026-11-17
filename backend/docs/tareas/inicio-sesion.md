@@ -100,7 +100,7 @@ sobre el workspace sincronizado; `curl` queda solo como alternativa.
 ## Pendiente para más adelante
 
 - Límite de intentos de inicio de sesión (fuerza bruta).
-- Migraciones automáticas (Flyway u otra opción): ahora `003` se aplica a mano en volúmenes ya creados.
+- ~~Migraciones automáticas~~: resuelto el 2026-11-17 con `./gradus.sh` (ver `backend/README.md`).
 - Cada petición autenticada hace un `UPDATE`; si molestara, renovar solo si el último uso tiene más
   de, por ejemplo, una hora.
 - Al leer un usuario se vuelven a validar `UserName` y `Email`: si se endurecen sus reglas, las
