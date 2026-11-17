@@ -1,12 +1,16 @@
-# Registro con cuentas reales (app ↔ backend)
+# Cuentas reales (app ↔ backend)
 
-Anillo 2 de la especificación. Continúa `registro-login.md` (solo interfaz) y
-`backend/docs/tareas/registro-usuario.md` (endpoint `POST /api/users`).
+Anillo 2 de la especificación. Continúa `registro-login.md` (solo interfaz),
+`backend/docs/tareas/registro-usuario.md` (`POST /api/users`) y
+`backend/docs/tareas/inicio-sesion.md` (`POST /api/sessions`, `GET /api/users/me`,
+`DELETE /api/sessions/current`). El plan por pasos de la parte de la app está en
+`conexion-registro-app-backend.md`.
 
 ## Objetivo
 
-Que «Desliza para registrarte» cree una cuenta de verdad en el backend, y que la app y el servidor
-apliquen las mismas reglas y se entiendan en los errores.
+Que la app use cuentas de verdad: «Crear cuenta» (después, «Desliza para registrarte») crea la
+cuenta en el backend, «Entrar» inicia sesión con ella, y la app y el servidor aplican las mismas
+reglas y se entienden en los errores.
 
 ## Alcance
 
@@ -14,12 +18,30 @@ apliquen las mismas reglas y se entiendan en los errores.
 - Cada error del servidor lleva un código que la app puede traducir a su propio texto.
 - Mismas reglas en los dos lados (longitudes máximas y formato de correo).
 - La app llama a `POST /api/users` y muestra el envío, los errores del servidor y los de red.
+- La app inicia sesión con `POST /api/sessions` y guarda el token para las siguientes peticiones.
+- Al abrir la app con un token guardado, se comprueba con `GET /api/users/me` y se entra directo.
+- Cerrar sesión con `DELETE /api/sessions/current`.
 
 ## Fuera de alcance
 
-- Inicio de sesión real, tokens y recordar la sesión.
 - Enviar la repetición de la contraseña: es una comprobación de la interfaz contra erratas.
-- Verificación del correo y recuperación de la contraseña.
+- Verificación del correo, recuperación de la contraseña y segundo factor.
+- Servidor desplegado y HTTPS: de momento, backend local y emulador (`http://10.0.2.2:7070`).
+- gRPC (el camino queda preparado en `conexion-registro-app-backend.md`).
+
+## Contrato de la API
+
+Base en desarrollo: `http://localhost:7070` desde el ordenador (Yaak) y `http://10.0.2.2:7070`
+desde el emulador de Android (`10.0.2.2` es «el ordenador» visto desde el emulador).
+
+| Método y ruta | Cuerpo | Respuestas |
+|---|---|---|
+| `POST /api/users` | `{name, email, password, acceptedTerms}` | `201` usuario · `400` errores · `409` `EMAIL_TAKEN` |
+| `POST /api/sessions` | `{email, password}` | `201` `{token, expiresAt, user}` · `400` · `401` `INVALID_CREDENTIALS` |
+| `GET /api/users/me` | — (cabecera `Authorization: Bearer <token>`) | `200` usuario · `401` `UNAUTHENTICATED` |
+| `DELETE /api/sessions/current` | — (cabecera `Authorization: Bearer <token>`) | `204` · `401` `UNAUTHENTICATED` |
+
+Usuario: `{id, name, email, createdAt}` (fechas en ISO‑8601). Nunca se devuelve la contraseña.
 
 ## Tareas
 
@@ -35,17 +57,39 @@ apliquen las mismas reglas y se entiendan en los errores.
   de correo en los dos lados, campo vacío = `REQUIRED` en el backend y longitudes en caracteres
   reales en la app (un emoji cuenta 1).
   *Acepta si:* una misma lista de casos da el mismo resultado en los tests de la app y del backend.
-- [ ] **4. App: llamada real.** Permiso de internet, cliente HTTP, estados de envío y de error en
-  `RegisterViewModel`. Se dividirá en pasos al empezarla (necesita aprobar una dependencia y tocar
-  el manifiesto). Coordinar con T10 y T11 de `registro-login.md`.
-  Plan por pasos en `conexion-registro-app-backend.md`.
+- [ ] **4. App: registro real.** Permiso de internet, cliente HTTP, estados de envío y de error en
+  `RegisterViewModel`. Plan por pasos (1 a 9) en `conexion-registro-app-backend.md`. Coordinar
+  con T10 y T11 de `registro-login.md`.
   *Acepta si:* desde el emulador se crea una cuenta que aparece en la tabla `users`; un correo
   repetido se muestra en el paso del correo; sin red se avisa y se puede reintentar.
+- [ ] **5. App: inicio de sesión real.** El puerto `AccountGateway` gana `logIn(email, password)`
+  con su resultado sellado (`LoggedIn(session)`, `Rejected`, `InvalidCredentials`, `Unreachable`,
+  `ServerFailure`); el adaptador HTTP traduce 201/400/401. `LoginViewModel` hace la llamada y
+  `LoginForm` muestra «Correo o contraseña incorrectos» sin decir cuál de los dos.
+  Reutiliza el cliente HTTP, el `AppContainer` y la red de Android de la tarea 4.
+  *Acepta si:* con una cuenta creada en la tarea 4 se entra a Inicio; con contraseña errónea o
+  correo inexistente se ve el mismo aviso; sin red se avisa y se puede reintentar.
+- [ ] **6. App: recordar la sesión.** Puerto `SessionStore` (guardar, leer y borrar el token) en
+  `sharedLogic`; adaptador Android que lo guarda cifrado. Al arrancar: si hay token,
+  `GET /api/users/me` → Inicio; si responde 401, se borra y se va a Bienvenida. Cerrar sesión
+  llama a `DELETE /api/sessions/current` y borra el token aunque no haya red.
+  Necesita aprobar dependencia (ver «Decisiones pendientes»).
+  *Acepta si:* cerrar y reabrir la app mantiene la sesión; tras cerrar sesión, `GET /api/users/me`
+  desde Yaak con ese token da 401; el token no aparece en logs.
+
+## Decisiones pendientes
+
+1. **Tras registrarse, ¿se inicia sesión sola?** `POST /api/users` no devuelve token, así que hoy la
+   app llegaría a Inicio sin sesión. Propuesta: la app llama a `POST /api/sessions` justo después
+   del 201 (sin tocar el backend). Alternativa: que el registro devuelva ya la sesión (cambia el
+   contrato y `UserController`). Afecta al paso 8 de `conexion-registro-app-backend.md`.
+2. **Dónde guardar el token** (tarea 6). Opciones a comprobar al llegar: DataStore + cifrado con
+   Android Keystore, u otra librería multiplataforma. No se elige ni se añade sin aprobarlo.
 
 ## Códigos de error
 
-Cada error de las respuestas 400 y 409 tiene esta forma: `{"field": "…", "code": "…", "message": "…"}`.
-La app decide el texto a partir de `field` y `code`; `message` es solo una ayuda para quien prueba la API.
+Las respuestas de error tienen la forma `{"errors": [{"field": "…", "code": "…", "message": "…"}]}`.
+La app decide el paso y el texto a partir de `field` y `code` (tabla en `sharedLogic/.../account/RegisterProblem.kt`); `message` es solo una ayuda para quien prueba la API.
 Los códigos no se renombran ni se borran (lo vigila `ErrorCodeTest`); sí se pueden añadir.
 
 | `code` | Campos (`field`) | Equivalente hoy en la app |
@@ -56,9 +100,27 @@ Los códigos no se renombran ni se borran (lo vigila `ErrorCodeTest`); sí se pu
 | `INVALID_EMAIL` | `email` | `FieldError.INVALID_EMAIL` |
 | `MISSING_LETTER`, `MISSING_DIGIT` | `password` | `PasswordRequirement.LETTER_AND_DIGIT` |
 | `MISSING_SPECIAL_CHARACTER` | `password` | `PasswordRequirement.SPECIAL_CHARACTER` |
-| `TERMS_NOT_ACCEPTED` | `acceptedTerms` | No existe todavía (tarea 4) |
-| `EMAIL_TAKEN` (409) | `email` | No existe todavía (tarea 4) |
+| `TERMS_NOT_ACCEPTED` | `acceptedTerms` | `FieldError.TERMS_NOT_ACCEPTED` (paso de la contraseña) |
+| `EMAIL_TAKEN` (409) | `email` | `FieldError.EMAIL_TAKEN` (paso del correo) |
+| `INVALID_CREDENTIALS` (401) | `credentials` | No existe todavía (tarea 5) |
+| `UNAUTHENTICATED` (401) | `authorization` | No se muestra: se borra el token y se vuelve a Bienvenida (tarea 6) |
 | `MALFORMED_BODY` | `body` | No debería verse: indica un fallo de la app, no del usuario |
+
+## Entorno de desarrollo
+
+Tres piezas en marcha a la vez, cada una en su sitio:
+
+1. **PostgreSQL en Docker** (`backend/docker-compose.yml`). Desde `backend/`: `docker compose up -d`.
+   Lee las credenciales de `backend/.env` (copiar de `.env.example`). Publica el puerto 5432.
+   Los scripts de `db/init/` solo se ejecutan con el volumen vacío; en un volumen ya creado,
+   aplicar a mano los que falten (p. ej. `003_create_sessions.sql`).
+2. **Backend en IntelliJ** (proyecto `backend/`, abierto por su `pom.xml`). Ejecutar `App` con las
+   variables `GRADUS_DB_NAME`, `GRADUS_DB_USER`, `GRADUS_DB_PASSWORD` (las mismas del `.env`) en
+   la configuración de ejecución, o `mvn compile exec:java` con ellas definidas. Escucha en el 7070.
+3. **App en Android Studio** (raíz del repositorio) y emulador. Llama a `http://10.0.2.2:7070`.
+
+Yaak (`backend/yaak/workspace`) prueba la API sin la app, contra `http://localhost:7070`
+(variable `baseUrl`). Si una petición funciona en Yaak y falla en la app, el problema está en la app.
 
 ## Progreso
 
@@ -70,7 +132,12 @@ Los códigos no se renombran ni se borran (lo vigila `ErrorCodeTest`); sí se pu
 - 2026-11-14: la lógica de la app pasa a `sharedLogic` (Kotlin Multiplatform). Tarea 3 hecha:
   93 tests del backend y 38 de `ValidationTest` (antes 26) en verde, con los mismos casos de correo
   en `EmailTest` y `ValidationTest`.
+- 2026-11-17: el backend ya tiene inicio de sesión (`backend/docs/tareas/inicio-sesion.md`). El
+  documento amplía el alcance a iniciar sesión y recordarla en la app (tareas 5 y 6), añade el
+  contrato de la API, los códigos `INVALID_CREDENTIALS` y `UNAUTHENTICATED` y el entorno de
+  desarrollo. Ninguna de las tareas de la app (4, 5, 6) está empezada.
 
 ## Siguiente paso
 
-Tarea 4: la app llama de verdad a `POST /api/users`. Antes de empezar, dividirla en pasos.
+Decidir el punto 1 de «Decisiones pendientes» y las de `conexion-registro-app-backend.md`; después,
+paso 1 de ese documento (contrato de cuentas en `sharedLogic`, test primero).

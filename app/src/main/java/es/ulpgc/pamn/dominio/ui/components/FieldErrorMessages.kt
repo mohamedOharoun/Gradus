@@ -12,4 +12,6 @@ fun FieldError.toMessage(): String = when (this) {
     FieldError.INVALID_EMAIL -> "Escribe un correo válido, como nombre@ejemplo.com"
     FieldError.WEAK_PASSWORD -> "La contraseña no cumple los requisitos"
     FieldError.PASSWORDS_DONT_MATCH -> "Las contraseñas no coinciden"
+    FieldError.EMAIL_TAKEN -> "Ya existe una cuenta con este correo. ¿Quieres iniciar sesión?"
+    FieldError.TERMS_NOT_ACCEPTED -> "Acepta los términos para crear la cuenta"
 }

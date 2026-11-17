@@ -10,6 +10,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.model.RegisterStep
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenLogin
@@ -23,6 +24,7 @@ import es.ulpgc.pamn.dominio.ui.screens.register.RegisterViewModel
 // dropUnlessResumed ignora toques mientras la pantalla sale o entra (evita doble navegación).
 @Composable
 fun GradusNavHost(
+    accountGateway: AccountGateway,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
@@ -35,7 +37,7 @@ fun GradusNavHost(
             )
         }
         composable<Route.Register> {
-            val registerViewModel: RegisterViewModel = viewModel()
+            val registerViewModel: RegisterViewModel = viewModel(factory = RegisterViewModel.factory(accountGateway))
             // Atrás del sistema: mientras no estemos en el primer paso, retrocede un paso.
             BackHandler(enabled = registerViewModel.form.step != RegisterStep.NAME) {
                 registerViewModel.onBack()

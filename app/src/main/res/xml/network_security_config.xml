@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Versión de publicación (release): todo el tráfico va cifrado (HTTPS), sin excepciones.
+     La versión de desarrollo está en src/debug/res/xml/ y sustituye a esta en las compilaciones debug. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>
