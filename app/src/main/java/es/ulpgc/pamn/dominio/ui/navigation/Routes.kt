@@ -14,6 +14,21 @@ sealed interface Route {
     @Serializable
     data object Login : Route
 
+    // ── Con sesión: grafo anidado con la barra de navegación (docs/tareas/barra-navegacion.md) ──
+
+    // El grafo entero. Se navega a Main y empieza en Home.
+    @Serializable
+    data object Main : Route
+
     @Serializable
     data object Home : Route
+
+    @Serializable
+    data object Search : Route
+
+    @Serializable
+    data object MyCourses : Route
+
+    @Serializable
+    data object Settings : Route
 }

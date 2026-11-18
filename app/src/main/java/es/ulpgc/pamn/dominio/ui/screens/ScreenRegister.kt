@@ -15,13 +15,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
+import es.ulpgc.pamn.dominio.model.FailureReason
+import es.ulpgc.pamn.dominio.model.FieldError
 import es.ulpgc.pamn.dominio.model.RegisterForm
+import es.ulpgc.pamn.dominio.model.RegisterProblem
 import es.ulpgc.pamn.dominio.model.RegisterStep
+import es.ulpgc.pamn.dominio.model.Submission
+import es.ulpgc.pamn.dominio.ui.components.ErrorText
 import es.ulpgc.pamn.dominio.ui.components.FormTopBar
 import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.components.PromptLink
 import es.ulpgc.pamn.dominio.ui.components.StepIndicator
+import es.ulpgc.pamn.dominio.ui.components.toMessage
 import es.ulpgc.pamn.dominio.ui.screens.register.RegisterActions
 import es.ulpgc.pamn.dominio.ui.screens.register.RegisterAddedData
 import es.ulpgc.pamn.dominio.ui.screens.register.RegisterIllustration
@@ -66,14 +72,25 @@ fun ScreenRegister(
 }
 
 // En el último paso, «Crear cuenta» (provisional: en T11 será el deslizador); antes, «Siguiente».
+// Si el envío falla, el aviso sale encima del botón y el mismo botón sirve para reintentar.
 @Composable
 private fun RegisterMainButton(form: RegisterForm, actions: RegisterActions) {
     if (form.step == RegisterStep.PASSWORD) {
-        PrimaryButton(text = "Crear cuenta", onClick = actions.onRegister, enabled = form.canRegister)
+        (form.submission as? Submission.Failed)?.let {
+            ErrorText(it.reason.toMessage(), Modifier.padding(bottom = 8.dp))
+        }
+        PrimaryButton(text = form.submission.buttonText, onClick = actions.onRegister, enabled = form.canRegister)
     } else {
         PrimaryButton(text = "Siguiente", onClick = actions.onNext, trailingIcon = R.drawable.ic_arrow_forward)
     }
 }
+
+private val Submission.buttonText: String
+    get() = when (this) {
+        Submission.Sending -> "Creando cuenta…"
+        is Submission.Failed -> "Reintentar"
+        Submission.Idle, Submission.Succeeded -> "Crear cuenta"
+    }
 
 @Composable
 private fun RegisterPreview(form: RegisterForm) {
@@ -93,6 +110,15 @@ private fun ScreenRegisterNameErrorPreview() = RegisterPreview(RegisterForm(name
 private fun ScreenRegisterEmailPreview() =
     RegisterPreview(RegisterForm(name = "Ana", email = "ana@", step = RegisterStep.EMAIL, isStepSubmitted = true))
 
+private val readyToRegister = RegisterForm(
+    name = "Ana",
+    email = "ana@ejemplo.com",
+    step = RegisterStep.PASSWORD,
+    password = "secreta1!",
+    confirmation = "secreta1!",
+    acceptedTerms = true,
+)
+
 @LightDarkPreviews
 @Composable
 private fun ScreenRegisterPasswordPreview() = RegisterPreview(
@@ -104,3 +130,16 @@ private fun ScreenRegisterPasswordPreview() = RegisterPreview(
         confirmation = "secreta1",
     ),
 )
+
+@LightDarkPreviews
+@Composable
+private fun ScreenRegisterSendingPreview() = RegisterPreview(readyToRegister.sending())
+
+@LightDarkPreviews
+@Composable
+private fun ScreenRegisterUnreachablePreview() = RegisterPreview(readyToRegister.failed(FailureReason.UNREACHABLE))
+
+@LightDarkPreviews
+@Composable
+private fun ScreenRegisterServerErrorPreview() =
+    RegisterPreview(readyToRegister.rejected(RegisterProblem(RegisterStep.PASSWORD, FieldError.TERMS_NOT_ACCEPTED)))

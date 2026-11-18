@@ -164,6 +164,25 @@ function Invoke-Migrations {
     }
 }
 
+# Conecta el localhost:PUERTO del emulador o del móvil (USB) con el del ordenador, que es la URL
+# que usa la app (AppContainer). Opcional: sin adb o sin dispositivo solo se avisa.
+function Connect-Device {
+    $port = if ($env:GRADUS_HTTP_PORT) { $env:GRADUS_HTTP_PORT } else { '7070' }
+    $adb = Get-Command 'adb' -ErrorAction SilentlyContinue
+    if (-not $adb) {
+        $sdkAdb = Join-Path $env:LOCALAPPDATA 'Android\Sdk\platform-tools\adb.exe'
+        if (Test-Path $sdkAdb) { $adb = $sdkAdb }
+    }
+    if ($adb) {
+        $null = Get-NativeOutput { & $adb reverse "tcp:$port" "tcp:$port" }
+        if ($LASTEXITCODE -eq 0) {
+            Write-Info "App conectada: localhost:$port del dispositivo -> este ordenador (adb reverse)."
+            return
+        }
+    }
+    Write-Info "Sin adb o sin dispositivo: para la app, ejecuta 'adb reverse tcp:$port tcp:$port' al abrir el emulador."
+}
+
 function Start-Server {
     Assert-MavenAndJava
     $port = if ($env:GRADUS_HTTP_PORT) { $env:GRADUS_HTTP_PORT } else { '7070' }
@@ -183,8 +202,8 @@ function Reset-Database {
 }
 
 switch ($Command) {
-    'up'    { Import-EnvFile; Start-Database; Invoke-Migrations; Start-Server }
-    'db'    { Import-EnvFile; Start-Database; Invoke-Migrations }
+    'up'    { Import-EnvFile; Start-Database; Invoke-Migrations; Connect-Device; Start-Server }
+    'db'    { Import-EnvFile; Start-Database; Invoke-Migrations; Connect-Device }
     'test'  { Assert-MavenAndJava; mvn test; exit $LASTEXITCODE }
     'reset' { Import-EnvFile; Reset-Database }
     { $_ -in 'help', '-h', '--help' } { Show-Usage }

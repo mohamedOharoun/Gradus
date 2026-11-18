@@ -112,7 +112,7 @@ con cámara.
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
 | API del dispositivo | Cámara para fotografiar apuntes y asociarlos a conceptos |
 | SQLite | Room: cursos descargados, registro de respuestas y notas (fotos como ficheros, solo su ruta en la base de datos) |
-| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga y valoraciones |
+| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` |
 
 ## 9. Plan por anillos
 

@@ -96,6 +96,17 @@ migrate() {
     fi
 }
 
+# Conecta el localhost:PUERTO del emulador o del móvil (USB) con el del ordenador, que es la URL
+# que usa la app (AppContainer). Opcional: sin adb o sin dispositivo solo se avisa.
+connect_device() {
+    local port="${GRADUS_HTTP_PORT:-7070}"
+    if command -v adb >/dev/null 2>&1 && adb reverse "tcp:$port" "tcp:$port" >/dev/null 2>&1; then
+        info "App conectada: localhost:$port del dispositivo → este ordenador (adb reverse)."
+    else
+        info "Sin adb o sin dispositivo: para la app, ejecuta 'adb reverse tcp:$port tcp:$port' al abrir el emulador."
+    fi
+}
+
 run_server() {
     check_maven_and_java
     info "Servidor en http://localhost:${GRADUS_HTTP_PORT:-7070} (Ctrl+C para pararlo)."
@@ -114,8 +125,8 @@ reset_database() {
 
 main() {
     case "${1:-up}" in
-        up)             load_env; start_database; migrate; run_server ;;
-        db)             load_env; start_database; migrate ;;
+        up)             load_env; start_database; migrate; connect_device; run_server ;;
+        db)             load_env; start_database; migrate; connect_device ;;
         test)           check_maven_and_java; mvn test ;;
         reset)          load_env; reset_database ;;
         help | -h | --help) usage ;;

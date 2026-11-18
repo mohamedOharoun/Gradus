@@ -62,7 +62,7 @@ Patrones que usamos (y que hay que nombrar al explicarlo):
   HTTP multiplataforma, para que sirva también en iOS.
 - Estados de envío en el registro: enviando, error de red con reintento, error del servidor.
 - Errores del servidor colocados en su paso (p. ej. `EMAIL_TAKEN` vuelve al paso del correo).
-- Permiso de internet y tráfico HTTP sin cifrar **solo** hacia el emulador (`10.0.2.2`).
+- Permiso de internet y tráfico HTTP sin cifrar **solo** hacia `localhost` en debug (ver paso 9).
 
 ## Fuera de alcance
 
@@ -116,26 +116,28 @@ termina con los tests en verde.
   *Acepta si:* un test por cada caso; el JSON enviado coincide con `RegisterUserRequest.java`;
   nada fuera de `account/http/` importa Ktor.
 - [x] **6. Composición.** `AccountGateways.http(baseUrl)` (factory) y
-  `app/.../data/AppContainer.kt` con la URL `http://10.0.2.2:7070`. `RegisterViewModel` recibe el
+  `app/.../data/AppContainer.kt` con la URL del backend (hoy `http://localhost:7070`, ver paso 9). `RegisterViewModel` recibe el
   `AccountGateway` por constructor (factory de ViewModel en `GradusNavHost`).
   *Acepta si:* las previews no necesitan red (usan un `FakeAccountGateway`).
 - [x] **7. Android: red.** Permiso `INTERNET` en `AndroidManifest.xml` y
-  `network_security_config.xml` que permite HTTP sin cifrar solo a `10.0.2.2`.
+  `network_security_config.xml` que permite HTTP sin cifrar solo al backend local (ver paso 9).
   *Acepta si:* el resto del tráfico sin cifrar sigue bloqueado.
-- [ ] **8. ViewModel y pantalla.** `onRegister()` lanza la llamada en `viewModelScope`; al
-  registrarse navega a Inicio; botón «Creando cuenta…» desactivado mientras se envía; aviso
+- [x] **8. ViewModel y pantalla.** `onRegister()` lanza la llamada en `viewModelScope`; al
+  registrarse navega a Inicio de sesión (decisión del 2026-11-17); botón «Creando cuenta…» desactivado mientras se envía; aviso
   «Sin conexión» con «Reintentar». Previews en claro y oscuro de cada estado.
   *Acepta si:* ver «Cómo comprobarlo».
-- [ ] **9. Prueba completa y documentos.** Probar en el emulador; marcar la tarea 4 de
+- [x] **9. Prueba completa y documentos.** Probar en el emulador; marcar la tarea 4 de
   `registro-cuentas-reales.md`; anotar en `especificacion.md` que el cliente usa Ktor.
 
 ## Cómo comprobarlo (al final)
 
-1. `cd backend && docker compose up -d && mvn compile exec:java`.
-2. Arrancar la app en el emulador y registrarse con datos válidos → llega a Inicio y la cuenta
+1. Abrir el emulador y, desde `backend/`, `./gradus.sh` (o `.\gradus.ps1`): base de datos,
+   migraciones, `adb reverse tcp:7070 tcp:7070` y servidor.
+2. Arrancar la app en el emulador y registrarse con datos válidos → llega a Inicio de sesión y la cuenta
    aparece en `SELECT name, email FROM users;`.
 3. Repetir con el mismo correo → vuelve al paso del correo con «Ya existe una cuenta…».
-4. Parar el backend y registrarse → aviso de sin conexión; arrancarlo y pulsar «Reintentar» → funciona.
+4. Parar el backend (o `adb reverse --remove tcp:7070`) y registrarse → aviso de sin conexión;
+   arrancarlo y pulsar «Reintentar» → funciona.
 
 ## Cómo pasar a gRPC (cuando toque)
 
@@ -212,9 +214,26 @@ Reglas para repartir:
   `src/debug/res/xml/` (debug: HTTP sin cifrar solo hacia `10.0.2.2`). Comprobado en los recursos
   empaquetados de cada variante. `:app:assembleDebug` y `:app:processReleaseResources` en verde.
 
+- 2026-11-17: paso 8 hecho. Decisión: tras registrarse, la app va a **Inicio de sesión** (no inicia
+  sesión sola). `RegisterViewModel.onRegister()` (`toNewAccount()` → `sending()` → gateway en
+  `viewModelScope` → `applying(outcome)`); `GradusNavHost` navega a Login al ver `Succeeded`
+  (cambia Registro por Login: atrás vuelve a Bienvenida). Botón «Crear cuenta» / «Creando cuenta…»
+  / «Reintentar»; aviso de fallo encima del botón; `serverError` del paso de la contraseña debajo
+  de los términos. Componente nuevo `ErrorText` (con `liveRegion` para TalkBack) y
+  `FailureReason.toMessage()`. Previews nuevas: enviando, sin conexión y error del servidor.
+- 2026-11-17: paso 9. **Problema encontrado:** desde Android 17 (`targetSdk` 37) una app necesita el
+  permiso `ACCESS_LOCAL_NETWORK` para conectar con IPs de la red local, y `10.0.2.2` lo es: la
+  conexión se quedaba sin respuesta (`ConnectTimeoutException`) aunque `nc` desde el shell sí
+  conectaba. **Decisión:** `adb reverse tcp:7070 tcp:7070` + `http://localhost:7070` (sin permisos,
+  sirve también en un móvil por USB). Cambian `AppContainer`, el `network_security_config.xml` de
+  debug (`localhost` y `127.0.0.1`) y `gradus.sh`/`gradus.ps1`, que hacen el `adb reverse` si hay
+  `adb` y dispositivo (si no, solo avisan). Probado en el emulador (API 37) contra el backend real:
+  cuenta nueva → Inicio de sesión y fila en `users`; atrás desde Login → Bienvenida; correo
+  repetido → paso del correo con «Ya existe una cuenta…»; sin `adb reverse` → aviso y
+  «Reintentar»; al restaurarlo, «Reintentar» crea la cuenta. 136 tests de `sharedLogic` en verde;
+  `:app:assembleDebug` y `:app:assembleRelease` sin avisos nuevos. **Tarea completada.**
+
 ## Siguiente paso
 
-Paso 8: `RegisterViewModel.onRegister()` llama al gateway en `viewModelScope`; botón «Creando
-cuenta…», aviso «Sin conexión» con «Reintentar» y navegación a Inicio al registrarse. Antes,
-decidir el punto 1 de «Decisiones pendientes» de `registro-cuentas-reales.md` (¿iniciar sesión
-solo tras registrarse?).
+Tarea 5 de `registro-cuentas-reales.md`: inicio de sesión real (`AccountGateway.logIn`). Pendiente
+de revisar las previews nuevas en claro en Android Studio.

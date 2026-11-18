@@ -2,6 +2,7 @@ package es.ulpgc.pamn.dominio.ui.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -12,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.model.RegisterStep
+import es.ulpgc.pamn.dominio.model.Submission
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenLogin
 import es.ulpgc.pamn.dominio.ui.screens.ScreenRegister
@@ -42,6 +44,13 @@ fun GradusNavHost(
             BackHandler(enabled = registerViewModel.form.step != RegisterStep.NAME) {
                 registerViewModel.onBack()
             }
+            // Cuenta creada: a Inicio de sesión (el registro no da sesión). Se cambia Registro por
+            // Login, así que atrás desde Login vuelve a Bienvenida y no al registro ya enviado.
+            if (registerViewModel.form.submission == Submission.Succeeded) {
+                LaunchedEffect(Unit) {
+                    navController.navigate(Route.Login) { popUpTo<Route.Welcome>() }
+                }
+            }
             ScreenRegister(
                 form = registerViewModel.form,
                 actions = RegisterActions(
@@ -51,9 +60,7 @@ fun GradusNavHost(
                     onConfirmationChange = registerViewModel::onConfirmationChange,
                     onTermsChange = registerViewModel::onTermsChange,
                     onNext = registerViewModel::onNext,
-                    onRegister = dropUnlessResumed {
-                        if (registerViewModel.form.canRegister) navController.enterHome()
-                    },
+                    onRegister = dropUnlessResumed { registerViewModel.onRegister() },
                     onEdit = registerViewModel::onEdit,
                     // Retrocede un paso; desde el primero, sale del registro.
                     onBack = dropUnlessResumed { if (!registerViewModel.onBack()) navController.popBackStack() },

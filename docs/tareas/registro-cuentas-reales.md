@@ -26,13 +26,14 @@ reglas y se entienden en los errores.
 
 - Enviar la repetición de la contraseña: es una comprobación de la interfaz contra erratas.
 - Verificación del correo, recuperación de la contraseña y segundo factor.
-- Servidor desplegado y HTTPS: de momento, backend local y emulador (`http://10.0.2.2:7070`).
+- Servidor desplegado y HTTPS: de momento, backend local y emulador (`http://localhost:7070` con `adb reverse`).
 - gRPC (el camino queda preparado en `conexion-registro-app-backend.md`).
 
 ## Contrato de la API
 
-Base en desarrollo: `http://localhost:7070` desde el ordenador (Yaak) y `http://10.0.2.2:7070`
-desde el emulador de Android (`10.0.2.2` es «el ordenador» visto desde el emulador).
+Base en desarrollo: `http://localhost:7070`, tanto desde el ordenador (Yaak) como desde el emulador
+o un móvil por USB, gracias a `adb reverse tcp:7070 tcp:7070` (lo hacen `gradus.sh`/`gradus.ps1`).
+No se usa `10.0.2.2`: con `targetSdk` 37 la red local exige el permiso `ACCESS_LOCAL_NETWORK`.
 
 | Método y ruta | Cuerpo | Respuestas |
 |---|---|---|
@@ -57,7 +58,7 @@ Usuario: `{id, name, email, createdAt}` (fechas en ISO‑8601). Nunca se devuelv
   de correo en los dos lados, campo vacío = `REQUIRED` en el backend y longitudes en caracteres
   reales en la app (un emoji cuenta 1).
   *Acepta si:* una misma lista de casos da el mismo resultado en los tests de la app y del backend.
-- [ ] **4. App: registro real.** Permiso de internet, cliente HTTP, estados de envío y de error en
+- [x] **4. App: registro real.** Permiso de internet, cliente HTTP, estados de envío y de error en
   `RegisterViewModel`. Plan por pasos (1 a 9) en `conexion-registro-app-backend.md`. Coordinar
   con T10 y T11 de `registro-login.md`.
   *Acepta si:* desde el emulador se crea una cuenta que aparece en la tabla `users`; un correo
@@ -79,10 +80,8 @@ Usuario: `{id, name, email, createdAt}` (fechas en ISO‑8601). Nunca se devuelv
 
 ## Decisiones pendientes
 
-1. **Tras registrarse, ¿se inicia sesión sola?** `POST /api/users` no devuelve token, así que hoy la
-   app llegaría a Inicio sin sesión. Propuesta: la app llama a `POST /api/sessions` justo después
-   del 201 (sin tocar el backend). Alternativa: que el registro devuelva ya la sesión (cambia el
-   contrato y `UserController`). Afecta al paso 8 de `conexion-registro-app-backend.md`.
+1. ~~**Tras registrarse, ¿se inicia sesión sola?**~~ **Decidido (2026-11-17): no.** Tras el 201 la
+   app va a Inicio de sesión y la persona entra con su correo y contraseña.
 2. **Dónde guardar el token** (tarea 6). Opciones a comprobar al llegar: DataStore + cifrado con
    Android Keystore, u otra librería multiplataforma. No se elige ni se añade sin aprobarlo.
 
@@ -117,7 +116,8 @@ Tres piezas en marcha a la vez, cada una en su sitio:
 2. **Backend en IntelliJ** (proyecto `backend/`, abierto por su `pom.xml`). Ejecutar `App` con las
    variables `GRADUS_DB_NAME`, `GRADUS_DB_USER`, `GRADUS_DB_PASSWORD` (las mismas del `.env`) en
    la configuración de ejecución, o `mvn compile exec:java` con ellas definidas. Escucha en el 7070.
-3. **App en Android Studio** (raíz del repositorio) y emulador. Llama a `http://10.0.2.2:7070`.
+3. **App en Android Studio** (raíz del repositorio) y emulador. Llama a `http://localhost:7070`;
+   hace falta `adb reverse tcp:7070 tcp:7070` cada vez que se abre el emulador (lo hace `gradus.sh`).
 
 Yaak (`backend/yaak/workspace`) prueba la API sin la app, contra `http://localhost:7070`
 (variable `baseUrl`). Si una petición funciona en Yaak y falla en la app, el problema está en la app.
@@ -137,7 +137,10 @@ Yaak (`backend/yaak/workspace`) prueba la API sin la app, contra `http://localho
   contrato de la API, los códigos `INVALID_CREDENTIALS` y `UNAUTHENTICATED` y el entorno de
   desarrollo. Ninguna de las tareas de la app (4, 5, 6) está empezada.
 
+- 2026-11-17: tarea 4 hecha (detalle en `conexion-registro-app-backend.md`). Probada en el
+  emulador contra el backend real: cuenta nueva, correo repetido y sin conexión con reintento.
+  Tras registrarse se va a Inicio de sesión. La app llega al backend por `localhost` + `adb reverse`.
+
 ## Siguiente paso
 
-Decidir el punto 1 de «Decisiones pendientes» y las de `conexion-registro-app-backend.md`; después,
-paso 1 de ese documento (contrato de cuentas en `sharedLogic`, test primero).
+Tarea 5: inicio de sesión real. Dividirla en pasos como la tarea 4 antes de empezar.
