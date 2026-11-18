@@ -2,6 +2,8 @@ package es.ulpgc.pamn.dominio.data
 
 import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.account.AccountGateways
+import es.ulpgc.pamn.dominio.account.InMemorySessionStore
+import es.ulpgc.pamn.dominio.account.SessionStore
 
 // Composition root (inyección manual): el único sitio de la app que elige las implementaciones
 // concretas, como App.java en el backend. El resto recibe interfaces por parámetro.
@@ -16,4 +18,7 @@ object AppContainer {
 
     // lazy: se crea la primera vez que alguien lo pide, y una sola vez para toda la app.
     val accountGateway: AccountGateway by lazy { AccountGateways.http(BASE_URL) }
+
+    // La sesión iniciada. De momento en memoria: se pierde al cerrar la app (tarea 6: guardarla cifrada).
+    val sessionStore: SessionStore by lazy { InMemorySessionStore() }
 }

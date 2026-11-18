@@ -89,7 +89,7 @@ GradusNavHost
   *Ficheros:* `ui/components/GradusNavigationBar.kt`.
   *Acepta si:* previews en claro y oscuro con cada pestaña seleccionada; se parece al Figma; zonas
   táctiles de 48 dp como mínimo.
-- [ ] **4. Armazón y navegación.** `MainScaffold` (barra abajo, contenido con su `innerPadding`) y
+- [x] **4. Armazón y navegación.** `MainScaffold` (barra abajo, contenido con su `innerPadding`) y
   grafo anidado `navigation<Route.Main>` con las cuatro pestañas. Para chocar menos con los cambios
   del compañero en `GradusNavHost`, el grafo va en su propio fichero
   (`ui/navigation/MainNavGraph.kt`, función `NavGraphBuilder.mainGraph(...)`). `enterHome()` pasa a
@@ -97,7 +97,7 @@ GradusNavHost
   *Ficheros:* `MainNavGraph.kt`, `MainScaffold.kt`, `GradusNavHost.kt` (pocas líneas).
   *Acepta si:* ver «Cómo comprobarlo». Cuidado con el doble margen: las pantallas de pestaña no
   deben sumar `safeDrawingPadding` abajo además del `innerPadding` del `Scaffold`.
-- [ ] **5. Prueba en el emulador y documentos.** Recorrer «Cómo comprobarlo» en claro y en oscuro;
+- [x] **5. Prueba en el emulador y documentos.** Recorrer «Cómo comprobarlo» en claro y en oscuro;
   marcar tareas y anotar el progreso.
 
 ## Cómo comprobarlo
@@ -151,7 +151,32 @@ Orden: 1 y 2 son independientes; 3 necesita 1 y 2; 4 necesita 3; 5 al final.
   en claro, se lee bien en oscuro, al pulsar cambia la selección y cada pestaña mide ≈ 97 × 80 dp.
   Sin avisos al compilar.
 
+- 2026-11-18: tarea 4 hecha. `ui/components/MainScaffold.kt` (`Scaffold` con la barra abajo; da
+  a la pantalla un `Modifier` con `padding(innerPadding).consumeWindowInsets(innerPadding)` para que
+  su `safeDrawingPadding` no sume otra vez el margen). `ui/navigation/MainNavGraph.kt` con
+  `NavGraphBuilder.mainGraph(navController)`: `navigation<Route.Main>` que empieza en `Home` y una
+  función `tab<T>()` por pestaña que envuelve su pantalla en `MainScaffold`; `navigateToTab()` con
+  `popUpTo<Route.Home> { saveState }`, `launchSingleTop` y `restoreState`. **Decisión de
+  implementación:** cada pestaña pinta su propia barra (y no un único `Scaffold` alrededor de todo
+  el `NavHost`) para que en `GradusNavHost.kt` solo cambien 5 líneas (`mainGraph(...)` y
+  `enterHome()` → `Route.Main`) y choque menos con el trabajo del compañero; para que la barra no
+  parpadee, el grafo `Main` va **sin animación** (cambiar de pestaña es instantáneo).
+  Probado en el emulador (API 37): tras «Entrar» → Inicio con la barra; cada pestaña cambia pantalla
+  y marca; pulsar la actual no hace nada; atrás desde Ajustes o Buscar → Inicio; atrás desde Inicio
+  → sale de la app; al girar sigue en Buscar; sin doble margen arriba ni abajo; la barra queda por
+  encima de la barra de gestos. Sin avisos al compilar.
+
+- 2026-11-18: tarea 5 hecha. Test instrumentado nuevo
+  `app/src/androidTest/.../ui/components/GradusNavigationBarTest.kt` (2 tests, en verde dos veces
+  seguidas; el primer intento falló una vez con «No compose hierarchies found», un fallo de arranque
+  del emulador que no se repitió): cada pestaña tiene rol `Tab` (TalkBack dice «pestaña»), su nombre
+  como texto, solo la actual está seleccionada, mide ≥ 48 × 48 dp y al pulsarla avisa con su
+  destino. Se ejecuta con `./gradlew :app:connectedDebugAndroidTest` (necesita el emulador
+  abierto). Repaso visual en claro y oscuro con la navegación completa. Aviso: si el emulador se
+  abre desde una instantánea de *Quick Boot* antigua, la app instalada puede ser vieja; arrancar
+  siempre con Run ▶ (configuración `app`). **Funcionalidad completada.**
+
 ## Siguiente paso
 
-Tarea 4: `MainScaffold`, grafo `navigation<Route.Main>` en `MainNavGraph.kt` y `enterHome()` a
-`Route.Main`. Avisar al compañero porque toca `GradusNavHost.kt`.
+Elegir la primera pantalla de pestaña (Inicio, Buscar, Mis cursos o Ajustes) y crear su documento
+de tarea. Pendiente de avisar al compañero (ver «Coordinación con el compañero»).

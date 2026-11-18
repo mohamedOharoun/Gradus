@@ -12,12 +12,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import es.ulpgc.pamn.dominio.account.AccountGateway
+import es.ulpgc.pamn.dominio.account.SessionStore
 import es.ulpgc.pamn.dominio.model.RegisterStep
 import es.ulpgc.pamn.dominio.model.Submission
-import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenLogin
 import es.ulpgc.pamn.dominio.ui.screens.ScreenRegister
 import es.ulpgc.pamn.dominio.ui.screens.ScreenWelcome
+import es.ulpgc.pamn.dominio.ui.screens.login.LoginActions
 import es.ulpgc.pamn.dominio.ui.screens.login.LoginViewModel
 import es.ulpgc.pamn.dominio.ui.screens.register.RegisterActions
 import es.ulpgc.pamn.dominio.ui.screens.register.RegisterViewModel
@@ -27,6 +28,7 @@ import es.ulpgc.pamn.dominio.ui.screens.register.RegisterViewModel
 @Composable
 fun GradusNavHost(
     accountGateway: AccountGateway,
+    sessionStore: SessionStore,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
@@ -70,27 +72,32 @@ fun GradusNavHost(
             )
         }
         composable<Route.Login> {
-            val loginViewModel: LoginViewModel = viewModel()
+            val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModel.factory(accountGateway, sessionStore))
+            // Sesión iniciada (y ya guardada): a Inicio, sin poder volver atrás al formulario.
+            if (loginViewModel.form.submission == Submission.Succeeded) {
+                LaunchedEffect(Unit) { navController.enterHome() }
+            }
             ScreenLogin(
                 form = loginViewModel.form,
-                onEmailChange = loginViewModel::onEmailChange,
-                onPasswordChange = loginViewModel::onPasswordChange,
-                onSubmit = dropUnlessResumed { if (loginViewModel.onSubmit()) navController.enterHome() },
-                onBack = dropUnlessResumed { navController.popBackStack() },
-                // Cambia Login por Registro: atrás desde el registro vuelve a Bienvenida.
-                onCreateAccount = dropUnlessResumed { navController.navigate(Route.Register) { popUpTo<Route.Welcome>() } },
+                actions = LoginActions(
+                    onEmailChange = loginViewModel::onEmailChange,
+                    onPasswordChange = loginViewModel::onPasswordChange,
+                    onSubmit = dropUnlessResumed { loginViewModel.onSubmit() },
+                    onBack = dropUnlessResumed { navController.popBackStack() },
+                    // Cambia Login por Registro: atrás desde el registro vuelve a Bienvenida.
+                    onCreateAccount = dropUnlessResumed { navController.navigate(Route.Register) { popUpTo<Route.Welcome>() } },
+                ),
             )
         }
-        composable<Route.Home> {
-            ScreenHome()
-        }
+        // Inicio, Buscar, Mis cursos y Ajustes, con la barra de navegación (MainNavGraph.kt).
+        mainGraph(navController)
     }
 }
 
-// Va a Inicio y borra Bienvenida, Registro e Inicio de sesión del historial:
-// así el botón atrás desde Inicio cierra la app en vez de volver al registro.
+// Va a Inicio (con la barra de navegación) y borra Bienvenida, Registro e Inicio de sesión del
+// historial: así el botón atrás desde Inicio cierra la app en vez de volver al registro.
 private fun NavController.enterHome() {
-    navigate(Route.Home) {
+    navigate(Route.Main) {
         popUpTo<Route.Welcome> { inclusive = true }
     }
 }

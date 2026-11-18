@@ -34,4 +34,27 @@ class AccountGatewaysTest {
         gateway.register(newAccount)
         assertEquals(listOf(newAccount), gateway.received)
     }
+
+    // ── Inicio de sesión ──
+
+    private val credentials = Credentials("ana@ulpgc.es", "Gradus2026!")
+
+    @Test
+    fun `by default the fake gateway logs in with the email it receives`() = runTest {
+        val session = assertIs<LogInOutcome.LoggedIn>(FakeAccountGateway().logIn(credentials)).session
+        assertEquals("ana@ulpgc.es", session.account.email)
+    }
+
+    @Test
+    fun `the fake gateway can be told how to answer a log in`() = runTest {
+        val gateway = FakeAccountGateway(LogInOutcome.InvalidCredentials)
+        assertEquals(LogInOutcome.InvalidCredentials, gateway.logIn(credentials))
+    }
+
+    @Test
+    fun `the fake gateway remembers the credentials it received`() = runTest {
+        val gateway = FakeAccountGateway()
+        gateway.logIn(credentials)
+        assertEquals(listOf(credentials), gateway.receivedCredentials)
+    }
 }

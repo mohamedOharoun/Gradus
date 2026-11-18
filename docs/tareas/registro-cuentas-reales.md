@@ -63,14 +63,17 @@ Usuario: `{id, name, email, createdAt}` (fechas en ISO‑8601). Nunca se devuelv
   con T10 y T11 de `registro-login.md`.
   *Acepta si:* desde el emulador se crea una cuenta que aparece en la tabla `users`; un correo
   repetido se muestra en el paso del correo; sin red se avisa y se puede reintentar.
-- [ ] **5. App: inicio de sesión real.** El puerto `AccountGateway` gana `logIn(email, password)`
+- [x] **5. App: inicio de sesión real.** El puerto `AccountGateway` gana `logIn(email, password)`
   con su resultado sellado (`LoggedIn(session)`, `Rejected`, `InvalidCredentials`, `Unreachable`,
   `ServerFailure`); el adaptador HTTP traduce 201/400/401. `LoginViewModel` hace la llamada y
   `LoginForm` muestra «Correo o contraseña incorrectos» sin decir cuál de los dos.
   Reutiliza el cliente HTTP, el `AppContainer` y la red de Android de la tarea 4.
+  Plan por pasos en `inicio-sesion-app.md` (la hago yo desde el 2026-11-18, no el compañero).
   *Acepta si:* con una cuenta creada en la tarea 4 se entra a Inicio; con contraseña errónea o
   correo inexistente se ve el mismo aviso; sin red se avisa y se puede reintentar.
-- [ ] **6. App: recordar la sesión.** Puerto `SessionStore` (guardar, leer y borrar el token) en
+- [ ] ~~**6. App: recordar la sesión.**~~ **Descartada (2026-11-18):** no añadimos una dependencia
+  para guardar el token. La sesión sigue en memoria (`InMemorySessionStore`) y se pierde al cerrar la
+  app. Texto original: Puerto `SessionStore` (guardar, leer y borrar el token) en
   `sharedLogic`; adaptador Android que lo guarda cifrado. Al arrancar: si hay token,
   `GET /api/users/me` → Inicio; si responde 401, se borra y se va a Bienvenida. Cerrar sesión
   llama a `DELETE /api/sessions/current` y borra el token aunque no haya red.
@@ -101,7 +104,7 @@ Los códigos no se renombran ni se borran (lo vigila `ErrorCodeTest`); sí se pu
 | `MISSING_SPECIAL_CHARACTER` | `password` | `PasswordRequirement.SPECIAL_CHARACTER` |
 | `TERMS_NOT_ACCEPTED` | `acceptedTerms` | `FieldError.TERMS_NOT_ACCEPTED` (paso de la contraseña) |
 | `EMAIL_TAKEN` (409) | `email` | `FieldError.EMAIL_TAKEN` (paso del correo) |
-| `INVALID_CREDENTIALS` (401) | `credentials` | No existe todavía (tarea 5) |
+| `INVALID_CREDENTIALS` (401) | `credentials` | `FieldError.INVALID_CREDENTIALS` (encima de «Entrar», sin señalar campo) |
 | `UNAUTHENTICATED` (401) | `authorization` | No se muestra: se borra el token y se vuelve a Bienvenida (tarea 6) |
 | `MALFORMED_BODY` | `body` | No debería verse: indica un fallo de la app, no del usuario |
 
@@ -141,6 +144,15 @@ Yaak (`backend/yaak/workspace`) prueba la API sin la app, contra `http://localho
   emulador contra el backend real: cuenta nueva, correo repetido y sin conexión con reintento.
   Tras registrarse se va a Inicio de sesión. La app llega al backend por `localhost` + `adb reverse`.
 
+- 2026-11-18: tarea 5 hecha (detalle en `inicio-sesion-app.md`). Probada en el emulador contra el
+  backend real. La sesión se guarda en memoria (`InMemorySessionStore`) detrás del puerto
+  `SessionStore`: se pierde al cerrar la app hasta la tarea 6.
+
+- 2026-11-18: tarea 6 descartada (decisión nuestra): no se guarda la sesión al cerrar la app, así
+  que no hace falta la dependencia de la decisión 2. Si más adelante hace falta, basta con otra
+  implementación de `SessionStore`. Cerrar sesión (`DELETE /api/sessions/current` + `clear()`)
+  no necesita ninguna dependencia y se puede hacer aparte, cuando toque la pantalla de Ajustes.
+
 ## Siguiente paso
 
-Tarea 5: inicio de sesión real. Dividirla en pasos como la tarea 4 antes de empezar.
+Ninguno en este documento: registro e inicio de sesión reales están hechos.

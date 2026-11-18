@@ -27,6 +27,7 @@ import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.components.PromptLink
 import es.ulpgc.pamn.dominio.ui.components.StepIndicator
+import es.ulpgc.pamn.dominio.ui.components.buttonText
 import es.ulpgc.pamn.dominio.ui.components.toMessage
 import es.ulpgc.pamn.dominio.ui.screens.register.RegisterActions
 import es.ulpgc.pamn.dominio.ui.screens.register.RegisterAddedData
@@ -79,18 +80,15 @@ private fun RegisterMainButton(form: RegisterForm, actions: RegisterActions) {
         (form.submission as? Submission.Failed)?.let {
             ErrorText(it.reason.toMessage(), Modifier.padding(bottom = 8.dp))
         }
-        PrimaryButton(text = form.submission.buttonText, onClick = actions.onRegister, enabled = form.canRegister)
+        PrimaryButton(
+            text = form.submission.buttonText(idle = "Crear cuenta", sending = "Creando cuenta…"),
+            onClick = actions.onRegister,
+            enabled = form.canRegister,
+        )
     } else {
         PrimaryButton(text = "Siguiente", onClick = actions.onNext, trailingIcon = R.drawable.ic_arrow_forward)
     }
 }
-
-private val Submission.buttonText: String
-    get() = when (this) {
-        Submission.Sending -> "Creando cuenta…"
-        is Submission.Failed -> "Reintentar"
-        Submission.Idle, Submission.Succeeded -> "Crear cuenta"
-    }
 
 @Composable
 private fun RegisterPreview(form: RegisterForm) {

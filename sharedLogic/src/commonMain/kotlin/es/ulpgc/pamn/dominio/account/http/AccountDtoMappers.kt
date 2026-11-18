@@ -1,8 +1,10 @@
 package es.ulpgc.pamn.dominio.account.http
 
 import es.ulpgc.pamn.dominio.account.Account
+import es.ulpgc.pamn.dominio.account.Credentials
 import es.ulpgc.pamn.dominio.account.NewAccount
 import es.ulpgc.pamn.dominio.account.ServerFieldError
+import es.ulpgc.pamn.dominio.account.Session
 
 // Mapper: traduce entre los tipos de la app (account/) y los DTO de la red. Funciones puras.
 
@@ -14,5 +16,9 @@ internal fun NewAccount.toDto() = RegisterUserRequestDto(
 )
 
 internal fun UserResponseDto.toAccount() = Account(id = id, name = name, email = email, createdAt = createdAt)
+
+internal fun Credentials.toDto() = LogInRequestDto(email = email, password = password)
+
+internal fun SessionResponseDto.toSession() = Session(token = token, expiresAt = expiresAt, account = user.toAccount())
 
 internal fun ErrorResponseDto.toServerFieldErrors() = errors.map { ServerFieldError(field = it.field, code = it.code) }

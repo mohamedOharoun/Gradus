@@ -15,6 +15,8 @@ fun FieldError.toMessage(): String = when (this) {
     FieldError.PASSWORDS_DONT_MATCH -> "Las contraseñas no coinciden"
     FieldError.EMAIL_TAKEN -> "Ya existe una cuenta con este correo. ¿Quieres iniciar sesión?"
     FieldError.TERMS_NOT_ACCEPTED -> "Acepta los términos para crear la cuenta"
+    // No dice cuál de los dos falla, a propósito (así no se puede averiguar qué correos tienen cuenta).
+    FieldError.INVALID_CREDENTIALS -> "Correo o contraseña incorrectos"
 }
 
 // Por qué no se ha podido enviar un formulario. Los datos se conservan: basta con reintentar.

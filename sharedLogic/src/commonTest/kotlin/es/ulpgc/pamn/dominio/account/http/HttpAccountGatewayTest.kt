@@ -4,35 +4,22 @@ import es.ulpgc.pamn.dominio.account.Account
 import es.ulpgc.pamn.dominio.account.NewAccount
 import es.ulpgc.pamn.dominio.account.RegistrationOutcome
 import es.ulpgc.pamn.dominio.account.ServerFieldError
-import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray
 import io.ktor.client.plugins.HttpRequestTimeoutException
 import io.ktor.client.request.HttpRequestData
-import io.ktor.client.request.HttpResponseData
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.io.IOException
 import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+// Registro (POST /api/users). El inicio de sesión está en HttpAccountGatewayLogInTest.
 class HttpAccountGatewayTest {
 
     private val newAccount = NewAccount(name = "Ana", email = "ana@ulpgc.es", password = "Gradus2026!", acceptedTerms = true)
-
-    // Crea el adaptador con un servidor falso que responde lo que diga `handler`.
-    private fun gatewayAnswering(
-        handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
-    ) = HttpAccountGateway(gradusHttpClient(MockEngine(handler)), baseUrl = "http://test")
-
-    private fun MockRequestHandleScope.json(status: HttpStatusCode, body: String) =
-        respond(body, status, headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()))
 
     // ── La petición ──
 
@@ -132,11 +119,5 @@ class HttpAccountGatewayTest {
     fun `a timeout means the server is unreachable`() = runTest {
         val outcome = gatewayAnswering { throw HttpRequestTimeoutException("http://test/api/users", 10_000) }.register(newAccount)
         assertEquals(RegistrationOutcome.Unreachable, outcome)
-    }
-
-    private companion object {
-        // Como lo devuelve UserResponse.java.
-        const val USER_JSON =
-            """{"id": "7f3c", "name": "Ana", "email": "ana@ulpgc.es", "createdAt": "2026-11-17T10:00:00.123456Z"}"""
     }
 }

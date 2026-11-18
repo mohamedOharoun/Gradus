@@ -12,4 +12,5 @@ enum class FieldError {
     // Solo los detecta el servidor (account/RegisterProblem.kt).
     EMAIL_TAKEN,
     TERMS_NOT_ACCEPTED,
+    INVALID_CREDENTIALS,
 }

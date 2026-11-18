@@ -4,11 +4,31 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import es.ulpgc.pamn.dominio.account.AccountGateway
+import es.ulpgc.pamn.dominio.account.LogInOutcome
+import es.ulpgc.pamn.dominio.account.SessionStore
+import es.ulpgc.pamn.dominio.account.applying
+import es.ulpgc.pamn.dominio.account.toCredentials
 import es.ulpgc.pamn.dominio.model.LoginForm
+import kotlinx.coroutines.launch
 
 // Guarda el estado del inicio de sesión fuera de la pantalla, así sobrevive al giro del móvil.
 // Flujo en una dirección: la pantalla lee `form` y avisa de lo que pasa con los métodos on…
-class LoginViewModel : ViewModel() {
+// Recibe los puertos por constructor: no sabe si el servidor es HTTP ni dónde se guarda la sesión.
+class LoginViewModel(
+    private val accountGateway: AccountGateway,
+    private val sessionStore: SessionStore,
+) : ViewModel() {
+
+    companion object {
+        // Android crea los ViewModel por su cuenta: la factory le dice cómo pasarle las dependencias.
+        fun factory(accountGateway: AccountGateway, sessionStore: SessionStore) = viewModelFactory {
+            initializer { LoginViewModel(accountGateway, sessionStore) }
+        }
+    }
 
     var form by mutableStateOf(LoginForm())
         private set
@@ -21,9 +41,21 @@ class LoginViewModel : ViewModel() {
         form = form.withPassword(password)
     }
 
-    // Marca el formulario como enviado (para mostrar errores) y dice si se puede entrar.
-    fun onSubmit(): Boolean {
-        form = form.submitted()
-        return form.isValid
+    // «Entrar» (y «Reintentar»). Con datos no válidos o un envío en curso, solo muestra los errores.
+    // La respuesta vuelve al formulario como un estado más: GradusNavHost navega al ver Succeeded.
+    fun onSubmit() {
+        val credentials = form.toCredentials()
+        if (credentials == null || !form.canSend) {
+            form = form.submitted()
+            return
+        }
+        form = form.sending()
+        viewModelScope.launch {
+            val outcome = accountGateway.logIn(credentials)
+            // La sesión se guarda antes de marcar el formulario como terminado: así, cuando se
+            // navegue a Inicio, la sesión ya está disponible.
+            if (outcome is LogInOutcome.LoggedIn) sessionStore.save(outcome.session)
+            form = form.applying(outcome)
+        }
     }
 }
