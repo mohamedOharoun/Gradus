@@ -65,7 +65,7 @@ PostgreSQL con la contraseña hasheada (PBKDF2 con sal aleatoria por usuario).
 - Test automatizado del repositorio y del endpoint (cuando se decida el CI/CD).
 - Pool de conexiones (HikariCP): ahora se abre una conexión por petición.
 - Errores 500 en formato JSON (ahora Javalin responde texto plano «Server Error»).
-- Actualizar `especificacion.md` §8: el backend es Javalin, no Ktor.
+- ~~Actualizar `especificacion.md` §8: el backend es Javalin, no Ktor.~~ Hecho el 2026-11-19.
 
 ## Siguiente paso
 
