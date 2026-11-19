@@ -46,6 +46,21 @@ inmutables, y que la app pueda buscarlos y descargarlos con los mismos bytes que
 - **División:** 2a (base y capa 3), 2b (grafo), 2c (dominio y pedagogía), 2d (validador y
   `compareVersions`), en el paquete `domain/course/rules`.
 
+## Decisiones del paso 3 (aprobadas el 2026-11-19)
+
+- **API de networknt 2.0.8** (comprobada en el jar): `SchemaRegistry.withDefaultDialect(DRAFT_2020_12, …)`,
+  `getSchema(InputStream)` y `Schema.validate(JsonNode)` → `List<Error>`; la ruta sale de
+  `Error.getInstanceLocation()` (`NodePath` con claves e índices). Motor de expresiones regulares del
+  JDK (`JDKRegularExpressionFactory`): soporta el *lookahead* y su `\S` es el mismo que el de
+  `Require`. Mensajes en español con `locale(es)`. YAML solo se usa en `YamlMapperFactory$Holder`
+  (carga perezosa), así que se excluye `jackson-dataformat-yaml`.
+- **`DUPLICATE_KEY`** apunta al objeto afectado con `parser.getParsingContext().pathAsPointer()`.
+- **Fixtures (opción A):** cada fixture es un JSON con `expected` (código y ruta) y un `patch`
+  (JSON Patch, RFC 6902: `add`, `replace`, `remove`) que se aplica al ejemplo. Los de la capa 1
+  (`INVALID_JSON`, `DUPLICATE_KEY`) se generan en el test cambiando el texto del ejemplo.
+- **División:** 3a (dependencia y `CourseSchema`), 3b (capa 1), 3c (puerto `CourseReader` y lector
+  completo con el mapeo a records), 3d (fixtures).
+
 ## Alcance
 
 - Validador del formato v1 (capas 1–5 de la especificación, §3) con informe de errores y avisos.
@@ -76,7 +91,7 @@ repositorios y endpoints, y portar las reglas a la app Android.
 - [x] **2. Reglas de validación** (capas 3–5) y `compareVersions`, como funciones puras.
   *Acepta si:* hay al menos un test por código de las capas 3–5, los cuatro valores de la cota
   binomial coinciden y el mensaje de `CYCLE` muestra el ciclo concreto.
-- [ ] **3. Lector** (capas 1–2): BOM, UTF-8 estricto, Jackson con detección de claves duplicadas,
+- [x] **3. Lector** (capas 1–2): BOM, UTF-8 estricto, Jackson con detección de claves duplicadas,
   schema y mapeo a records. Informe completo. Añade la dependencia aprobada.
   *Acepta si:* el ejemplo es válido y sin avisos, hay un fixture por cada código de §3.3 con su
   ruta, y un `title` con salto de línea final se rechaza.
@@ -151,6 +166,35 @@ repositorios y endpoints, y portar las reglas a la app Android.
   (`REMOVED_IDS` en la raíz, ids en el orden de la versión anterior; los ids de las opciones no
   cuentan). El curso por defecto de los tests es válido y sin avisos. **Paso 2 completado:** hay
   tests para los 19 códigos de las capas 3–5, los cuatro valores de la cota y el ciclo concreto.
+- 2026-11-19: paso 3a hecho (364 tests en verde, 6 nuevos; sin avisos de compilación). Dependencia
+  `json-schema-validator` 2.0.8 en el `pom.xml` sin `jackson-dataformat-yaml`; el árbol resuelve
+  Jackson 2.22.4, `itu` 1.14.0 y nada de YAML, y todo funciona sin él. `infrastructure/course/CourseSchema`
+  (Adapter): compila el schema del classpath una vez y convierte cada `Error` en `SCHEMA_VIOLATION`
+  con su ruta. Los mensajes de los patrones (`id`, texto plano, Markdown, idioma) se sustituyen por
+  una explicación legible con el valor encontrado; el resto usa los mensajes en español de la
+  librería. El ejemplo cumple el schema y un `title` con salto de línea final se rechaza.
+- 2026-11-19: paso 3b hecho (380 tests en verde, 16 nuevos; sin avisos, también con
+  `showDeprecation`). `domain/course/CourseContent` (el texto del autor; `sha256()` y `sizeBytes()`
+  se calculan del propio texto, entre 1 byte y 2 MiB). En `infrastructure/course`: `Utf8Text` (quita el
+  BOM y decodifica con `REPORT`, con la posición del primer byte inválido), `SyntaxCheck` (sellado:
+  `Passed(content, tree)` | `Failed(issue)`) y `CourseJson` (mapper propio con
+  `STRICT_DUPLICATE_DETECTION` y `FAIL_ON_TRAILING_TOKENS`; `INVALID_JSON` con línea y columna,
+  `DUPLICATE_KEY` en el objeto que repite la clave, cuerpo vacío y `PAYLOAD_TOO_LARGE` si supera
+  2 MiB). Comportamiento de Jackson 2.22 comprobado antes con `jshell`.
+- 2026-11-19: paso 3c hecho (391 tests en verde, 11 nuevos; sin avisos). Puerto
+  `application/course/CourseReader` y resultado sellado `CourseReadResult`: `Parsed(course, content)`,
+  `TooLarge` (413), `Unreadable` (capa 1, 400) e `Invalid` (capa 2, 422). `JacksonCourseReader`
+  (Adapter, recibe `CourseSchema` por constructor): `UNSUPPORTED_FORMAT_VERSION` antes del schema
+  (solo si `formatVersion` es un entero, también `2.0`, distinto de 1; un `"1"` lo decide el schema).
+  `CourseNodeMapper`: mapeo manual con una factoría por `type` para los ejercicios. El ejemplo se lee
+  y pasa `CourseValidator` sin problemas; el contenido guardado se vuelve a leer igual.
+- 2026-11-19: paso 3d hecho (423 tests en verde, 32 nuevos; sin avisos). 21 fixtures en
+  `src/test/resources/courses/fixtures/<CÓDIGO>.json` (descripción, `expected` y `patch`), uno por
+  código de las capas 2–5; los de la capa 1 (`INVALID_JSON` por JSON roto y por UTF-8 inválido,
+  `DUPLICATE_KEY`) se generan en el test cambiando el texto del ejemplo. `JsonPatch` de test (`add`,
+  `replace`, `remove`, `copy`) con sus propios tests. `CourseFixturesTest` comprueba que cada fixture
+  produce exactamente su código en su ruta, que el catálogo entero está cubierto y que cada fichero
+  se llama como su código. **Paso 3 completado.**
 
 ## Pendiente para más adelante
 
@@ -159,5 +203,6 @@ repositorios y endpoints, y portar las reglas a la app Android.
 
 ## Siguiente paso
 
-Paso 3: lector (capas 1–2). Antes, añadir la dependencia aprobada al `pom.xml`, comprobar su API
-real en el jar y si funciona sin YAML, y proponer cómo dividir el paso.
+Paso 4: casos de uso (`ValidateCourse`, `PublishCourse`, `PublishCourseVersion`, `FindCourse`,
+`SearchCourses`) con el puerto `CourseRepository` y un repositorio en memoria. Antes, proponer el
+diseño de los puertos y cómo dividir el paso.

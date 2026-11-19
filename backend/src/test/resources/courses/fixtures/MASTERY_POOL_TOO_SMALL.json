@@ -1,0 +1,7 @@
+{
+  "description": "bfs tiene su propia prueba de 9 preguntas, pero su reserva solo tiene 8 ejercicios. Por la opción A no salen los avisos de reintento ni de adivinar.",
+  "expected": { "code": "MASTERY_POOL_TOO_SMALL", "path": "/modules/1/review" },
+  "patch": [
+    { "op": "add", "path": "/modules/1/mastery", "value": { "questions": 9, "minCorrect": 7 } }
+  ]
+}

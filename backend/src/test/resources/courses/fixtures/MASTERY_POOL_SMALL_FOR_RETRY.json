@@ -1,0 +1,7 @@
+{
+  "description": "La reserva de bfs se queda en 7 ejercicios para pruebas de 4 preguntas: un reintento repetirá preguntas.",
+  "expected": { "code": "MASTERY_POOL_SMALL_FOR_RETRY", "path": "/modules/1/review" },
+  "patch": [
+    { "op": "remove", "path": "/modules/1/review/7" }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "description": "bfs se requiere a sí mismo. Da SELF_PREREQUISITE y no CYCLE: la capa 3 falla y la 4 no se ejecuta (§6).",
+  "expected": { "code": "SELF_PREREQUISITE", "path": "/modules/1/requires/1" },
+  "patch": [
+    { "op": "add", "path": "/modules/1/requires/-", "value": "bfs" }
+  ]
+}

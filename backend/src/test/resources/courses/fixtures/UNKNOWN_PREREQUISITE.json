@@ -1,0 +1,7 @@
+{
+  "description": "bfs requiere «colas», que no es un módulo del curso (el ejemplo de §3.7).",
+  "expected": { "code": "UNKNOWN_PREREQUISITE", "path": "/modules/1/requires/1" },
+  "patch": [
+    { "op": "add", "path": "/modules/1/requires/-", "value": "colas" }
+  ]
+}

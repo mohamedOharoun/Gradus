@@ -1,0 +1,9 @@
+{
+  "description": "bfs-r1 se queda con 2 opciones: con p = 1/2, aprobar 3 de 4 adivinando tiene un 31,3 % de probabilidad.",
+  "expected": { "code": "MASTERY_GUESSABLE", "path": "/modules/1/review" },
+  "patch": [
+    { "op": "remove", "path": "/modules/1/review/0/options/4" },
+    { "op": "remove", "path": "/modules/1/review/0/options/3" },
+    { "op": "remove", "path": "/modules/1/review/0/options/2" }
+  ]
+}
