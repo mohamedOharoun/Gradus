@@ -76,8 +76,25 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
   - Etiquetas preferidas: ordenan antes los cursos con esas etiquetas.
   - Cerrar sesión y eliminar cuenta.
 
-**Pendientes de diseñar:** detalle del curso con el grafo, práctica de preguntas, repasos y notas
-con cámara.
+**Dentro de un curso** (sin barra inferior; diseñadas en Compose, el Figma no las tiene; ver
+`tareas/camino-curso-y-ejercicios.md`):
+
+- **Camino del curso:**
+  - Los conceptos, de arriba abajo, unidos por líneas a sus prerrequisitos. Si una fila solo
+    tiene un concepto, el camino hace zigzag; como mucho caben 3 por fila.
+  - Cada concepto tiene color e icono según su estado: dominado (morado, ✓), frontera (naranja, ▶)
+    y bloqueado (gris, 🔒). Las líneas hacia un concepto desbloqueado son llenas y moradas; hacia
+    uno bloqueado, discontinuas y grises.
+  - Cabecera con el título y el progreso («3 de 10 dominados»).
+  - Tocar un concepto bloqueado dice qué falta para desbloquearlo. Tocar uno de la frontera o
+    dominado abre su práctica.
+- **Práctica:**
+  - Una pregunta cada vez, con barra de progreso.
+  - «Comprobar», después el resultado (con la solución si se falla) y «Continuar».
+  - Al acabar, un resumen con los aciertos.
+  - Tipos: opción única, selección múltiple y emparejar (§7).
+
+**Pendientes de diseñar:** repasos y notas con cámara.
 
 ## 6. Formato de los cursos
 
@@ -103,6 +120,9 @@ con cámara.
   y se compara con una lista de respuestas aceptadas.
 - **Numérica:** con tolerancia; acepta tanto «0,5» como «0.5».
 - **Ordenar**, incluido Parsons: las líneas se ordenan tocándolas en orden, sin arrastrar.
+- **Emparejar:** unir cada elemento de una columna con el suyo de la otra. Se toca uno de cada lado
+  y aparece una flecha entre los dos, sin arrastrar. Solo es correcta si están bien todas las
+  parejas. Ver `tareas/camino-curso-y-ejercicios.md`.
 - **Tarjeta autoevaluada:** para los repasos.
 
 ## 8. Requisitos de la asignatura

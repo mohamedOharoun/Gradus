@@ -33,8 +33,9 @@ fun FormTopBar(
 }
 
 // Círculo de 44 dp como en Figma; al ser un Surface pulsable, Material amplía la zona táctil a 48 dp.
+// Público para reutilizarlo en barras que no son de formulario (CourseHeader).
 @Composable
-private fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
         onClick = onClick,
         modifier = modifier.size(44.dp),

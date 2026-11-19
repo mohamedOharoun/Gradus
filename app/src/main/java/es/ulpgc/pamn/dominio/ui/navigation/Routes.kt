@@ -31,4 +31,14 @@ sealed interface Route {
 
     @Serializable
     data object Settings : Route
+
+    // ── Dentro del grafo Main, pero sin barra (docs/tareas/camino-curso-y-ejercicios.md) ──
+
+    // El camino de un curso. data class (no object) porque lleva un dato: qué curso abrir.
+    @Serializable
+    data class Course(val courseId: String) : Route
+
+    // La práctica de un concepto de un curso.
+    @Serializable
+    data class Exercise(val courseId: String, val conceptId: String) : Route
 }

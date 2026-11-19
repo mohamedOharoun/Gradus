@@ -3,16 +3,28 @@ package es.ulpgc.pamn.dominio.ui.navigation
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.dropUnlessResumed
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
+import androidx.navigation.toRoute
+import es.ulpgc.pamn.dominio.data.demoCourse
+import es.ulpgc.pamn.dominio.data.demoMastered
 import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenMyCourses
 import es.ulpgc.pamn.dominio.ui.screens.ScreenSearch
 import es.ulpgc.pamn.dominio.ui.screens.ScreenSettings
+import es.ulpgc.pamn.dominio.ui.screens.course.CourseActions
+import es.ulpgc.pamn.dominio.ui.screens.course.CourseViewModel
+import es.ulpgc.pamn.dominio.ui.screens.course.ScreenCourse
+import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
+import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
+import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
 
 // Grafo anidado de las pantallas con sesión (docs/tareas/barra-navegacion.md).
 // Va en su propio fichero para que GradusNavHost solo tenga que llamar a mainGraph(...).
@@ -26,10 +38,53 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None },
     ) {
-        tab<Route.Home>(TopLevelDestination.HOME, navController) { ScreenHome(it) }
+        tab<Route.Home>(TopLevelDestination.HOME, navController) {
+            ScreenHome(
+                onOpenCourse = dropUnlessResumed { navController.navigate(Route.Course(demoCourse.id)) },
+                modifier = it,
+            )
+        }
         tab<Route.Search>(TopLevelDestination.SEARCH, navController) { ScreenSearch(it) }
         tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { ScreenMyCourses(it) }
         tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { ScreenSettings(it) }
+        // Sin barra: no es una pestaña, se entra desde una y «atrás» vuelve a ella.
+        composable<Route.Course> {
+            // Provisional: solo existe el curso de ejemplo, así que no hace falta leer el courseId.
+            // Con el backend, el ViewModel pedirá el curso de la ruta a un CourseGateway.
+            val courseViewModel: CourseViewModel = viewModel(factory = CourseViewModel.factory(demoCourse, demoMastered))
+            // Concepto desbloqueado tocado: se abre su práctica y se borra el evento.
+            courseViewModel.state.practiceToOpen?.let { conceptId ->
+                LaunchedEffect(conceptId) {
+                    navController.navigate(Route.Exercise(demoCourse.id, conceptId))
+                    courseViewModel.onPracticeOpened()
+                }
+            }
+            ScreenCourse(
+                state = courseViewModel.state,
+                actions = CourseActions(
+                    onConceptClick = courseViewModel::onConceptClick,
+                    onNoticeShown = courseViewModel::onNoticeShown,
+                    onBack = dropUnlessResumed { navController.popBackStack() },
+                ),
+            )
+        }
+        // La práctica de un concepto. Sin barra; «atrás», cerrar y «Volver al camino» vuelven al camino.
+        composable<Route.Exercise> { entry ->
+            val route = entry.toRoute<Route.Exercise>()
+            // Provisional, como en Route.Course: solo existe el curso de ejemplo.
+            val exerciseViewModel: ExerciseViewModel = viewModel(factory = ExerciseViewModel.factory(demoCourse, route.conceptId))
+            ScreenExercise(
+                state = exerciseViewModel.state,
+                actions = ExerciseActions(
+                    onChoose = exerciseViewModel::onChoose,
+                    onLeftClick = exerciseViewModel::onLeftClick,
+                    onRightClick = exerciseViewModel::onRightClick,
+                    onCheck = exerciseViewModel::onCheck,
+                    onContinue = exerciseViewModel::onContinue,
+                    onClose = dropUnlessResumed { navController.popBackStack() },
+                ),
+            )
+        }
     }
 }
 
