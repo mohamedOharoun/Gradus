@@ -1,0 +1,7 @@
+{
+  "description": "En repr-f2, las dos parejas tienen el mismo lado derecho: ya no hay una única forma de unirlas.",
+  "expected": { "code": "DUPLICATE_MATCHING_SIDE", "path": "/modules/0/steps/3/pairs/1" },
+  "patch": [
+    { "op": "replace", "path": "/modules/0/steps/3/pairs/1/right", "value": "O(V²)" }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "description": "Se quitan los dos ejercicios formativos de bfs: sus steps solo tienen lecciones.",
+  "expected": { "code": "MODULE_WITHOUT_EXERCISE", "path": "/modules/1/steps" },
+  "patch": [
+    { "op": "remove", "path": "/modules/1/steps/3" },
+    { "op": "remove", "path": "/modules/1/steps/1" }
+  ]
+}

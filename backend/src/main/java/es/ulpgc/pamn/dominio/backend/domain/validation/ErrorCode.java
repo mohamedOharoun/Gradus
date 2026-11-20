@@ -23,5 +23,13 @@ public enum ErrorCode {
     /** Correo o contraseña incorrectos al iniciar sesión; nunca se dice cuál de los dos (respuesta 401). */
     INVALID_CREDENTIALS,
     /** Falta el token, no existe o ha caducado: hay que volver a iniciar sesión (respuesta 401). */
-    UNAUTHENTICATED
+    UNAUTHENTICATED,
+    /** Un parámetro de la consulta no es válido, por ejemplo {@code page} o {@code size} (respuesta 400). */
+    INVALID_PARAMETER,
+    /** No existe el curso o la versión pedida (respuesta 404). */
+    COURSE_NOT_FOUND,
+    /** Quien publica una versión no es el autor del curso (respuesta 403). */
+    NOT_COURSE_AUTHOR,
+    /** El contenido es idéntico al de la última versión: no se crea ninguna (respuesta 409). */
+    IDENTICAL_TO_LATEST
 }

@@ -7,10 +7,23 @@ import es.ulpgc.pamn.dominio.backend.application.PasswordHasher;
 import es.ulpgc.pamn.dominio.backend.application.RegisterUser;
 import es.ulpgc.pamn.dominio.backend.application.SessionRepository;
 import es.ulpgc.pamn.dominio.backend.application.UserRepository;
+import es.ulpgc.pamn.dominio.backend.application.course.CourseInspector;
+import es.ulpgc.pamn.dominio.backend.application.course.CourseReader;
+import es.ulpgc.pamn.dominio.backend.application.course.CourseRepository;
+import es.ulpgc.pamn.dominio.backend.application.course.FindCourse;
+import es.ulpgc.pamn.dominio.backend.application.course.SearchCourses;
+import es.ulpgc.pamn.dominio.backend.application.course.PublishCourse;
+import es.ulpgc.pamn.dominio.backend.application.course.PublishCourseVersion;
+import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourse;
 import es.ulpgc.pamn.dominio.backend.config.DatabaseConfig;
 import es.ulpgc.pamn.dominio.backend.config.HttpConfig;
 import es.ulpgc.pamn.dominio.backend.domain.session.SessionPolicy;
+import es.ulpgc.pamn.dominio.backend.domain.course.CourseContent;
+import es.ulpgc.pamn.dominio.backend.domain.course.rules.CourseValidator;
 import es.ulpgc.pamn.dominio.backend.domain.session.SessionToken;
+import es.ulpgc.pamn.dominio.backend.infrastructure.course.CourseSchema;
+import es.ulpgc.pamn.dominio.backend.infrastructure.course.JacksonCourseReader;
+import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcCourseRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcSessionRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcUserRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.security.Pbkdf2PasswordHasher;
@@ -19,6 +32,8 @@ import es.ulpgc.pamn.dominio.backend.web.ExceptionHandlers;
 import es.ulpgc.pamn.dominio.backend.web.RequireSession;
 import es.ulpgc.pamn.dominio.backend.web.SessionController;
 import es.ulpgc.pamn.dominio.backend.web.UserController;
+import es.ulpgc.pamn.dominio.backend.web.course.CourseCatalogController;
+import es.ulpgc.pamn.dominio.backend.web.course.CoursePublicationController;
 import io.javalin.Javalin;
 
 import javax.sql.DataSource;
@@ -52,13 +67,33 @@ public final class App {
         RequireSession requireSession = new RequireSession(
                 new Authenticate(sessionRepository, userRepository, SessionPolicy.STANDARD, clock));
 
+        // Cursos: el schema se compila una sola vez y el lector y el validador se comparten.
+        CourseReader courseReader = new JacksonCourseReader(CourseSchema.load());
+        CourseInspector courseInspector = new CourseInspector(courseReader, CourseValidator.standard());
+        CourseRepository courseRepository = new JdbcCourseRepository(dataSource);
+        CoursePublicationController coursePublication = new CoursePublicationController(
+                new ValidateCourse(courseInspector),
+                new PublishCourse(courseInspector, courseRepository, clock, UUID::randomUUID),
+                new PublishCourseVersion(courseInspector, courseReader, courseRepository, clock));
+        CourseCatalogController courseCatalog = new CourseCatalogController(
+                new FindCourse(courseRepository), new SearchCourses(courseRepository));
+
         Javalin.create(config -> {
             config.jetty.port = http.port();
+            // 2 MiB (§4.7). Javalin trae 1 000 000 bytes por defecto: sin esto, rechazaría los cursos más grandes.
+            config.http.maxRequestSize = CourseContent.MAX_SIZE_BYTES;
             config.routes.post("/api/users", users::register);
             config.routes.post("/api/sessions", sessions::logIn);
             // Rutas protegidas: sin un token válido responden 401 sin llegar al controlador.
             config.routes.get("/api/users/me", requireSession.around(users::me));
             config.routes.delete("/api/sessions/current", requireSession.around(sessions::logOut));
+            config.routes.post("/api/courses/validate", requireSession.around(coursePublication::validate));
+            config.routes.post("/api/courses", requireSession.around(coursePublication::publish));
+            config.routes.post("/api/courses/{id}/versions", requireSession.around(coursePublication::publishVersion));
+            // Consulta pública: buscar y descargar cursos no necesita sesión.
+            config.routes.get("/api/courses", courseCatalog::search);
+            config.routes.get("/api/courses/{id}", courseCatalog::latest);
+            config.routes.get("/api/courses/{id}/versions/{version}", courseCatalog::version);
             config.routes.exception(JacksonException.class, ExceptionHandlers::invalidJson);
         }).start();
     }

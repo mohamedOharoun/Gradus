@@ -1,0 +1,68 @@
+type: http_request
+model: http_request
+id: rq_oc3oaQ5kmC
+createdAt: 2026-11-20T07:29:56.664730949
+updatedAt: 2026-11-20T07:29:56.664731881
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_pUw2uUvgMh
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "formatVersion": 1,
+      "title": "Curso de prueba con un error",
+      "description": "El módulo requiere otro que no existe.",
+      "language": "es",
+      "tags": ["prueba"],
+      "defaults": { "mastery": { "questions": 1, "minCorrect": 1 } },
+      "modules": [
+        {
+          "id": "bfs",
+          "title": "Recorrido en anchura",
+          "requires": ["colas"],
+          "steps": [ { "type": "lesson", "id": "bfs-l1", "text": "BFS usa una cola." } ],
+          "review": [
+            {
+              "type": "singleChoice", "id": "bfs-r1", "prompt": "¿Qué estructura usa BFS?",
+              "options": [ { "id": "a", "text": "Una cola" }, { "id": "b", "text": "Una pila" } ],
+              "answer": "a", "explanation": "La cola es FIFO."
+            }
+          ]
+        }
+      ]
+    }
+bodyType: application/json
+description: 'También 200: el informe dice valid = false con UNKNOWN_PREREQUISITE en /modules/0/requires/0.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_BidRTgEuwC', path='$.token') ]}
+  id: null
+method: POST
+name: Validar curso con errores (200)
+sortPriority: 7.0
+url: ${[ baseUrl ]}/api/courses/validate
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

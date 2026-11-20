@@ -1,0 +1,7 @@
+{
+  "description": "El autor escribe un campo que no existe en el formato: el autor lo asigna el servidor (§2.8).",
+  "expected": { "code": "SCHEMA_VIOLATION", "path": "" },
+  "patch": [
+    { "op": "add", "path": "/author", "value": "Ana" }
+  ]
+}

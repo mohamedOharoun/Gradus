@@ -1,0 +1,7 @@
+{
+  "description": "La prueba por defecto pide acertar las 4 preguntas: un solo despiste suspende.",
+  "expected": { "code": "MASTERY_REQUIRES_PERFECT", "path": "/defaults/mastery" },
+  "patch": [
+    { "op": "replace", "path": "/defaults/mastery/minCorrect", "value": 4 }
+  ]
+}

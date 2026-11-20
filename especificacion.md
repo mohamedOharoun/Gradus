@@ -112,7 +112,7 @@ con cámara.
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
 | API del dispositivo | Cámara para fotografiar apuntes y asociarlos a conceptos |
 | SQLite | Room: cursos descargados, registro de respuestas y notas (fotos como ficheros, solo su ruta en la base de datos) |
-| Backend | Anillo 2: servidor Ktor con catálogo, subida validada, descarga y valoraciones |
+| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga y valoraciones |
 
 ## 9. Plan por anillos
 
@@ -130,7 +130,7 @@ con cámara.
 
 - ¿Los cursos llevan imágenes (paquete `.zip`) o solo JSON?
 - ¿El fallo en un repaso se queda en «necesita repaso» o vuelve a bloquear lo que depende de él?
-- ¿Cuentas reales con nuestro servidor Ktor o con Firebase Authentication?
+- ¿Cuentas reales con nuestro servidor Javalin o con Firebase Authentication?
 - ¿Las etiquetas son una lista cerrada o libres, normalizadas a minúsculas?
 
 ## 11. Fuera de alcance

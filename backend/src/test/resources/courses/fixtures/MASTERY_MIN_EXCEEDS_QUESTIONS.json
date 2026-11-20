@@ -1,0 +1,7 @@
+{
+  "description": "La prueba por defecto pide 5 aciertos de 4 preguntas. Se informa una vez, en el objeto mastery.",
+  "expected": { "code": "MASTERY_MIN_EXCEEDS_QUESTIONS", "path": "/defaults/mastery" },
+  "patch": [
+    { "op": "replace", "path": "/defaults/mastery/minCorrect", "value": 5 }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "description": "El fichero declara la versión 2 del formato, que este servidor no conoce.",
+  "expected": { "code": "UNSUPPORTED_FORMAT_VERSION", "path": "/formatVersion" },
+  "patch": [
+    { "op": "replace", "path": "/formatVersion", "value": 2 }
+  ]
+}

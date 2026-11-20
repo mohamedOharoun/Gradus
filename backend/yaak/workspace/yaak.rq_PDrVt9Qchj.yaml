@@ -1,0 +1,347 @@
+type: http_request
+model: http_request
+id: rq_PDrVt9Qchj
+createdAt: 2026-11-20T07:36:29.635038166
+updatedAt: 2026-11-20T07:36:29.635038587
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_jjUAUPZHxR
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "formatVersion": 1,
+      "title": "Introducción a los grafos",
+      "description": "Cómo se guarda un grafo en memoria y cómo se recorre en anchura (BFS).",
+      "language": "es",
+      "tags": ["grafos", "algoritmos", "estructuras de datos"],
+      "defaults": {
+        "mastery": { "questions": 4, "minCorrect": 3 }
+      },
+      "modules": [
+        {
+          "id": "representacion",
+          "title": "Representar un grafo",
+          "requires": [],
+          "steps": [
+            {
+              "type": "lesson",
+              "id": "repr-l1",
+              "text": "Un **grafo** G = (V, E) está formado por un conjunto de **vértices** V y un conjunto de **aristas** E que los conectan.\n\n- En un grafo **no dirigido**, la arista {u, v} une u y v en ambos sentidos.\n- En un grafo **dirigido**, la arista (u, v) va de u a v, y no es lo mismo que (v, u).\n\nEl **grado** de un vértice es el número de aristas que inciden en él. Como cada arista suma uno al grado de cada uno de sus dos extremos, en un grafo no dirigido la suma de todos los grados es 2E.\n\nSin bucles ni aristas repetidas, un grafo no dirigido con n vértices tiene como máximo n(n − 1)/2 aristas: una por cada par de vértices distintos."
+            },
+            {
+              "type": "lesson",
+              "id": "repr-l2",
+              "text": "Hay tres formas habituales de guardar un grafo en memoria:\n\n- **Matriz de adyacencia**: una tabla V × V en la que la celda (u, v) indica si existe la arista. Ocupa O(V²) memoria; comprobar o añadir una arista cuesta O(1), pero listar los vecinos de un vértice obliga a recorrer su fila entera, O(V). En un grafo no dirigido la matriz es simétrica.\n- **Lista de adyacencia**: para cada vértice, la lista de sus vecinos. Ocupa O(V + E) memoria y recorre los vecinos de u en O(grado(u)).\n- **Lista de aristas**: la lista de pares (u, v). Ocupa O(E) y es cómoda para procesar todas las aristas una vez, pero encontrar los vecinos de un vértice obliga a recorrerla entera.\n\nUn grafo es **denso** si su número de aristas se acerca al máximo posible, y **disperso** si tiene muchas menos. La matriz conviene en grafos densos; la lista de adyacencia, en grafos dispersos."
+            },
+            {
+              "type": "singleChoice",
+              "id": "repr-f1",
+              "prompt": "¿Qué representación reserva espacio para todos los pares de vértices, existan o no las aristas?",
+              "options": [
+                { "id": "a", "text": "Matriz de adyacencia" },
+                { "id": "b", "text": "Lista de adyacencia" },
+                { "id": "c", "text": "Lista de aristas" }
+              ],
+              "answer": "a",
+              "explanation": "La matriz tiene una celda por cada par (u, v), por eso ocupa O(V²) aunque el grafo tenga pocas aristas."
+            },
+            {
+              "type": "matching",
+              "id": "repr-f2",
+              "prompt": "Une cada representación con la memoria que ocupa.",
+              "pairs": [
+                { "left": "Matriz de adyacencia", "right": "O(V²)" },
+                { "left": "Lista de adyacencia", "right": "O(V + E)" }
+              ],
+              "explanation": "La matriz guarda todos los pares posibles; la lista de adyacencia solo guarda las aristas que existen, más una entrada por vértice."
+            }
+          ],
+          "review": [
+            {
+              "type": "singleChoice",
+              "id": "repr-r1",
+              "prompt": "¿Cuántas aristas puede tener como máximo un grafo no dirigido con n vértices, sin bucles ni aristas repetidas?",
+              "options": [
+                { "id": "a", "text": "n(n − 1)/2" },
+                { "id": "b", "text": "n²" },
+                { "id": "c", "text": "n(n − 1)" },
+                { "id": "d", "text": "n − 1" },
+                { "id": "e", "text": "2n" }
+              ],
+              "answer": "a",
+              "explanation": "Cada arista es un par no ordenado de vértices distintos, y hay n(n − 1)/2 pares así. n(n − 1) contaría cada arista dos veces, como si el grafo fuera dirigido; n² contaría además los bucles."
+            },
+            {
+              "type": "singleChoice",
+              "id": "repr-r2",
+              "prompt": "Con una matriz de adyacencia, ¿cuál es la cota más ajustada del coste de comprobar si existe la arista (u, v)?",
+              "options": [
+                { "id": "a", "text": "O(1)" },
+                { "id": "b", "text": "O(log V)" },
+                { "id": "c", "text": "O(V)" },
+                { "id": "d", "text": "O(E)" },
+                { "id": "e", "text": "O(V + E)" }
+              ],
+              "answer": "a",
+              "explanation": "Basta con leer la celda (u, v): un único acceso. Las otras cotas también son ciertas como cotas superiores, pero no son las más ajustadas."
+            },
+            {
+              "type": "singleChoice",
+              "id": "repr-r3",
+              "prompt": "¿Cuál es la cota más ajustada de la memoria que ocupa una lista de adyacencia?",
+              "options": [
+                { "id": "a", "text": "O(V + E)" },
+                { "id": "b", "text": "O(V²)" },
+                { "id": "c", "text": "O(V · E)" },
+                { "id": "d", "text": "O(E²)" },
+                { "id": "e", "text": "O(V)" }
+              ],
+              "answer": "a",
+              "explanation": "Hay una entrada por vértice y una por cada extremo de arista (2E en un grafo no dirigido), así que O(V + E). O(V²) también es cota superior, porque E ≤ V², pero es mucho peor en grafos dispersos."
+            },
+            {
+              "type": "multipleChoice",
+              "id": "repr-r4",
+              "prompt": "¿Qué afirmaciones son ciertas para un grafo no dirigido guardado con matriz de adyacencia?",
+              "options": [
+                { "id": "a", "text": "La matriz es simétrica" },
+                { "id": "b", "text": "La diagonal está llena de unos" },
+                { "id": "c", "text": "Ocupa O(V²) memoria aunque haya pocas aristas" },
+                { "id": "d", "text": "Recorrer los vecinos de un vértice cuesta O(grado)" }
+              ],
+              "correct": ["a", "c"],
+              "explanation": "Como {u, v} = {v, u}, las celdas (u, v) y (v, u) coinciden: la matriz es simétrica. La diagonal solo tendría unos si hubiera bucles. Recorrer los vecinos obliga a leer una fila entera, O(V), aunque el vértice tenga pocos vecinos."
+            },
+            {
+              "type": "matching",
+              "id": "repr-r5",
+              "prompt": "Une cada término con su definición.",
+              "pairs": [
+                { "left": "Grado", "right": "Número de aristas que inciden en un vértice" },
+                { "left": "Grafo dirigido", "right": "Sus aristas tienen sentido: (u, v) no es lo mismo que (v, u)" },
+                { "left": "Grafo disperso", "right": "Tiene muchas menos aristas que el máximo posible" }
+              ],
+              "explanation": "El grado cuenta aristas, la dirección distingue (u, v) de (v, u) y la densidad compara el número de aristas con el máximo posible."
+            },
+            {
+              "type": "matching",
+              "id": "repr-r6",
+              "prompt": "Une cada situación con la representación más adecuada.",
+              "pairs": [
+                { "left": "Grafo disperso con millones de vértices", "right": "Lista de adyacencia" },
+                { "left": "Grafo denso en el que se pregunta a menudo si existe una arista", "right": "Matriz de adyacencia" },
+                { "left": "Algoritmo que solo necesita procesar cada arista una vez", "right": "Lista de aristas" }
+              ],
+              "explanation": "La lista de adyacencia no gasta memoria en aristas inexistentes; la matriz responde en O(1) si una arista existe; la lista de aristas basta cuando solo hay que recorrerlas todas."
+            },
+            {
+              "type": "singleChoice",
+              "id": "repr-r7",
+              "prompt": "En un grafo no dirigido con E aristas, ¿cuánto vale la suma de los grados de todos los vértices?",
+              "options": [
+                { "id": "a", "text": "2E" },
+                { "id": "b", "text": "E" },
+                { "id": "c", "text": "E / 2" },
+                { "id": "d", "text": "V" },
+                { "id": "e", "text": "V + E" }
+              ],
+              "answer": "a",
+              "explanation": "Cada arista {u, v} suma uno al grado de u y uno al de v, así que cada arista cuenta exactamente dos veces."
+            },
+            {
+              "type": "multipleChoice",
+              "id": "repr-r8",
+              "prompt": "Con una matriz de adyacencia, ¿qué operaciones cuestan O(1)?",
+              "options": [
+                { "id": "a", "text": "Comprobar si (u, v) es una arista" },
+                { "id": "b", "text": "Añadir una arista entre dos vértices existentes" },
+                { "id": "c", "text": "Listar los vecinos de un vértice" }
+              ],
+              "correct": ["a", "b"],
+              "explanation": "Comprobar o añadir una arista solo toca la celda (u, v). Listar los vecinos exige recorrer la fila entera: O(V)."
+            }
+          ]
+        },
+        {
+          "id": "bfs",
+          "title": "Recorrido en anchura (BFS)",
+          "requires": ["representacion"],
+          "steps": [
+            {
+              "type": "lesson",
+              "id": "bfs-l1",
+              "text": "El **recorrido en anchura** (BFS, *breadth-first search*) explora un grafo por **capas** a partir de un vértice inicial s: primero s, después sus vecinos, después los vecinos de estos, y así sucesivamente. La capa k está formada por los vértices a distancia exactamente k de s.\n\nBFS usa una **cola**:\n\n1. Encolar s y marcarlo como visitado.\n2. Mientras la cola no esté vacía, sacar un vértice u y examinar sus vecinos.\n3. Cada vecino no visitado se marca como visitado, recibe la distancia de u más uno y se encola.\n\nUn vértice se marca como visitado **al encolarlo**, no al sacarlo: así nunca entra dos veces en la cola."
+            },
+            {
+              "type": "singleChoice",
+              "id": "bfs-f1",
+              "prompt": "¿Qué estructura de datos usa BFS para decidir qué vértice examinar a continuación?",
+              "options": [
+                { "id": "a", "text": "Una cola" },
+                { "id": "b", "text": "Una pila" },
+                { "id": "c", "text": "Una cola de prioridad" }
+              ],
+              "answer": "a",
+              "explanation": "La cola es FIFO: los vértices salen en el mismo orden en que se descubrieron, y eso es lo que produce el recorrido por capas."
+            },
+            {
+              "type": "lesson",
+              "id": "bfs-l2",
+              "text": "Con listas de adyacencia, BFS cuesta **O(V + E)**: cada vértice entra en la cola como mucho una vez y cada lista de vecinos se recorre una vez. Con matriz de adyacencia cuesta **O(V²)**, porque encontrar los vecinos de cada vértice obliga a recorrer su fila entera.\n\nEn un grafo **no ponderado**, BFS calcula la **distancia mínima en número de aristas** desde s hasta cada vértice. Si además se guarda el **predecesor** de cada vértice (el vértice desde el que se descubrió), se puede reconstruir un camino mínimo hasta él. Los vértices **inalcanzables**, sin ningún camino desde s, nunca se visitan."
+            },
+            {
+              "type": "multipleChoice",
+              "id": "bfs-f2",
+              "prompt": "Cuando BFS saca un vértice u de la cola, ¿qué hace a continuación?",
+              "options": [
+                { "id": "a", "text": "Examina los vecinos de u" },
+                { "id": "b", "text": "Encola los vecinos de u que aún no se han visitado" },
+                { "id": "c", "text": "Vuelve a encolar u al final de la cola" }
+              ],
+              "correct": ["a", "b"],
+              "explanation": "Tras sacar u, BFS examina sus vecinos y encola los que no se han visitado. u no vuelve a la cola: cada vértice entra en ella como mucho una vez."
+            }
+          ],
+          "review": [
+            {
+              "type": "singleChoice",
+              "id": "bfs-r1",
+              "prompt": "¿Cuál es la cota más ajustada del coste de BFS sobre un grafo guardado con listas de adyacencia?",
+              "options": [
+                { "id": "a", "text": "O(V + E)" },
+                { "id": "b", "text": "O(V²)" },
+                { "id": "c", "text": "O(V · E)" },
+                { "id": "d", "text": "O(E log V)" },
+                { "id": "e", "text": "O(V log V)" }
+              ],
+              "answer": "a",
+              "explanation": "Cada vértice entra y sale de la cola como mucho una vez, y cada lista de vecinos se recorre una vez: O(V + E). O(V²) también es cota superior, pero mucho peor en grafos dispersos."
+            },
+            {
+              "type": "singleChoice",
+              "id": "bfs-r2",
+              "prompt": "¿Cuál es la cota más ajustada del coste de BFS sobre un grafo guardado con matriz de adyacencia?",
+              "options": [
+                { "id": "a", "text": "O(V²)" },
+                { "id": "b", "text": "O(V + E)" },
+                { "id": "c", "text": "O(V)" },
+                { "id": "d", "text": "O(E)" },
+                { "id": "e", "text": "O(V log V)" }
+              ],
+              "answer": "a",
+              "explanation": "Para encontrar los vecinos de cada vértice hay que leer su fila entera, de V celdas, y eso para cada uno de los V vértices: O(V²), aunque el grafo tenga pocas aristas."
+            },
+            {
+              "type": "singleChoice",
+              "id": "bfs-r3",
+              "prompt": "En un grafo no ponderado, ¿qué calcula BFS desde un vértice s?",
+              "options": [
+                { "id": "a", "text": "El número mínimo de aristas de s a cada vértice alcanzable" },
+                { "id": "b", "text": "Un orden topológico de los vértices" },
+                { "id": "c", "text": "Las componentes fuertemente conexas" },
+                { "id": "d", "text": "El camino más largo desde s" },
+                { "id": "e", "text": "El número cromático del grafo" }
+              ],
+              "answer": "a",
+              "explanation": "Como recorre el grafo por capas, cada vértice se descubre por primera vez a su distancia mínima de s. Las demás opciones requieren otros algoritmos."
+            },
+            {
+              "type": "singleChoice",
+              "id": "bfs-r4",
+              "prompt": "¿En qué momento marca BFS un vértice como visitado, para que no entre dos veces en la cola?",
+              "options": [
+                { "id": "a", "text": "Al encolarlo" },
+                { "id": "b", "text": "Al sacarlo de la cola" },
+                { "id": "c", "text": "Cuando ha examinado todos sus vecinos" },
+                { "id": "d", "text": "Al terminar el recorrido" },
+                { "id": "e", "text": "Nunca: la cola ya evita las repeticiones" }
+              ],
+              "answer": "a",
+              "explanation": "Si se marcara al sacarlo, un vértice podría encolarse varias veces mientras espera, descubierto desde vecinos distintos."
+            },
+            {
+              "type": "multipleChoice",
+              "id": "bfs-r5",
+              "prompt": "¿Qué afirmaciones son ciertas sobre BFS desde un vértice s?",
+              "options": [
+                { "id": "a", "text": "Visita los vértices en orden no decreciente de distancia a s" },
+                { "id": "b", "text": "Puede visitar un vértice a distancia 3 antes que uno a distancia 2" },
+                { "id": "c", "text": "Solo visita vértices a los que hay camino desde s" },
+                { "id": "d", "text": "Necesita que el grafo no tenga ciclos" }
+              ],
+              "correct": ["a", "c"],
+              "explanation": "BFS termina una capa antes de empezar la siguiente, así que las distancias nunca bajan. Solo visita lo alcanzable desde s, y funciona igual con ciclos gracias a las marcas de visitado."
+            },
+            {
+              "type": "matching",
+              "id": "bfs-r6",
+              "prompt": "Une cada concepto con su significado.",
+              "pairs": [
+                { "left": "Capa k", "right": "Vértices a distancia exactamente k de s" },
+                { "left": "Predecesor de v", "right": "Vértice desde el que se descubrió v" },
+                { "left": "Vértice inalcanzable", "right": "No existe ningún camino desde s hasta él" }
+              ],
+              "explanation": "La capa agrupa vértices por distancia, el predecesor permite reconstruir caminos y los vértices inalcanzables nunca se visitan."
+            },
+            {
+              "type": "matching",
+              "id": "bfs-r7",
+              "prompt": "Une cada paso de BFS con su efecto.",
+              "pairs": [
+                { "left": "Encolar s y marcarlo", "right": "Empieza el recorrido en la capa 0" },
+                { "left": "Sacar u de la cola", "right": "Elige el vértice cuyos vecinos se examinan a continuación" },
+                { "left": "Encolar un vecino no visitado", "right": "Lo descubre con la distancia de u más uno" }
+              ],
+              "explanation": "s es la capa 0; cada vértice que sale de la cola expande sus vecinos, y cada vecino nuevo queda una capa más lejos que u."
+            },
+            {
+              "type": "multipleChoice",
+              "id": "bfs-r8",
+              "prompt": "En un grafo no ponderado, ¿qué puede obtener una sola ejecución de BFS desde s, con coste O(V + E)?",
+              "options": [
+                { "id": "a", "text": "La distancia en aristas de s a cada vértice" },
+                { "id": "b", "text": "Un camino mínimo de s a cada vértice alcanzable" },
+                { "id": "c", "text": "Los caminos mínimos entre todos los pares de vértices" }
+              ],
+              "correct": ["a", "b"],
+              "explanation": "Con las distancias y los predecesores se obtienen distancias y caminos mínimos desde s. Para todos los pares harían falta V ejecuciones, una desde cada vértice."
+            }
+          ]
+        }
+      ]
+    }
+bodyType: application/json
+description: Publica ejemplo-grafos.json tal cual (17 KB). Su sha256 debe coincidir con el SHA-256 del content que devuelven las peticiones de ver una versión.
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_BidRTgEuwC', path='$.token') ]}
+  id: null
+method: POST
+name: Publicar el ejemplo completo (201)
+sortPriority: 1.0
+url: ${[ baseUrl ]}/api/courses
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

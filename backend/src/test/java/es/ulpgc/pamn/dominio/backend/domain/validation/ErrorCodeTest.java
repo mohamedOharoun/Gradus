@@ -20,6 +20,7 @@ class ErrorCodeTest {
                 "REQUIRED", "TOO_SHORT", "TOO_LONG", "INVALID_EMAIL",
                 "MISSING_LETTER", "MISSING_DIGIT", "MISSING_SPECIAL_CHARACTER",
                 "TERMS_NOT_ACCEPTED", "EMAIL_TAKEN", "MALFORMED_BODY", "INVALID_CREDENTIALS",
-                "UNAUTHENTICATED"), names);
+                "UNAUTHENTICATED", "INVALID_PARAMETER", "COURSE_NOT_FOUND", "NOT_COURSE_AUTHOR",
+                "IDENTICAL_TO_LATEST"), names);
     }
 }

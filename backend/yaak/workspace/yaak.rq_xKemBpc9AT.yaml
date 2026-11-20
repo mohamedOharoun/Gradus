@@ -1,0 +1,36 @@
+type: http_request
+model: http_request
+id: rq_xKemBpc9AT
+createdAt: 2026-11-20T07:36:29.680313509
+updatedAt: 2026-11-20T07:36:29.680314611
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_jjUAUPZHxR
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: 'Y lógico: el curso debe tener todas las etiquetas pedidas (le pueden sobrar otras).'
+headers: []
+method: GET
+name: Buscar por dos etiquetas (200)
+sortPriority: 5.0
+url: ${[ baseUrl ]}/api/courses?tag=Grafos&tag=algoritmos
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

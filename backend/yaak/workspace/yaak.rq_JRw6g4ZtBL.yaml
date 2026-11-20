@@ -1,0 +1,36 @@
+type: http_request
+model: http_request
+id: rq_JRw6g4ZtBL
+createdAt: 2026-11-20T07:36:29.658043092
+updatedAt: 2026-11-20T07:36:29.658043723
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_jjUAUPZHxR
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: 'q se normaliza: GRAFOS encuentra «Introducción a los grafos» en el título o la descripción.'
+headers: []
+method: GET
+name: Buscar por texto (200)
+sortPriority: 3.0
+url: ${[ baseUrl ]}/api/courses?q=GRAFOS
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto
