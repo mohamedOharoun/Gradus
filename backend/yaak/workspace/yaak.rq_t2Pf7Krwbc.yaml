@@ -1,0 +1,41 @@
+type: http_request
+model: http_request
+id: rq_t2Pf7Krwbc
+createdAt: 2026-11-20T07:29:56.619488906
+updatedAt: 2026-11-20T07:29:56.619489497
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_pUw2uUvgMh
+authentication: {}
+authenticationType: null
+body:
+  text: '{"name": "Otra Cuenta", "email": "otra.cuenta@example.com", "password": "Cursos#2026", "acceptedTerms": true}'
+bodyType: application/json
+description: 'Una segunda cuenta, que no es autora de los cursos: para el 403.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Registro de otra cuenta (201 o 409)
+sortPriority: 3.0
+url: ${[ baseUrl ]}/api/users
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

@@ -16,8 +16,9 @@ inmutables, y que la app pueda buscarlos y descargarlos con los mismos bytes que
   convive con el Jackson 2 de Javalin. Se queda nuestra `jackson-databind` 2.22.4. Si la librería
   funciona sin YAML, se excluye `jackson-dataformat-yaml` (y snakeyaml).
 - **Límite de cuerpo en Javalin 7.2.4:** `config.http.maxRequestSize` (`long`), 1 000 000 bytes por
-  defecto. Al superarlo, Javalin lanza `ContentTooLargeResponse` (413). Se fija en 2 097 152 y se
-  traduce al informe con `PAYLOAD_TOO_LARGE`.
+  defecto. Se fija en 2 097 152 y se traduce al informe con `PAYLOAD_TOO_LARGE`. Corrección del
+  2026-11-20: al leer el cuerpo, Javalin lanza un `HttpResponseException` genérico con estado 413, **no**
+  la subclase `ContentTooLargeResponse` (comprobado en su código y con una petición real).
 - **Arquitectura hexagonal**, igual que las tareas anteriores: dominio puro, puertos en
   `application`, adaptadores en `infrastructure`, `App` como raíz de composición e inyección por
   constructor. Subpaquetes `course` en cada capa.
@@ -61,6 +62,54 @@ inmutables, y que la app pueda buscarlos y descargarlos con los mismos bytes que
 - **División:** 3a (dependencia y `CourseSchema`), 3b (capa 1), 3c (puerto `CourseReader` y lector
   completo con el mapeo a records), 3d (fixtures).
 
+## Decisiones del paso 4 (aprobadas el 2026-11-19)
+
+- **Dominio de la publicación** en `domain/course`: `CourseAuthor`, `CourseMetadata` (derivado del
+  JSON con `of(document, content)`), `CourseVersionDraft`, `CourseSummary` (sin contenido),
+  `CourseVersion` (con contenido), `PageRequest`, `Page<T>` y `CourseSearch`.
+- **Puerto `CourseRepository`:** `create`, `appendVersion` (resultado sellado `Appended` |
+  `CourseNotFound` | `NotAuthor` | `IdenticalToLatest`), `findLatest`, `findVersion` y `search`.
+- **Casos de uso:** `CourseInspector` (Facade sobre lector y validador, compartido), `ValidateCourse`,
+  `PublishCourse`, `PublishCourseVersion`, `FindCourse` y `SearchCourses`, con resultados sellados.
+- **Orden en `PublishCourseVersion` (opción A):** primero el recurso y el permiso (404, 403), después
+  el cuerpo (413, 400, 422); `appendVersion` vuelve a comprobarlo todo de forma atómica.
+- **`searchText`** = título + espacio + descripción, normalizados (§3.4).
+- **Búsqueda:** `q` y `tag` se normalizan y los vacíos se ignoran; `language` exacto; solo `page` y
+  `size` dan `INVALID_PARAMETER` (también si no son números).
+- **Escapado de `q` para `LIKE`:** en el paso 5, junto al repositorio JDBC.
+- **División:** 4a (dominio de la publicación), 4b (`CourseInspector` y `ValidateCourse`),
+  4c (puerto, repositorio en memoria y publicación), 4d (`FindCourse` y `SearchCourses`).
+- **Etiquetas en la búsqueda (confirmado):** Y lógico. Cada etiqueta pedida debe estar en el curso;
+  al curso le pueden sobrar etiquetas. Más chips de etiqueta estrechan los resultados.
+
+## Decisiones del paso 5 (aprobadas el 2026-11-19)
+
+- **Paquete:** `infrastructure/persistence`, junto a los otros repositorios JDBC, para reutilizar
+  `Timestamps`.
+- **Piezas:** `Transactions` (Execute Around: una conexión, `autoCommit` desactivado, *commit* o
+  *rollback*), `LikePattern` (escapado de `%`, `_` y `\`, con test), `CourseSearchSql` (Builder del
+  `WHERE` de la búsqueda, con test) y `JdbcCourseRepository`.
+- **Pruebas a mano** en un contenedor desechable `gradus-pg-scratch` (`postgres:18-alpine`, puerto
+  55432, sin volumen). Permiso para crearlo y borrarlo, y para ejecutar `./gradus.sh db` sobre la base
+  de desarrollo al terminar el 5a; nada más se modifica sin permiso previo.
+- **División:** 5a (migración y pruebas del SQL), 5b (`LikePattern` y `CourseSearchSql`),
+  5c (`Transactions` y escritura con concurrencia), 5d (lectura y búsqueda).
+
+## Decisiones del paso 6 (aprobadas el 2026-11-19)
+
+- **Dos controladores** en `web/course`: `CoursePublicationController` (6a: validar y publicar) y
+  `CourseCatalogController` (6b: consulta y búsqueda). Las rutas, las de §4.3.
+- **DTO** con *factory* `from(...)` y test del JSON exacto: `IssueResponse`, `CourseReportResponse`,
+  `AuthorResponse`, `CourseResponse` y `PublishedCourseResponse`.
+- **Límite de 2 MiB:** `config.http.maxRequestSize`; el controlador captura `ContentTooLargeResponse` al
+  leer el cuerpo y responde 413 con el informe. El mensaje de `PAYLOAD_TOO_LARGE` vive en el dominio.
+- **Yaak:** cuerpos con un curso compacto; el ejemplo completo solo en la petición que comprueba los
+  bytes (6b); el caso de más de 2 MiB, con `curl` y un fichero en `/tmp`.
+- **Permiso** para arrancar el servidor contra la base de desarrollo y crear en ella cursos, versiones y
+  una segunda cuenta de prueba (para el 403).
+- **División:** 6a1 (códigos, retoque del dominio y DTO), 6a2 (controlador, límite y `App`),
+  6a3 (Yaak «Cursos · Publicación»), y después 6b.
+
 ## Alcance
 
 - Validador del formato v1 (capas 1–5 de la especificación, §3) con informe de errores y avisos.
@@ -95,21 +144,21 @@ repositorios y endpoints, y portar las reglas a la app Android.
   schema y mapeo a records. Informe completo. Añade la dependencia aprobada.
   *Acepta si:* el ejemplo es válido y sin avisos, hay un fixture por cada código de §3.3 con su
   ruta, y un `title` con salto de línea final se rechaza.
-- [ ] **4. Casos de uso**: `ValidateCourse`, `PublishCourse`, `PublishCourseVersion`, `FindCourse`
+- [x] **4. Casos de uso**: `ValidateCourse`, `PublishCourse`, `PublishCourseVersion`, `FindCourse`
   y `SearchCourses`, con el puerto `CourseRepository` y un repositorio en memoria para los tests.
   *Acepta si:* los tests cubren cada caso de cada resultado sellado, y `REMOVED_IDS` aparece al
   publicar una versión que quita ids.
-- [ ] **5. Infraestructura**: `004_create_courses.sql` y `JdbcCourseRepository` con transacción y
+- [x] **5. Infraestructura**: `004_create_courses.sql` y `JdbcCourseRepository` con transacción y
   `FOR UPDATE`.
   *Acepta si:* el SQL se prueba a mano según §6 (incluida la concurrencia con dos sesiones de
   `psql`) y `./gradus.sh db` aplica el `004` sobre la base existente.
-- [ ] **6a. Web: validación y publicación.** `CourseController.validate`, `publish` y
+- [x] **6a. Web: validación y publicación.** `CourseController.validate`, `publish` y
   `publishVersion`, DTOs del informe y de los metadatos, códigos `COURSE_NOT_FOUND`,
   `NOT_COURSE_AUTHOR` e `IDENTICAL_TO_LATEST`, límite de 2 MiB y carpeta de Yaak
   «Cursos · Publicación».
   *Acepta si:* desde Yaak se obtienen 200, 201, 400, 401, 403, 404, 409, 413 y 422.
-- [ ] **6b. Web: consulta y búsqueda.** `CourseController.search`, `latest` y `version`, código
-  `INVALID_PARAMETER` y carpeta de Yaak «Cursos · Consulta».
+- [x] **6b. Web: consulta y búsqueda.** `CourseController.search`, `latest` y `version` y carpeta de
+  Yaak «Cursos · Consulta» (el código `INVALID_PARAMETER` ya existe desde el paso 4d).
   *Acepta si:* desde Yaak se obtienen 200, 400 y 404, y el SHA-256 del contenido devuelto coincide
   con el publicado.
 
@@ -195,14 +244,128 @@ repositorios y endpoints, y portar las reglas a la app Android.
   `replace`, `remove`, `copy`) con sus propios tests. `CourseFixturesTest` comprueba que cada fixture
   produce exactamente su código en su ruta, que el catálogo entero está cubierto y que cada fichero
   se llama como su código. **Paso 3 completado.**
+- 2026-11-19: paso 4a hecho (448 tests en verde, 25 nuevos; sin avisos). En `domain/course`:
+  `CourseAuthor`, `CourseMetadata` (`of(document, content)`: etiquetas y texto de búsqueda
+  normalizados, SHA-256 y tamaño del contenido), `CourseVersionDraft` (trunca a microsegundos y
+  exige que los metadatos describan su contenido), `CourseSummary` (versión ≥ 1), `CourseVersion`
+  (el contenido debe coincidir con su SHA-256), `PageRequest` (página ≥ 0, tamaño 1–100, 20 por
+  defecto), `Page<T>` (con `map`) y `CourseSearch` (Specification: `of` normaliza y descarta vacíos;
+  `matches` define la búsqueda). En los tests, `PublishedCourses` reúne las piezas de ejemplo.
+- 2026-11-19: paso 4b hecho (459 tests en verde, 11 nuevos; sin avisos). En `application/course`:
+  `Inspection` (sellado: `Accepted(course, content, report)` solo con avisos | `TooLarge` |
+  `Unreadable` | `Rejected`; todos exponen `report()`), `CourseInspector` (Facade: lector y, si lee,
+  `CourseValidator`), `CourseValidationResult` (`Checked` | `TooLarge`) y `ValidateCourse`. En los
+  tests el lector es una lambda (`body -> result`): la aplicación se prueba sin Jackson ni schema.
+- 2026-11-19: paso 4c hecho (477 tests en verde, 18 nuevos; sin avisos). Puerto `CourseRepository`
+  (`create`, `appendVersion`, `findLatest`, `findVersion`; `search` llegará en el 4d) y
+  `AppendVersionResult`. `Publication` reúne los desenlaces; cada record implementa
+  `PublishResult` (curso nuevo) y/o `PublishVersionResult` (versión nueva), así que publicar un
+  curso nuevo nunca puede dar 403, 404 ni 409. `PublishCourse` recibe un `CourseAuthor` (lo creará
+  la web a partir del usuario de la sesión) y `PublishCourseVersion` el id de quien publica; aplica
+  la opción A y añade `REMOVED_IDS` leyendo la versión anterior solo con el lector (si no se puede
+  leer, no se compara). Dominio: `CourseVersion.of(courseId, version, author, draft)`. En los tests,
+  `InMemoryCourseRepository` (métodos `synchronized` en lugar del `FOR UPDATE`) y `FakeCourseReader`
+  (cada texto se lee como el curso que se le asigna).
+- 2026-11-19: paso 4d hecho (489 tests en verde, 12 nuevos; sin avisos). `CourseRepository.search`
+  (últimas versiones, `CourseSearch.matches`, orden `publishedAt` descendente y después id del curso;
+  en memoria, el id se compara como texto para coincidir con el orden de los UUID en PostgreSQL).
+  `FindCourse` (`latest` y `version`; una versión menor que 1 no consulta el repositorio).
+  `SearchCourses` con `SearchCoursesQuery` (parámetros como texto) y `SearchResult` (`Found` |
+  `Rejected(List<ValidationError>)`): `page` y `size` vacíos toman los valores por defecto; si no son
+  enteros o están fuera de rango, `INVALID_PARAMETER` (se informan los dos a la vez con
+  `Result.combine`). `ErrorCode.INVALID_PARAMETER` se adelanta del paso 6b al 4d para reutilizar el
+  formato de errores del registro; `ErrorCodeTest` actualizado. **Paso 4 completado.**
+- 2026-11-19: paso 5a hecho (489 tests en verde, sin cambios en Java). `db/init/004_create_courses.sql`,
+  idéntico byte a byte al SQL de §4.1. Probado a mano en `gradus-pg-scratch` (PostgreSQL 18.7,
+  `server_encoding` UTF8): aplicar el `004` dos veces no tiene efecto (solo avisos «already exists,
+  skipping»); 19 comprobaciones en OK: las 8 `CHECK` (con 13 casos), la clave primaria, las dos claves
+  ajenas, borrar un usuario con cursos falla por `courses_author_id_fkey`, y `VARCHAR(120)` admite 120
+  emojis (480 bytes). `./gradus.sh db` aplicó solo el `004` sobre la base de desarrollo de Mohamed
+  (5 usuarios intactos, UTF8); falta aplicarlo en la de Joel. La concurrencia y la búsqueda se
+  prueban en el 5c y el 5d.
+- 2026-11-19: paso 5b hecho (501 tests en verde, 12 nuevos; sin avisos). En `infrastructure/persistence`:
+  `LikePattern` (escapa primero `\` y después `%` y `_`; `containing` lo envuelve en `%…%`),
+  `SqlParameter` (sellado: `Text` | `TextArray`), `SqlWhere` (inmutable; `NONE` y `and` forman un
+  monoide) y `CourseSearchSql` (traduce `CourseSearch` a `v.search_text LIKE ? ESCAPE '\'`,
+  `v.search_tags @> ?` y `v.language = ?`, solo con los filtros presentes). Comprobado también en
+  `gradus-pg-scratch`: los patrones escapados toman `%`, `_` y `\` literalmente y `@>` exige todas las
+  etiquetas.
+- 2026-11-19: paso 5c hecho (504 tests en verde, 3 nuevos; sin avisos). `Transactions` (Execute Around:
+  `autoCommit` desactivado, commit, rollback ante `SQLException` o `RuntimeException`, el fallo del
+  rollback se adjunta como *suppressed*; probado sin base de datos con conexiones `Proxy`).
+  `JdbcCourseRepository.create` (dos `INSERT` en una transacción) y `appendVersion` (`SELECT … JOIN
+  users … FOR UPDATE OF c`, autor, SHA-256 de la última versión, `INSERT` y `UPDATE latest_version`).
+  Los métodos de lectura lanzan `UnsupportedOperationException` hasta el 5d. Probado a mano en
+  `gradus-pg-scratch`: con dos sesiones de `psql`, el `FOR UPDATE` de la segunda espera 2 s hasta el
+  commit de la primera y después ve `latest_version` = 2; con `jshell` sobre el ejemplo real, `create`,
+  `Appended`, `IdenticalToLatest`, `NotAuthor` y `CourseNotFound`, y dos publicaciones simultáneas desde
+  dos hilos dan las versiones 2 y 3 sin choques. En la base de datos, el SHA-256 del `content` coincide
+  con la columna `sha256` y `octet_length(content)` con `size_bytes`.
+- 2026-11-19: paso 5d hecho (505 tests en verde, 1 nuevo; sin avisos). `Transactions.inSnapshot`
+  (solo lectura y `REPEATABLE READ`: el total y la página de una búsqueda ven los mismos datos; si no,
+  un curso publicado entre las dos consultas daría más resultados que el total y `Page` lo rechazaría).
+  `CourseRows` (columnas, `FROM` con los `JOIN` y conversión de filas; no lee el contenido para los
+  resúmenes). `JdbcCourseRepository`: `findLatest`, `findVersion` y `search` (`COUNT` + página con
+  `ORDER BY v.published_at DESC, c.id LIMIT ? OFFSET ?`); ya no queda ningún método provisional.
+  Probado con `jshell` en `gradus-pg-scratch`, 13 búsquedas en OK: `%` literal, texto normalizado,
+  etiquetas (todas), idioma, solo últimas versiones y paginación con tres cursos a la misma hora (en
+  orden de id, sin repetir ni saltar). Lecturas de la última versión y de una concreta, inexistentes
+  vacías y contenido idéntico al publicado. Contenedor desechable borrado. **Paso 5 completado.**
+- 2026-11-20: paso 6a1 hecho (512 tests en verde, 7 nuevos; sin avisos). `ErrorCode` gana
+  `COURSE_NOT_FOUND`, `NOT_COURSE_AUTHOR` e `IDENTICAL_TO_LATEST` (`ErrorCodeTest` actualizado).
+  `domain/course/SizeLimit` (mensaje de `PAYLOAD_TOO_LARGE` con o sin tamaño), que ahora usa también
+  `CourseJson`. En `web/course`: `IssueResponse`, `CourseReportResponse`, `AuthorResponse`,
+  `CourseResponse` (sin `searchText`, `searchTags` ni `sizeBytes`) y `PublishedCourseResponse`, con
+  el JSON exacto de §3.7 y §4.4 comprobado en `CourseResponsesTest`.
+- 2026-11-20: paso 6a2 hecho (526 tests en verde, 14 nuevos; sin avisos). `PathIds` (un `{id}` que no
+  es un UUID canónico, o una versión que no es un entero positivo, es vacío → 404), con test.
+  `CoursePublicationController` (`validate`, `publish`, `publishVersion`; cuerpo con `bodyAsBytes`;
+  autor de la sesión). `App`: schema, lector, validador, inspector, `JdbcCourseRepository`, casos de
+  uso, `maxRequestSize` = 2 MiB y las tres rutas con `requireSession.around`. Comprobado con `curl`
+  contra la base de desarrollo (cuenta de prueba `autora.cursos@example.com`): 401 sin sesión, 200
+  válido con el ejemplo, 200 con `INVALID_JSON` para JSON roto, 200 con un cuerpo de 1,2 MB, 413 con el
+  informe para 2,2 MB (validar y publicar) y 404 para un id que no es UUID. La primera prueba del 413
+  devolvió el texto de Javalin: el `catch` esperaba `ContentTooLargeResponse`; ahora reconoce el estado
+  413 de `HttpResponseException`.
+- 2026-11-20: paso 6a3 hecho (526 tests en verde). Carpeta de Yaak «Cursos · Publicación»
+  (`fl_pUw2uUvgMh`) con 15 peticiones creadas con la CLI y enviadas una a una en orden contra la base de
+  desarrollo: registro e inicio de sesión de la autora y de otra cuenta (`otra.cuenta@example.com`),
+  401, 200 válido (con avisos), 200 con errores, 201, 400, 422, 201 de la versión 2 (con
+  `REMOVED_IDS` de `intro-r1`), 409, 403, 404 por curso inexistente y 404 por id que no es UUID. El
+  413 se comprobó con `curl` (2,2 MB → informe `PAYLOAD_TOO_LARGE`). El id del curso se reutiliza con
+  `${[ response.body.path(request='rq_jAYMWnPgxc', path='$.course.id') ]}`. **Paso 6a completado.**
+- 2026-11-20: paso 6b hecho (529 tests en verde, 3 nuevos; sin avisos). `CourseVersionResponse`
+  (`@JsonUnwrapped` de los metadatos y `@JsonRawValue` del contenido), `CoursePageResponse` y
+  `CourseCatalogController` (`search`, `latest`, `version`; rutas públicas) en `App`. Carpeta de Yaak
+  «Cursos · Consulta» (`fl_jjUAUPZHxR`, 14 peticiones, con su posición desde el principio) enviada en
+  orden: 201 del ejemplo completo; 200 sin filtros, por texto normalizado, `%` literal (0 resultados),
+  dos etiquetas, idioma y segunda página; 400 por `size` fuera de rango y por `page` y `size` a la vez;
+  200 de la última versión y de la 1; 404 por versión inexistente, por versión que no es número y por
+  curso inexistente. **Bytes conservados (§6):** el SHA-256 del fichero publicado, el `sha256` de la
+  respuesta 201 y el del `content` devuelto por el GET (cortado del texto sin reformatearlo) coinciden,
+  y `cmp` da los 17 374 bytes idénticos. **Paso 6 completado: tarea completada** (salvo la
+  sincronización de Yaak, ver «Pendiente»).
 
 ## Pendiente para más adelante
 
 - ~~Duda sobre `MASTERY_POOL_TOO_SMALL`~~: resuelta el 2026-11-19 (opción A, ver «Decisiones del
   paso 2»).
+- ~~Sincronización de Yaak~~: resuelta el 2026-11-20. «Cursos · Publicación» está en el orden 1–15
+  tanto en los YAML como en la base de datos de Yaak, y «Cursos · Consulta» (`yaak.fl_jjUAUPZHxR.yaml`
+  y sus 14 peticiones, en el orden 1–14) ya está en `backend/yaak/workspace`, con el ejemplo completo
+  y las plantillas del token y del id del curso. Nota para otra vez: con la CLI 0.7.1, crear cada
+  petición ya con su `sortPriority`; `yaak request update` no llega a los YAML.
+- Comprobar los bytes conservados desde la propia app: Yaak no calcula SHA-256; se hizo con `curl`,
+  `sha256sum` y `cmp` (cortando el `content` de la respuesta sin reformatearlo).
+- La app guarda la lista de códigos de error en `ApiErrorCode` (`sharedLogic`): añadir
+  `INVALID_PARAMETER`, `COURSE_NOT_FOUND`, `NOT_COURSE_AUTHOR` e `IDENTICAL_TO_LATEST` cuando la app
+  use los cursos (mientras tanto los trata como `UNKNOWN`).
+- Mensaje de `MASTERY_POOL_SMALL_FOR_RETRY` con un solo ejercicio: «1 ejercicios» (falta el singular).
+- `REMOVED_IDS` compara con la última versión leída antes de la transacción de `appendVersion`: si
+  dos publicaciones del mismo curso coinciden, el aviso puede compararse con una versión que ya no es
+  la última. Solo afecta al aviso; el número de versión lo protege el `FOR UPDATE`.
 
 ## Siguiente paso
 
-Paso 4: casos de uso (`ValidateCourse`, `PublishCourse`, `PublishCourseVersion`, `FindCourse`,
-`SearchCourses`) con el puerto `CourseRepository` y un repositorio en memoria. Antes, proponer el
-diseño de los puertos y cómo dividir el paso.
+Tarea completada en el backend. Siguiente: integrar el catálogo en la app (buscar, descargar y guardar
+en SQLite), con su propio documento en `docs/tareas/`.

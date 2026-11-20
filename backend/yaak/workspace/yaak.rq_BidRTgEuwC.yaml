@@ -1,0 +1,41 @@
+type: http_request
+model: http_request
+id: rq_BidRTgEuwC
+createdAt: 2026-11-20T07:29:56.605896993
+updatedAt: 2026-11-20T07:29:56.605897714
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_pUw2uUvgMh
+authentication: {}
+authenticationType: null
+body:
+  text: '{"email": "autora.cursos@example.com", "password": "Cursos#2026"}'
+bodyType: application/json
+description: 'Token de la autora: lo usan las demás peticiones de esta carpeta.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Inicio de sesión de la autora (201)
+sortPriority: 2.0
+url: ${[ baseUrl ]}/api/sessions
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

@@ -14,6 +14,7 @@ import es.ulpgc.pamn.dominio.backend.domain.course.CourseContent;
 import es.ulpgc.pamn.dominio.backend.domain.course.CourseIssueCode;
 import es.ulpgc.pamn.dominio.backend.domain.course.Issue;
 import es.ulpgc.pamn.dominio.backend.domain.course.JsonPointer;
+import es.ulpgc.pamn.dominio.backend.domain.course.SizeLimit;
 
 /**
  * Capa 1 (§3.2): bytes → árbol JSON. Usa un {@link ObjectMapper} propio, sin tocar el que Javalin usa
@@ -34,8 +35,7 @@ final class CourseJson {
     SyntaxCheck parse(byte[] body) {
         byte[] withoutBom = Utf8Text.withoutBom(body);
         if (withoutBom.length > CourseContent.MAX_SIZE_BYTES) {
-            return failed(CourseIssueCode.PAYLOAD_TOO_LARGE, JsonPointer.root(), "El curso ocupa " + withoutBom.length
-                    + " bytes y el máximo es 2 MiB (" + CourseContent.MAX_SIZE_BYTES + " bytes).");
+            return new SyntaxCheck.Failed(SizeLimit.exceeded(withoutBom.length));
         }
         return switch (Utf8Text.decode(body)) {
             case Utf8Text.Malformed malformed -> failed(CourseIssueCode.INVALID_JSON, JsonPointer.root(),
