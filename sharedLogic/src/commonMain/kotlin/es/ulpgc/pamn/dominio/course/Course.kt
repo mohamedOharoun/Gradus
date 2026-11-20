@@ -2,8 +2,8 @@ package es.ulpgc.pamn.dominio.course
 
 import es.ulpgc.pamn.dominio.course.exercise.Question
 
-// Un concepto es un nodo del grafo. `requires` son los ids de sus prerrequisitos (aristas A → B).
-data class Concept(
+// Un módulo es un nodo del grafo. `requires` son los ids de sus prerrequisitos (aristas A → B).
+data class Module(
     val id: String,
     val title: String,
     val requires: List<String> = emptyList(),
@@ -14,13 +14,13 @@ data class Concept(
 data class Course(
     val id: String,
     val title: String,
-    val concepts: List<Concept>,
+    val modules: List<Module>,
     val questions: List<Question> = emptyList(),
 ) {
-    private val byId: Map<String, Concept> = concepts.associateBy { it.id }
+    private val byId: Map<String, Module> = modules.associateBy { it.id }
 
-    fun concept(id: String): Concept? = byId[id]
+    fun module(id: String): Module? = byId[id]
 
-    // Las preguntas para practicar un concepto, en el orden en que vienen en el curso.
-    fun questionsFor(conceptId: String): List<Question> = questions.filter { it.conceptId == conceptId }
+    // Las preguntas para practicar un módulo, en el orden en que vienen en el curso.
+    fun questionsFor(moduleId: String): List<Question> = questions.filter { it.moduleId == moduleId }
 }

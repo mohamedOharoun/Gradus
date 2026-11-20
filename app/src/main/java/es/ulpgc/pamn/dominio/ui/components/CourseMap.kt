@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import es.ulpgc.pamn.dominio.course.ConceptState
+import es.ulpgc.pamn.dominio.course.ModuleState
 import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.PathEdge
 import es.ulpgc.pamn.dominio.course.PathNode
@@ -35,13 +35,13 @@ import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 private val RowHeight = 136.dp
 private val TopPadding = 8.dp
 
-// El camino de un curso: cada concepto donde dice `pathLayout()` y, detrás, las líneas de sus
+// El camino de un curso: cada módulo donde dice `pathLayout()` y, detrás, las líneas de sus
 // prerrequisitos. Sin estado y sin scroll propio: la pantalla que lo usa decide si se desplaza.
 @Composable
 fun CourseMap(
     course: Course,
-    states: Map<String, ConceptState>,
-    onConceptClick: (conceptId: String) -> Unit,
+    states: Map<String, ModuleState>,
+    onModuleClick: (moduleId: String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // remember(course): la distribución solo se recalcula si cambia el curso, no al cambiar el progreso.
@@ -56,18 +56,18 @@ fun CourseMap(
                 .mapNotNull { edge ->
                     val from = path.node(edge.from) ?: return@mapNotNull null
                     val to = path.node(edge.to) ?: return@mapNotNull null
-                    Line(geometry.pointsOf(edge, from, to), unlocked = states[edge.to] != ConceptState.LOCKED)
+                    Line(geometry.pointsOf(edge, from, to), unlocked = states[edge.to] != ModuleState.LOCKED)
                 }
                 .sortedBy { it.unlocked } // las moradas encima de las grises
                 .forEach { drawLine(it, lineColors) }
         }
 
         path.nodes.forEach { node ->
-            val id = node.concept.id
-            ConceptNode(
-                title = node.concept.title,
-                state = states[id] ?: ConceptState.LOCKED,
-                onClick = { onConceptClick(id) },
+            val id = node.module.id
+            ModuleNode(
+                title = node.module.title,
+                state = states[id] ?: ModuleState.LOCKED,
+                onClick = { onModuleClick(id) },
                 modifier = Modifier.offset(x = geometry.leftOf(node), y = geometry.rowTop(node)),
             )
         }
@@ -76,9 +76,9 @@ fun CourseMap(
 
 // Pasa de las fracciones de `pathLayout()` a dp, con el ancho real del camino.
 private class MapGeometry(private val width: Dp) {
-    private val half = ConceptNodeDefaults.Width / 2
+    private val half = ModuleNodeDefaults.Width / 2
 
-    // Sin salirse por los lados aunque una fila tenga muchos conceptos.
+    // Sin salirse por los lados aunque una fila tenga muchos módulos.
     private fun centerX(node: PathNode): Dp = (width * node.x).coerceIn(half, (width - half).coerceAtLeast(half))
 
     fun rowTop(node: PathNode): Dp = RowHeight * node.row + TopPadding
@@ -91,11 +91,11 @@ private class MapGeometry(private val width: Dp) {
     // Del borde inferior de `from` al superior de `to`. Si cruza filas, en cada una baja en vertical
     // por su hueco (`via`) a la altura de los círculos de esa fila.
     fun pointsOf(edge: PathEdge, from: PathNode, to: PathNode): List<DpPoint> {
-        val start = DpPoint(centerX(from), circleTop(from) + ConceptNodeDefaults.CircleSize)
+        val start = DpPoint(centerX(from), circleTop(from) + ModuleNodeDefaults.CircleSize)
         val end = DpPoint(centerX(to), circleTop(to))
         val crossings = edge.via.flatMapIndexed { index, x ->
             val top = circleTop(from.row + 1 + index)
-            listOf(DpPoint(width * x, top), DpPoint(width * x, top + ConceptNodeDefaults.CircleSize))
+            listOf(DpPoint(width * x, top), DpPoint(width * x, top + ModuleNodeDefaults.CircleSize))
         }
         return listOf(start) + crossings + end
     }
@@ -136,7 +136,7 @@ private fun CourseMapPreview() {
             CourseMap(
                 course = demoCourse,
                 states = demoCourse.statesFor(demoMastered),
-                onConceptClick = {},
+                onModuleClick = {},
                 modifier = Modifier.padding(horizontal = 16.dp),
             )
         }

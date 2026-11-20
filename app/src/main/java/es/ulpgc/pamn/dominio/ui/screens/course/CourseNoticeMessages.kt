@@ -6,6 +6,6 @@ import es.ulpgc.pamn.dominio.ui.components.joinedWithAnd
 
 fun CourseNotice.toMessage(): String = when (this) {
     is CourseNotice.Locked ->
-        if (missing.isEmpty()) "«${concept.title}» está bloqueado."
-        else "Para desbloquear «${concept.title}», domina antes ${missing.map { it.title }.joinedWithAnd()}."
+        if (missing.isEmpty()) "«${module.title}» está bloqueado."
+        else "Para desbloquear «${module.title}», domina antes ${missing.map { it.title }.joinedWithAnd()}."
 }

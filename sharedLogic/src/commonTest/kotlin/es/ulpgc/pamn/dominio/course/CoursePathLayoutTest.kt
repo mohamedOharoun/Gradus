@@ -5,10 +5,10 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-// Dónde va cada concepto del camino: fila (de arriba abajo) y posición horizontal (de 0 a 1).
+// Dónde va cada módulo del camino: fila (de arriba abajo) y posición horizontal (de 0 a 1).
 class CoursePathLayoutTest {
 
-    private fun course(vararg concepts: Concept) = Course("c", "Curso", concepts.toList())
+    private fun course(vararg modules: Module) = Course("c", "Curso", modules.toList())
 
     private fun CoursePath.rowOf(id: String) = node(id)!!.row
     private fun CoursePath.xOf(id: String) = node(id)!!.x
@@ -16,18 +16,18 @@ class CoursePathLayoutTest {
     // ── Filas ──
 
     @Test
-    fun `concepts without prerequisites go in the first row`() {
-        val path = course(Concept("a", "A"), Concept("b", "B")).pathLayout()
+    fun `modules without prerequisites go in the first row`() {
+        val path = course(Module("a", "A"), Module("b", "B")).pathLayout()
         assertEquals(0, path.rowOf("a"))
         assertEquals(0, path.rowOf("b"))
     }
 
     @Test
-    fun `in a chain each concept goes one row below the previous one`() {
+    fun `in a chain each module goes one row below the previous one`() {
         val path = course(
-            Concept("a", "A"),
-            Concept("b", "B", requires = listOf("a")),
-            Concept("c", "C", requires = listOf("b")),
+            Module("a", "A"),
+            Module("b", "B", requires = listOf("a")),
+            Module("c", "C", requires = listOf("b")),
         ).pathLayout()
         assertEquals(listOf(0, 1, 2), listOf("a", "b", "c").map { path.rowOf(it) })
         assertEquals(3, path.rowCount)
@@ -35,11 +35,11 @@ class CoursePathLayoutTest {
 
     // Con prerrequisitos a distintas alturas, manda el más lejano: así nunca queda por encima de uno.
     @Test
-    fun `a concept goes one row below its deepest prerequisite`() {
+    fun `a module goes one row below its deepest prerequisite`() {
         val path = course(
-            Concept("a", "A"),
-            Concept("b", "B", requires = listOf("a")),
-            Concept("c", "C", requires = listOf("a", "b")),
+            Module("a", "A"),
+            Module("b", "B", requires = listOf("a")),
+            Module("c", "C", requires = listOf("a", "b")),
         ).pathLayout()
         assertEquals(2, path.rowOf("c"))
     }
@@ -51,19 +51,19 @@ class CoursePathLayoutTest {
     }
 
     @Test
-    fun `the order of the concepts in the course does not change the rows`() {
-        val reversed = Course("c", "Curso", diamond.concepts.reversed())
-        assertEquals(diamond.pathLayout().nodes.associate { it.concept.id to it.row },
-            reversed.pathLayout().nodes.associate { it.concept.id to it.row })
+    fun `the order of the modules in the course does not change the rows`() {
+        val reversed = Course("c", "Curso", diamond.modules.reversed())
+        assertEquals(diamond.pathLayout().nodes.associate { it.module.id to it.row },
+            reversed.pathLayout().nodes.associate { it.module.id to it.row })
     }
 
     // ── Posición horizontal ──
 
-    // Cada concepto, en el centro de su parte del ancho: con 3, al 1/6, 3/6 y 5/6.
+    // Cada módulo, en el centro de su parte del ancho: con 3, al 1/6, 3/6 y 5/6.
     // Así caben 3 nodos sin que choquen sus títulos.
     @Test
-    fun `several concepts of a row are spread evenly`() {
-        val path = course(Concept("a", "A"), Concept("b", "B"), Concept("c", "C")).pathLayout()
+    fun `several modules of a row are spread evenly`() {
+        val path = course(Module("a", "A"), Module("b", "B"), Module("c", "C")).pathLayout()
         listOf("a" to 1f / 6, "b" to 0.5f, "c" to 5f / 6).forEach { (id, x) ->
             assertEquals(x, path.xOf(id), absoluteTolerance = 0.0001f, message = id)
         }
@@ -71,58 +71,58 @@ class CoursePathLayoutTest {
 
     // ── Niveles anchos: como mucho 3 por fila ──
 
-    private fun wide(count: Int) = course(*Array(count) { Concept("c$it", "C$it") })
+    private fun wide(count: Int) = course(*Array(count) { Module("c$it", "C$it") })
     private fun CoursePath.rowSizes() = nodes.groupBy { it.row }.toList().sortedBy { it.first }.map { it.second.size }
 
     @Test
-    fun `a level with up to 3 concepts stays in one row`() {
+    fun `a level with up to 3 modules stays in one row`() {
         assertEquals(listOf(3), wide(3).pathLayout().rowSizes())
     }
 
     @Test
-    fun `a level with 4 concepts is split in two rows of 2`() {
+    fun `a level with 4 modules is split in two rows of 2`() {
         assertEquals(listOf(2, 2), wide(4).pathLayout().rowSizes())
     }
 
     @Test
-    fun `a level with 5 concepts is split in rows of 3 and 2`() {
+    fun `a level with 5 modules is split in rows of 3 and 2`() {
         assertEquals(listOf(3, 2), wide(5).pathLayout().rowSizes())
     }
 
     @Test
-    fun `a level with 7 concepts never has more than 3 in a row`() {
+    fun `a level with 7 modules never has more than 3 in a row`() {
         assertTrue(wide(7).pathLayout().rowSizes().all { it <= 3 })
     }
 
     @Test
     fun `after a split level, the next level goes below all of its rows`() {
-        val concepts = (0 until 4).map { Concept("top$it", "Arriba $it") } +
-            Concept("bottom", "Abajo", requires = listOf("top0"))
-        val path = course(*concepts.toTypedArray()).pathLayout()
+        val modules = (0 until 4).map { Module("top$it", "Arriba $it") } +
+            Module("bottom", "Abajo", requires = listOf("top0"))
+        val path = course(*modules.toTypedArray()).pathLayout()
         assertEquals(2, path.rowOf("bottom"))
     }
 
-    // El zigzag de Duolingo: centro, derecha, centro, izquierda… en las filas de un solo concepto.
+    // El zigzag de Duolingo: centro, derecha, centro, izquierda… en las filas de un solo módulo.
     @Test
-    fun `rows with a single concept zigzag`() {
+    fun `rows with a single module zigzag`() {
         val chain = course(
-            Concept("a", "A"),
-            Concept("b", "B", requires = listOf("a")),
-            Concept("c", "C", requires = listOf("b")),
-            Concept("d", "D", requires = listOf("c")),
-            Concept("e", "E", requires = listOf("d")),
+            Module("a", "A"),
+            Module("b", "B", requires = listOf("a")),
+            Module("c", "C", requires = listOf("b")),
+            Module("d", "D", requires = listOf("c")),
+            Module("e", "E", requires = listOf("d")),
         ).pathLayout()
         assertEquals(listOf(0.5f, 0.7f, 0.5f, 0.3f, 0.5f), listOf("a", "b", "c", "d", "e").map { chain.xOf(it) })
     }
 
-    // Cada concepto se coloca cerca de sus prerrequisitos para que las líneas se crucen lo menos posible.
+    // Cada módulo se coloca cerca de sus prerrequisitos para que las líneas se crucen lo menos posible.
     @Test
     fun `a row is ordered by where its prerequisites are, not by the order of the course`() {
         val path = course(
-            Concept("left", "Izquierda"),
-            Concept("right", "Derecha"),
-            Concept("underRight", "Bajo derecha", requires = listOf("right")),
-            Concept("underLeft", "Bajo izquierda", requires = listOf("left")),
+            Module("left", "Izquierda"),
+            Module("right", "Derecha"),
+            Module("underRight", "Bajo derecha", requires = listOf("right")),
+            Module("underLeft", "Bajo izquierda", requires = listOf("left")),
         ).pathLayout()
         assertTrue(path.xOf("underLeft") < path.xOf("underRight"))
     }
@@ -130,7 +130,7 @@ class CoursePathLayoutTest {
     // ── Líneas ──
 
     @Test
-    fun `there is a line from each prerequisite to the concept that needs it`() {
+    fun `there is a line from each prerequisite to the module that needs it`() {
         assertEquals(
             setOf("a" to "b", "a" to "c", "b" to "d", "c" to "d"),
             diamond.pathLayout().edges.map { it.from to it.to }.toSet(),
@@ -148,9 +148,9 @@ class CoursePathLayoutTest {
     @Test
     fun `a long line that does not hit any node goes straight`() {
         val path = course(
-            Concept("a", "A"),
-            Concept("b", "B", requires = listOf("a")),
-            Concept("c", "C", requires = listOf("a", "b")),
+            Module("a", "A"),
+            Module("b", "B", requires = listOf("a")),
+            Module("c", "C", requires = listOf("a", "b")),
         ).pathLayout()
         val long = path.edges.single { it.from == "a" && it.to == "c" }
         assertEquals(1, long.via.size)
@@ -162,10 +162,10 @@ class CoursePathLayoutTest {
     @Test
     fun `a long line that would hit a node goes through the nearest gap`() {
         val path = course(
-            Concept("l", "L"),
-            Concept("r", "R"),
-            Concept("x", "X", requires = listOf("l")),
-            Concept("y", "Y", requires = listOf("r", "x")),
+            Module("l", "L"),
+            Module("r", "R"),
+            Module("x", "X", requires = listOf("l")),
+            Module("y", "Y", requires = listOf("r", "x")),
         ).pathLayout()
         val long = path.edges.single { it.from == "r" && it.to == "y" }
         assertEquals(0.35f, long.via.single(), absoluteTolerance = 0.0001f)
@@ -174,10 +174,10 @@ class CoursePathLayoutTest {
     @Test
     fun `a long line has one waypoint per row it crosses`() {
         val path = course(
-            Concept("a", "A"),
-            Concept("b", "B", requires = listOf("a")),
-            Concept("c", "C", requires = listOf("b")),
-            Concept("d", "D", requires = listOf("a", "c")),
+            Module("a", "A"),
+            Module("b", "B", requires = listOf("a")),
+            Module("c", "C", requires = listOf("b")),
+            Module("d", "D", requires = listOf("a", "c")),
         ).pathLayout()
         assertEquals(2, path.edges.single { it.from == "a" && it.to == "d" }.via.size)
     }
@@ -190,7 +190,7 @@ class CoursePathLayoutTest {
             edge.via.forEachIndexed { index, x ->
                 val row = from.row + 1 + index
                 path.nodes.filter { it.row == row }.forEach { node ->
-                    assertTrue(kotlin.math.abs(node.x - x) >= 0.17f, "$edge choca con ${node.concept.id}")
+                    assertTrue(kotlin.math.abs(node.x - x) >= 0.17f, "$edge choca con ${node.module.id}")
                 }
             }
         }
@@ -198,7 +198,7 @@ class CoursePathLayoutTest {
 
     @Test
     fun `a prerequisite that does not exist draws no line`() {
-        val path = course(Concept("a", "A", requires = listOf("ghost"))).pathLayout()
+        val path = course(Module("a", "A", requires = listOf("ghost"))).pathLayout()
         assertTrue(path.edges.isEmpty())
         assertEquals(0, path.rowOf("a"))
     }
@@ -206,14 +206,14 @@ class CoursePathLayoutTest {
     // ── Curso de ejemplo y casos raros ──
 
     @Test
-    fun `no concept is above or beside any of its prerequisites`() {
+    fun `no module is above or beside any of its prerequisites`() {
         val path = example.pathLayout()
         path.edges.forEach { assertTrue(path.rowOf(it.from) < path.rowOf(it.to), "$it") }
     }
 
     @Test
-    fun `every concept of the course is in the path, once`() {
-        assertEquals(example.concepts.map { it.id }.sorted(), example.pathLayout().nodes.map { it.concept.id }.sorted())
+    fun `every module of the course is in the path, once`() {
+        assertEquals(example.modules.map { it.id }.sorted(), example.pathLayout().nodes.map { it.module.id }.sorted())
     }
 
     @Test
@@ -226,7 +226,7 @@ class CoursePathLayoutTest {
     // El validador (§6) no deja importar cursos con ciclos; si llegara uno, mejor fallar claro que colgarse.
     @Test
     fun `a cycle is rejected`() {
-        val cyclic = course(Concept("a", "A", requires = listOf("b")), Concept("b", "B", requires = listOf("a")))
+        val cyclic = course(Module("a", "A", requires = listOf("b")), Module("b", "B", requires = listOf("a")))
         assertFailsWith<IllegalArgumentException> { cyclic.pathLayout() }
     }
 
@@ -235,10 +235,10 @@ class CoursePathLayoutTest {
         val diamond = Course(
             "d", "Rombo",
             listOf(
-                Concept("a", "A"),
-                Concept("b", "B", requires = listOf("a")),
-                Concept("c", "C", requires = listOf("a")),
-                Concept("d", "D", requires = listOf("b", "c")),
+                Module("a", "A"),
+                Module("b", "B", requires = listOf("a")),
+                Module("c", "C", requires = listOf("a")),
+                Module("d", "D", requires = listOf("b", "c")),
             ),
         )
 
@@ -246,16 +246,16 @@ class CoursePathLayoutTest {
         val example = Course(
             "ed", "Estructuras de datos",
             listOf(
-                Concept("conjuntos", "Conjuntos"),
-                Concept("relaciones", "Relaciones", requires = listOf("conjuntos")),
-                Concept("grafos", "Grafos", requires = listOf("relaciones")),
-                Concept("arboles", "Árboles", requires = listOf("relaciones")),
-                Concept("hash", "Tablas hash", requires = listOf("relaciones")),
-                Concept("bfs", "BFS", requires = listOf("grafos")),
-                Concept("dfs", "DFS", requires = listOf("grafos", "arboles")),
-                Concept("monticulos", "Montículos", requires = listOf("arboles")),
-                Concept("colisiones", "Colisiones", requires = listOf("hash")),
-                Concept("dijkstra", "Caminos mínimos", requires = listOf("bfs", "monticulos")),
+                Module("conjuntos", "Conjuntos"),
+                Module("relaciones", "Relaciones", requires = listOf("conjuntos")),
+                Module("grafos", "Grafos", requires = listOf("relaciones")),
+                Module("arboles", "Árboles", requires = listOf("relaciones")),
+                Module("hash", "Tablas hash", requires = listOf("relaciones")),
+                Module("bfs", "BFS", requires = listOf("grafos")),
+                Module("dfs", "DFS", requires = listOf("grafos", "arboles")),
+                Module("monticulos", "Montículos", requires = listOf("arboles")),
+                Module("colisiones", "Colisiones", requires = listOf("hash")),
+                Module("dijkstra", "Caminos mínimos", requires = listOf("bfs", "monticulos")),
             ),
         )
     }

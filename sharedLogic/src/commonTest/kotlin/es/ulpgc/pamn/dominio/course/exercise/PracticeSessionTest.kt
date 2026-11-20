@@ -7,7 +7,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-// Una práctica: las preguntas de un concepto, una detrás de otra, hasta el resumen.
+// Una práctica: las preguntas de un módulo, una detrás de otra, hasta el resumen.
 class PracticeSessionTest {
 
     private val q1 = SingleChoice("q1", "bfs", "¿Qué usa BFS?", listOf("Pila", "Cola"), correct = 1)

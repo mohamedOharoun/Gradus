@@ -27,7 +27,7 @@ import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Lo que la pantalla avisa hacia fuera (objeto de parámetros, como RegisterActions).
 data class CourseActions(
-    val onConceptClick: (conceptId: String) -> Unit = {},
+    val onModuleClick: (moduleId: String) -> Unit = {},
     val onNoticeShown: () -> Unit = {},
     val onBack: () -> Unit = {},
 )
@@ -66,13 +66,13 @@ fun ScreenCourse(
             CourseHeader(
                 title = state.course.title,
                 masteredCount = state.masteredCount,
-                total = state.course.concepts.size,
+                total = state.course.modules.size,
                 onBack = actions.onBack,
             )
             CourseMap(
                 course = state.course,
                 states = state.states,
-                onConceptClick = actions.onConceptClick,
+                onModuleClick = actions.onModuleClick,
                 // En horizontal o en tablet, el camino no se estira: mismo ancho que en un móvil, centrado.
                 modifier = Modifier.widthIn(max = 480.dp).padding(horizontal = 16.dp, vertical = 8.dp),
             )

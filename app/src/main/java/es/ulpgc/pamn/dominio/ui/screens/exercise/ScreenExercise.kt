@@ -43,7 +43,7 @@ data class ExerciseActions(
     val onClose: () -> Unit = {},
 )
 
-// La práctica de un concepto: una pregunta cada vez y, al acabar, el resumen.
+// La práctica de un módulo: una pregunta cada vez y, al acabar, el resumen.
 @Composable
 fun ScreenExercise(state: ExerciseUiState, actions: ExerciseActions, modifier: Modifier = Modifier) {
     val session = state.session
@@ -60,24 +60,24 @@ fun ScreenExercise(state: ExerciseUiState, actions: ExerciseActions, modifier: M
     ) { innerPadding ->
         val content = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
         if (exercise == null) {
-            PracticeSummary(state.conceptTitle, session.correctCount, session.total, actions.onClose, content)
+            PracticeSummary(state.moduleTitle, session.correctCount, session.total, actions.onClose, content)
         } else {
             Column(
                 modifier = content.fillMaxWidth().verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 // En horizontal o en tablet no se estira: como mucho 560 dp, centrado.
-                QuestionContent(state.conceptTitle, exercise, actions, Modifier.widthIn(max = 560.dp).padding(20.dp))
+                QuestionContent(state.moduleTitle, exercise, actions, Modifier.widthIn(max = 560.dp).padding(20.dp))
             }
         }
     }
 }
 
 @Composable
-private fun QuestionContent(conceptTitle: String, exercise: ExerciseState, actions: ExerciseActions, modifier: Modifier = Modifier) {
+private fun QuestionContent(moduleTitle: String, exercise: ExerciseState, actions: ExerciseActions, modifier: Modifier = Modifier) {
     val question = exercise.question
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(conceptTitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+        Text(moduleTitle, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(question.prompt, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
         Text(question.hint(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         when (question) {
@@ -113,9 +113,9 @@ private fun Options(options: List<String>, kind: AnswerOptionKind, exercise: Exe
 
 // ── Previews: con las preguntas del curso de ejemplo ──
 
-private fun previewState(conceptId: String, change: (PracticeSession) -> PracticeSession = { it }) = ExerciseUiState(
-    conceptTitle = demoCourse.concept(conceptId)?.title.orEmpty(),
-    session = change(PracticeSession.start(demoCourse.questionsFor(conceptId), Random(3))),
+private fun previewState(moduleId: String, change: (PracticeSession) -> PracticeSession = { it }) = ExerciseUiState(
+    moduleTitle = demoCourse.module(moduleId)?.title.orEmpty(),
+    session = change(PracticeSession.start(demoCourse.questionsFor(moduleId), Random(3))),
 )
 
 @LightDarkPreviews

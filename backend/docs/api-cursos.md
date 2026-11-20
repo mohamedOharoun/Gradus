@@ -2,7 +2,9 @@
 
 Resumen de lo que implementa el backend (detalle completo en `especificacion-cursos-v1.md` §4; formato
 del curso en `src/main/resources/schemas/course-v1.schema.json`). Base en desarrollo:
-`http://10.0.2.2:7070` desde el emulador, `http://localhost:7070` desde el ordenador.
+`http://localhost:7070`, también desde el emulador: `gradus.sh up` hace `adb reverse tcp:7070 tcp:7070`.
+No se usa `10.0.2.2`: con `targetSdk` 37 (Android 17), la red local exige el permiso
+`ACCESS_LOCAL_NETWORK` (ver `docs/tareas/registro-cuentas-reales.md`).
 
 ## Rutas
 

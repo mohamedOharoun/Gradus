@@ -38,7 +38,7 @@ sealed interface Route {
     @Serializable
     data class Course(val courseId: String) : Route
 
-    // La práctica de un concepto de un curso.
+    // La práctica de un módulo de un curso.
     @Serializable
-    data class Exercise(val courseId: String, val conceptId: String) : Route
+    data class Exercise(val courseId: String, val moduleId: String) : Route
 }

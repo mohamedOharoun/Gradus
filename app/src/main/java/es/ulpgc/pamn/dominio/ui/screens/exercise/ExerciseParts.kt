@@ -108,21 +108,21 @@ private fun ResultMessage(correct: Boolean, exercise: ExerciseState) {
     }
 }
 
-// Al terminar: aciertos y volver al camino. También sirve para un concepto sin preguntas.
+// Al terminar: aciertos y volver al camino. También sirve para un módulo sin preguntas.
 @Composable
-fun PracticeSummary(conceptTitle: String, correct: Int, total: Int, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun PracticeSummary(moduleTitle: String, correct: Int, total: Int, onClose: () -> Unit, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier.fillMaxSize().padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     ) {
         Text(
-            if (total == 0) conceptTitle else "Práctica terminada",
+            if (total == 0) moduleTitle else "Práctica terminada",
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
         Text(
-            if (total == 0) "Este concepto todavía no tiene preguntas." else summaryText(correct, total),
+            if (total == 0) "Este módulo todavía no tiene preguntas." else summaryText(correct, total),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

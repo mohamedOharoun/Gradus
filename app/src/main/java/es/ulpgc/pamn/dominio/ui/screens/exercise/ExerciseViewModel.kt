@@ -12,23 +12,23 @@ import es.ulpgc.pamn.dominio.course.exercise.PracticeSession
 import kotlin.random.Random
 
 // Lo que pinta la pantalla de práctica.
-data class ExerciseUiState(val conceptTitle: String, val session: PracticeSession)
+data class ExerciseUiState(val moduleTitle: String, val session: PracticeSession)
 
 // Guarda la práctica mientras dura la pantalla (sobrevive al giro). Toda la lógica está en
 // PracticeSession/ExerciseState (sharedLogic): aquí solo se le pasan los toques.
 // Más adelante, al comprobar, guardará cada respuesta en el registro (Room, §4.4).
-class ExerciseViewModel(course: Course, conceptId: String, random: Random) : ViewModel() {
+class ExerciseViewModel(course: Course, moduleId: String, random: Random) : ViewModel() {
 
     companion object {
-        fun factory(course: Course, conceptId: String, random: Random = Random.Default) = viewModelFactory {
-            initializer { ExerciseViewModel(course, conceptId, random) }
+        fun factory(course: Course, moduleId: String, random: Random = Random.Default) = viewModelFactory {
+            initializer { ExerciseViewModel(course, moduleId, random) }
         }
     }
 
     var state by mutableStateOf(
         ExerciseUiState(
-            conceptTitle = course.concept(conceptId)?.title.orEmpty(),
-            session = PracticeSession.start(course.questionsFor(conceptId), random),
+            moduleTitle = course.module(moduleId)?.title.orEmpty(),
+            session = PracticeSession.start(course.questionsFor(moduleId), random),
         ),
     )
         private set

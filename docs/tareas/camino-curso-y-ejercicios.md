@@ -10,6 +10,11 @@ backend esté listo, se conecta igual que las cuentas: un DTO, un *mapper* y un 
 
 Estado: **propuesta, pendiente de vuestro OK** (2026-11-19).
 
+> **Nota (2026-11-20):** al conectar con el backend, «concepto» pasó a llamarse **«módulo»** en
+> todo el código y las pantallas (`Concept` → `Module`, `ConceptState` → `ModuleState`,
+> `ConceptNode` → `ModuleNode`, `conceptId` → `moduleId`…). Este documento conserva los nombres
+> antiguos porque cuenta cómo se hizo. Ver `cursos-backend-app.md`, tarea 1.
+
 ## Objetivo
 
 1. Ver un curso como un camino de arriba abajo, al estilo Duolingo. Cada concepto es un nodo y

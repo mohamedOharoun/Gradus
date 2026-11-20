@@ -1,6 +1,6 @@
 package es.ulpgc.pamn.dominio.data
 
-import es.ulpgc.pamn.dominio.course.Concept
+import es.ulpgc.pamn.dominio.course.Module
 import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.exercise.MatchPair
 import es.ulpgc.pamn.dominio.course.exercise.Matching
@@ -8,21 +8,21 @@ import es.ulpgc.pamn.dominio.course.exercise.MultipleChoice
 import es.ulpgc.pamn.dominio.course.exercise.SingleChoice
 
 // Curso de ejemplo para las previews y el emulador, hasta que llegue el backend de cursos.
-// Tiene de todo: filas de un concepto (zigzag), un nivel de 3 y otro de 4 (que se parte en 2 + 2).
+// Tiene de todo: filas de un módulo (zigzag), un nivel de 3 y otro de 4 (que se parte en 2 + 2).
 val demoCourse = Course(
     id = "estructuras-de-datos",
     title = "Estructuras de datos",
-    concepts = listOf(
-        Concept("conjuntos", "Conjuntos"),
-        Concept("relaciones", "Relaciones", requires = listOf("conjuntos")),
-        Concept("grafos", "Grafos", requires = listOf("relaciones")),
-        Concept("arboles", "Árboles", requires = listOf("relaciones")),
-        Concept("hash", "Tablas hash", requires = listOf("relaciones")),
-        Concept("bfs", "Búsqueda en anchura (BFS)", requires = listOf("grafos")),
-        Concept("dfs", "Búsqueda en profundidad (DFS)", requires = listOf("grafos", "arboles")),
-        Concept("monticulos", "Montículos", requires = listOf("arboles")),
-        Concept("colisiones", "Colisiones", requires = listOf("hash")),
-        Concept("dijkstra", "Caminos mínimos", requires = listOf("bfs", "monticulos")),
+    modules = listOf(
+        Module("conjuntos", "Conjuntos"),
+        Module("relaciones", "Relaciones", requires = listOf("conjuntos")),
+        Module("grafos", "Grafos", requires = listOf("relaciones")),
+        Module("arboles", "Árboles", requires = listOf("relaciones")),
+        Module("hash", "Tablas hash", requires = listOf("relaciones")),
+        Module("bfs", "Búsqueda en anchura (BFS)", requires = listOf("grafos")),
+        Module("dfs", "Búsqueda en profundidad (DFS)", requires = listOf("grafos", "arboles")),
+        Module("monticulos", "Montículos", requires = listOf("arboles")),
+        Module("colisiones", "Colisiones", requires = listOf("hash")),
+        Module("dijkstra", "Caminos mínimos", requires = listOf("bfs", "monticulos")),
     ),
     questions = demoQuestions(),
 )
@@ -30,7 +30,7 @@ val demoCourse = Course(
 // Lo que el estudiante de ejemplo ya domina. Más adelante saldrá del registro de respuestas (Room).
 val demoMastered = setOf("conjuntos", "relaciones", "arboles")
 
-// Preguntas de los conceptos que ya se pueden practicar (dominados y frontera), de los tres tipos.
+// Preguntas de los módulos que ya se pueden practicar (dominados y frontera), de los tres tipos.
 private fun demoQuestions() = listOf(
     SingleChoice(
         "conjuntos-1", "conjuntos", "¿Cuántos elementos distintos tiene el conjunto {1, 2, 2, 3}?",

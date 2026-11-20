@@ -52,27 +52,27 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             // Provisional: solo existe el curso de ejemplo, así que no hace falta leer el courseId.
             // Con el backend, el ViewModel pedirá el curso de la ruta a un CourseGateway.
             val courseViewModel: CourseViewModel = viewModel(factory = CourseViewModel.factory(demoCourse, demoMastered))
-            // Concepto desbloqueado tocado: se abre su práctica y se borra el evento.
-            courseViewModel.state.practiceToOpen?.let { conceptId ->
-                LaunchedEffect(conceptId) {
-                    navController.navigate(Route.Exercise(demoCourse.id, conceptId))
+            // Módulo desbloqueado tocado: se abre su práctica y se borra el evento.
+            courseViewModel.state.practiceToOpen?.let { moduleId ->
+                LaunchedEffect(moduleId) {
+                    navController.navigate(Route.Exercise(demoCourse.id, moduleId))
                     courseViewModel.onPracticeOpened()
                 }
             }
             ScreenCourse(
                 state = courseViewModel.state,
                 actions = CourseActions(
-                    onConceptClick = courseViewModel::onConceptClick,
+                    onModuleClick = courseViewModel::onModuleClick,
                     onNoticeShown = courseViewModel::onNoticeShown,
                     onBack = dropUnlessResumed { navController.popBackStack() },
                 ),
             )
         }
-        // La práctica de un concepto. Sin barra; «atrás», cerrar y «Volver al camino» vuelven al camino.
+        // La práctica de un módulo. Sin barra; «atrás», cerrar y «Volver al camino» vuelven al camino.
         composable<Route.Exercise> { entry ->
             val route = entry.toRoute<Route.Exercise>()
             // Provisional, como en Route.Course: solo existe el curso de ejemplo.
-            val exerciseViewModel: ExerciseViewModel = viewModel(factory = ExerciseViewModel.factory(demoCourse, route.conceptId))
+            val exerciseViewModel: ExerciseViewModel = viewModel(factory = ExerciseViewModel.factory(demoCourse, route.moduleId))
             ScreenExercise(
                 state = exerciseViewModel.state,
                 actions = ExerciseActions(

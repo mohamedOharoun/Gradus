@@ -2,20 +2,20 @@ package es.ulpgc.pamn.dominio.course
 
 import kotlin.math.abs
 
-// Coloca los conceptos de un curso como un camino de arriba abajo. Es una función pura: el mismo
+// Coloca los módulos de un curso como un camino de arriba abajo. Es una función pura: el mismo
 // curso da siempre el mismo camino. No depende de lo dominado (eso solo cambia los colores).
 //
 // 1. Nivel: 0 sin prerrequisitos; si no, uno más que su prerrequisito más profundo.
 // 2. Orden dentro del nivel: según la posición media de sus prerrequisitos, para que las líneas
 //    se crucen poco (heurística del baricentro). El primer nivel sigue el orden del curso.
-// 3. Filas: un nivel con más de MAX_PER_ROW conceptos se parte en varias filas equilibradas
+// 3. Filas: un nivel con más de MAX_PER_ROW módulos se parte en varias filas equilibradas
 //    (4 = 2 + 2, 5 = 3 + 2), porque en un móvil no caben más de 3 nodos a lo ancho.
-// 4. Posición x: cada concepto en el centro de su parte del ancho; si la fila tiene uno solo,
+// 4. Posición x: cada módulo en el centro de su parte del ancho; si la fila tiene uno solo,
 //    zigzag como en Duolingo.
 // 5. Líneas: si una cruza filas intermedias, pasa por el hueco libre más cercano de cada una.
 fun Course.pathLayout(): CoursePath {
     val levels = levelsOf(this)
-    val byLevel = concepts.groupBy { levels.getValue(it.id) }
+    val byLevel = modules.groupBy { levels.getValue(it.id) }
     val xs = mutableMapOf<String, Float>()
     var nextRow = 0
     // Los niveles, de arriba abajo. (`toSortedMap` solo existe en la JVM: en commonMain no se puede usar.)
@@ -23,13 +23,13 @@ fun Course.pathLayout(): CoursePath {
         byLevel.getValue(level)
             .sortedByPrerequisites(xs)
             .balancedChunks(MAX_PER_ROW)
-            .flatMap { row -> placeRow(nextRow++, row).onEach { xs[it.concept.id] = it.x } }
+            .flatMap { row -> placeRow(nextRow++, row).onEach { xs[it.module.id] = it.x } }
     }
     val placed = CoursePath(nodes, edges = emptyList())
     val nodeXsByRow = nodes.groupBy({ it.row }, { it.x })
-    val edges = concepts.flatMap { concept ->
-        concept.requires.filter { concept(it) != null }.map { from ->
-            PathEdge(from = from, to = concept.id, via = waypoints(placed.node(from)!!, placed.node(concept.id)!!, nodeXsByRow))
+    val edges = modules.flatMap { module ->
+        module.requires.filter { module(it) != null }.map { from ->
+            PathEdge(from = from, to = module.id, via = waypoints(placed.node(from)!!, placed.node(module.id)!!, nodeXsByRow))
         }
     }
     return CoursePath(nodes, edges)
@@ -59,8 +59,8 @@ private const val MAX_PER_ROW = 3
 
 // Por la x media de sus prerrequisitos (ya colocados en `placedXs`). `sortedBy` es estable: si
 // empatan, se respeta el orden del curso.
-private fun List<Concept>.sortedByPrerequisites(placedXs: Map<String, Float>): List<Concept> =
-    sortedBy { concept -> concept.requires.mapNotNull { placedXs[it] }.averageOrZero() }
+private fun List<Module>.sortedByPrerequisites(placedXs: Map<String, Float>): List<Module> =
+    sortedBy { module -> module.requires.mapNotNull { placedXs[it] }.averageOrZero() }
 
 // Trozos de como mucho `max`, lo más iguales posible: 4 → [2, 2] y no [3, 1].
 private fun <T> List<T>.balancedChunks(max: Int): List<List<T>> {
@@ -69,8 +69,8 @@ private fun <T> List<T>.balancedChunks(max: Int): List<List<T>> {
     return chunked((size + rows - 1) / rows)
 }
 
-private fun placeRow(row: Int, concepts: List<Concept>): List<PathNode> =
-    concepts.mapIndexed { index, concept -> PathNode(concept, row, xFor(row, index, concepts.size)) }
+private fun placeRow(row: Int, modules: List<Module>): List<PathNode> =
+    modules.mapIndexed { index, module -> PathNode(module, row, xFor(row, index, modules.size)) }
 
 // Centro, derecha, centro, izquierda… (fracciones del ancho).
 private val ZIGZAG = listOf(0.5f, 0.7f, 0.5f, 0.3f)
@@ -80,19 +80,19 @@ private fun xFor(row: Int, index: Int, count: Int): Float =
 
 private fun List<Float>.averageOrZero(): Float = if (isEmpty()) 0f else sum() / size
 
-// El nivel de cada concepto, recordando las ya calculadas (memoización). `visiting` detecta ciclos.
+// El nivel de cada módulo, recordando las ya calculadas (memoización). `visiting` detecta ciclos.
 private fun levelsOf(course: Course): Map<String, Int> {
     val levels = mutableMapOf<String, Int>()
     val visiting = mutableSetOf<String>()
 
     fun levelOf(id: String): Int = levels[id] ?: run {
-        require(visiting.add(id)) { "El curso tiene un ciclo en el concepto «$id»." }
-        val prerequisites = course.concept(id)?.requires.orEmpty().filter { course.concept(it) != null }
+        require(visiting.add(id)) { "El curso tiene un ciclo en el módulo «$id»." }
+        val prerequisites = course.module(id)?.requires.orEmpty().filter { course.module(it) != null }
         val level = prerequisites.maxOfOrNull { levelOf(it) + 1 } ?: 0
         visiting.remove(id)
         level.also { levels[id] = it }
     }
 
-    course.concepts.forEach { levelOf(it.id) }
+    course.modules.forEach { levelOf(it.id) }
     return levels
 }

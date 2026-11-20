@@ -12,17 +12,17 @@ import kotlin.test.assertTrue
 class QuestionTest {
 
     private val single = SingleChoice(
-        id = "q1", conceptId = "bfs", prompt = "¿Qué estructura usa BFS?",
+        id = "q1", moduleId = "bfs", prompt = "¿Qué estructura usa BFS?",
         options = listOf("Pila", "Cola", "Montículo"), correct = 1,
     )
 
     private val multiple = MultipleChoice(
-        id = "q2", conceptId = "arboles", prompt = "¿Cuáles son árboles?",
+        id = "q2", moduleId = "arboles", prompt = "¿Cuáles son árboles?",
         options = listOf("Árbol binario", "Grafo con ciclos", "Montículo"), correct = setOf(0, 2),
     )
 
     private val matching = Matching(
-        id = "q3", conceptId = "bfs", prompt = "Une cada recorrido con lo que usa",
+        id = "q3", moduleId = "bfs", prompt = "Une cada recorrido con lo que usa",
         pairs = listOf(MatchPair("BFS", "Cola"), MatchPair("DFS", "Pila"), MatchPair("Dijkstra", "Montículo")),
     )
 

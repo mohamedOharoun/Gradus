@@ -6,8 +6,8 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import es.ulpgc.pamn.dominio.course.Concept
-import es.ulpgc.pamn.dominio.course.ConceptState
+import es.ulpgc.pamn.dominio.course.Module
+import es.ulpgc.pamn.dominio.course.ModuleState
 import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.masteredCount
 import es.ulpgc.pamn.dominio.course.missingFor
@@ -17,16 +17,16 @@ import es.ulpgc.pamn.dominio.course.statesFor
 // Lo que pinta la pantalla del camino. Inmutable: cada cambio es una copia nueva (copy).
 data class CourseUiState(
     val course: Course,
-    val states: Map<String, ConceptState>,
+    val states: Map<String, ModuleState>,
     val masteredCount: Int,
     val notice: CourseNotice? = null,
-    // Concepto cuya práctica hay que abrir (evento: el NavHost navega y lo borra con onPracticeOpened).
+    // Módulo cuya práctica hay que abrir (evento: el NavHost navega y lo borra con onPracticeOpened).
     val practiceToOpen: String? = null,
 )
 
-// El aviso que sale abajo (Snackbar) al tocar un concepto bloqueado.
+// El aviso que sale abajo (Snackbar) al tocar un módulo bloqueado.
 sealed interface CourseNotice {
-    data class Locked(val concept: Concept, val missing: List<Concept>) : CourseNotice
+    data class Locked(val module: Module, val missing: List<Module>) : CourseNotice
 }
 
 // Recibe el curso y lo dominado por constructor. Con el backend (y Room) recibirá un gateway y un
@@ -44,12 +44,12 @@ class CourseViewModel(private val course: Course, private val mastered: Set<Stri
     )
         private set
 
-    fun onConceptClick(conceptId: String) {
-        val concept = course.concept(conceptId) ?: return
-        state = when (course.stateOf(conceptId, mastered)) {
-            ConceptState.LOCKED -> state.copy(notice = CourseNotice.Locked(concept, course.missingFor(conceptId, mastered)))
-            // Frontera: practicar. Dominado: repasar. Las dos abren la práctica del concepto.
-            ConceptState.FRONTIER, ConceptState.MASTERED -> state.copy(practiceToOpen = conceptId)
+    fun onModuleClick(moduleId: String) {
+        val module = course.module(moduleId) ?: return
+        state = when (course.stateOf(moduleId, mastered)) {
+            ModuleState.LOCKED -> state.copy(notice = CourseNotice.Locked(module, course.missingFor(moduleId, mastered)))
+            // Frontera: practicar. Dominado: repasar. Las dos abren la práctica del módulo.
+            ModuleState.FRONTIER, ModuleState.MASTERED -> state.copy(practiceToOpen = moduleId)
         }
     }
 

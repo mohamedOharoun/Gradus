@@ -2,7 +2,7 @@ package es.ulpgc.pamn.dominio.course.exercise
 
 import kotlin.random.Random
 
-// Una práctica: los ejercicios de un concepto, uno detrás de otro. `index` es el actual; cuando
+// Una práctica: los ejercicios de un módulo, uno detrás de otro. `index` es el actual; cuando
 // pasa del último, la práctica ha terminado y se enseña el resumen. Inmutable, como ExerciseState.
 // Más adelante, cada ejercicio comprobado se guardará en el registro de respuestas (Room, §4.4).
 data class PracticeSession(

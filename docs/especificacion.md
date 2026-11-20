@@ -86,13 +86,13 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
 `tareas/camino-curso-y-ejercicios.md`):
 
 - **Camino del curso:**
-  - Los conceptos, de arriba abajo, unidos por líneas a sus prerrequisitos. Si una fila solo
-    tiene un concepto, el camino hace zigzag; como mucho caben 3 por fila.
-  - Cada concepto tiene color e icono según su estado: dominado (morado, ✓), frontera (naranja, ▶)
-    y bloqueado (gris, 🔒). Las líneas hacia un concepto desbloqueado son llenas y moradas; hacia
+  - Los módulos, de arriba abajo, unidos por líneas a sus prerrequisitos. Si una fila solo
+    tiene un módulo, el camino hace zigzag; como mucho caben 3 por fila.
+  - Cada módulo tiene color e icono según su estado: dominado (morado, ✓), frontera (naranja, ▶)
+    y bloqueado (gris, 🔒). Las líneas hacia un módulo desbloqueado son llenas y moradas; hacia
     uno bloqueado, discontinuas y grises.
   - Cabecera con el título y el progreso («3 de 10 dominados»).
-  - Tocar un concepto bloqueado dice qué falta para desbloquearlo. Tocar uno de la frontera o
+  - Tocar un módulo bloqueado dice qué falta para desbloquearlo. Tocar uno de la frontera o
     dominado abre su práctica.
 - **Práctica:**
   - Una pregunta cada vez, con barra de progreso.
@@ -127,7 +127,9 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
 Formato v1:
 
 - **Opción única** (`singleChoice`), **selección múltiple** (`multipleChoice`) y **unir parejas**
-  (`matching`).
+  (`matching`). En la app, unir parejas se hace tocando uno de cada lado (aparece una flecha entre
+  los dos), sin arrastrar; solo es correcta si están bien todas las parejas. Ver
+  `tareas/camino-curso-y-ejercicios.md`.
 
 Previstos para versiones posteriores del formato:
 
@@ -135,9 +137,6 @@ Previstos para versiones posteriores del formato:
   y se compara con una lista de respuestas aceptadas.
 - **Numérica:** con tolerancia; acepta tanto «0,5» como «0.5».
 - **Ordenar**, incluido Parsons: las líneas se ordenan tocándolas en orden, sin arrastrar.
-- **Emparejar:** unir cada elemento de una columna con el suyo de la otra. Se toca uno de cada lado
-  y aparece una flecha entre los dos, sin arrastrar. Solo es correcta si están bien todas las
-  parejas. Ver `tareas/camino-curso-y-ejercicios.md`.
 - **Tarjeta autoevaluada:** para los repasos.
 
 ## 8. Requisitos de la asignatura

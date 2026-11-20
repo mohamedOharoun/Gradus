@@ -30,32 +30,32 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
-import es.ulpgc.pamn.dominio.course.ConceptState
+import es.ulpgc.pamn.dominio.course.ModuleState
 import es.ulpgc.pamn.dominio.ui.theme.EstadoDominado
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import es.ulpgc.pamn.dominio.ui.theme.TextoSobreOscuro
 
 // Medidas del nodo, para que el camino (CoursePath) sepa centrarlo y dejar sitio entre filas.
-object ConceptNodeDefaults {
+object ModuleNodeDefaults {
     val CircleSize = 56.dp
     val Width = 104.dp
 }
 
-// Un concepto del camino: círculo con el color y el icono de su estado y el título debajo.
+// Un módulo del camino: círculo con el color y el icono de su estado y el título debajo.
 // Sin estado: pinta lo que le dicen y avisa con onClick (también los bloqueados, para decir qué falta).
 @Composable
-fun ConceptNode(
+fun ModuleNode(
     title: String,
-    state: ConceptState,
+    state: ModuleState,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val style = conceptNodeStyle(state)
+    val style = moduleNodeStyle(state)
     // Todo el nodo (círculo + título) es una sola zona táctil: más grande que los 48 dp mínimos,
     // y TalkBack lo lee de una vez: «Grafos, frontera, botón, doble toque para practicar».
     Column(
         modifier = modifier
-            .width(ConceptNodeDefaults.Width)
+            .width(ModuleNodeDefaults.Width)
             .clip(RoundedCornerShape(16.dp))
             .clickable(role = Role.Button, onClickLabel = state.actionLabel(), onClick = onClick)
             .semantics { stateDescription = state.label() }
@@ -64,7 +64,7 @@ fun ConceptNode(
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Surface(
-            modifier = Modifier.size(ConceptNodeDefaults.CircleSize),
+            modifier = Modifier.size(ModuleNodeDefaults.CircleSize),
             shape = CircleShape,
             color = style.container,
             contentColor = style.content,
@@ -92,7 +92,7 @@ fun ConceptNode(
 }
 
 // Cómo se ve cada estado. Tabla de un solo sitio: cambiar un color es cambiar una línea.
-private data class ConceptNodeStyle(
+private data class ModuleNodeStyle(
     val container: Color,
     val content: Color,
     val border: BorderStroke?,
@@ -100,13 +100,13 @@ private data class ConceptNodeStyle(
 )
 
 @Composable
-private fun conceptNodeStyle(state: ConceptState): ConceptNodeStyle {
+private fun moduleNodeStyle(state: ModuleState): ModuleNodeStyle {
     val colors = MaterialTheme.colorScheme
     return when (state) {
         // Mismo morado que las ilustraciones; con el blanco encima contrasta en claro y en oscuro.
-        ConceptState.MASTERED -> ConceptNodeStyle(EstadoDominado, TextoSobreOscuro, null, R.drawable.ic_check)
-        ConceptState.FRONTIER -> ConceptNodeStyle(colors.tertiary, colors.onTertiary, null, R.drawable.ic_play)
-        ConceptState.LOCKED -> ConceptNodeStyle(
+        ModuleState.MASTERED -> ModuleNodeStyle(EstadoDominado, TextoSobreOscuro, null, R.drawable.ic_check)
+        ModuleState.FRONTIER -> ModuleNodeStyle(colors.tertiary, colors.onTertiary, null, R.drawable.ic_play)
+        ModuleState.LOCKED -> ModuleNodeStyle(
             container = colors.surface,
             content = colors.onSurfaceVariant,
             border = BorderStroke(1.5.dp, colors.outline),
@@ -116,27 +116,27 @@ private fun conceptNodeStyle(state: ConceptState): ConceptNodeStyle {
 }
 
 // Textos para TalkBack (y para el camino, que los reutiliza).
-internal fun ConceptState.label(): String = when (this) {
-    ConceptState.MASTERED -> "dominado"
-    ConceptState.FRONTIER -> "frontera"
-    ConceptState.LOCKED -> "bloqueado"
+internal fun ModuleState.label(): String = when (this) {
+    ModuleState.MASTERED -> "dominado"
+    ModuleState.FRONTIER -> "frontera"
+    ModuleState.LOCKED -> "bloqueado"
 }
 
-private fun ConceptState.actionLabel(): String = when (this) {
-    ConceptState.MASTERED -> "repasar"
-    ConceptState.FRONTIER -> "practicar"
-    ConceptState.LOCKED -> "ver qué falta"
+private fun ModuleState.actionLabel(): String = when (this) {
+    ModuleState.MASTERED -> "repasar"
+    ModuleState.FRONTIER -> "practicar"
+    ModuleState.LOCKED -> "ver qué falta"
 }
 
 @LightDarkPreviews
 @Composable
-private fun ConceptNodePreview() {
+private fun ModuleNodePreview() {
     GradusTheme {
         Surface(color = MaterialTheme.colorScheme.background) {
             Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                ConceptNode("Conjuntos", ConceptState.MASTERED, onClick = {})
-                ConceptNode("Grafos", ConceptState.FRONTIER, onClick = {})
-                ConceptNode("Búsqueda en profundidad (DFS)", ConceptState.LOCKED, onClick = {})
+                ModuleNode("Conjuntos", ModuleState.MASTERED, onClick = {})
+                ModuleNode("Grafos", ModuleState.FRONTIER, onClick = {})
+                ModuleNode("Búsqueda en profundidad (DFS)", ModuleState.LOCKED, onClick = {})
             }
         }
     }

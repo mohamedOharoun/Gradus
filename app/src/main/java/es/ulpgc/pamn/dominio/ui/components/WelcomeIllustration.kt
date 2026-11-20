@@ -25,7 +25,7 @@ import es.ulpgc.pamn.dominio.ui.theme.MarcaLila
 // Proporción del dibujo en Figma (282 × 268).
 private const val ASPECT_RATIO = 282f / 268f
 
-// Peldaños de la escalera, en fracciones del lienzo (0..1). El último es el concepto frontera.
+// Peldaños de la escalera, en fracciones del lienzo (0..1). El último es el módulo frontera.
 private val steps = listOf(
     Offset(0.22f, 0.78f),
     Offset(0.41f, 0.60f),
@@ -33,7 +33,7 @@ private val steps = listOf(
     Offset(0.78f, 0.23f),
 )
 
-// Ilustración de la bienvenida: conceptos dominados que suben, peldaño a peldaño, hasta uno nuevo.
+// Ilustración de la bienvenida: módulos dominados que suben, peldaño a peldaño, hasta uno nuevo.
 @Composable
 fun WelcomeIllustration(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier.aspectRatio(ASPECT_RATIO)) {
