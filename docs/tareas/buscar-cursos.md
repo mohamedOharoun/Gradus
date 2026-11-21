@@ -61,11 +61,13 @@ app/.../ui/
 ├── screens/search/SearchViewModel.kt       espera al teclear, cancela la búsqueda anterior
 ├── screens/search/SearchActions.kt         eventos de la pantalla (como LoginActions)
 ├── screens/search/SearchResultsContent.kt  lista, cargando, vacío, problema, «Cargar más»
+├── screens/search/SearchTexts.kt           «8 resultados», vacío y problemas (funciones puras)
 ├── screens/search/FilterSheet.kt           hoja inferior (ModalBottomSheet)
 └── components/
     ├── SearchField.kt            caja redondeada con lupa y ✕
     ├── CourseCard.kt             tarjeta de un resultado
     ├── CourseTexts.kt            «20 módulos · oct 2026» y sus partes (funciones puras)
+    ├── ProblemMessage.kt         título, texto y «Reintentar» (reutilizable)
     ├── TagLabel.kt               etiqueta gris de la tarjeta
     └── FilterChips.kt            «Filtros n», chip quitable y chip seleccionable
 app/.../data/DemoSearchResults.kt           los 3 cursos del Figma, para las previews
@@ -393,11 +395,128 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - `SearchFieldTest` (emulador): sin texto no hay ✕; con texto, la ✕ mide al menos 48 dp y al
        pulsarla llama a `onValueChange("")`; la tecla «Buscar» llama a `onSearch`.
      - `./gradlew :app:connectedDebugAndroidTest` pasa; las previews se ven como la captura.
-6. **`SearchViewModel` + `ScreenSearch` con resultados** (sin filtros todavía).
-   - Lista, «N resultados» (y «1 resultado»), cargando, vacío, problema con «Reintentar», «Cargar más».
-   - `MainNavGraph`: tocar una tarjeta → `Route.Course(id)`.
-   - Criterio (emulador, con `gradus.sh up`): Buscar lista los cursos; escribir filtra; abrir un
-     curso y volver deja la búsqueda igual; con el servidor apagado sale el aviso y «Reintentar».
+6. **`SearchViewModel` + `ScreenSearch` con resultados**, sin filtros todavía (decisiones aprobadas
+   el 2026-11-21). Junta las piezas: `CourseSearchState` (tarea 3), `SearchField` y `CourseCard`
+   (tarea 5), las corrutinas (espera de 300 ms y cancelar) y la navegación al curso. Partida en
+   cuatro pasos (6a–6d), en este orden: primero la pantalla sin estado, que se ve y se prueba con
+   datos fijos, y después el ViewModel. Rutas: `app/src/main/java/es/ulpgc/pamn/dominio/` (`app/.../`).
+   Recordatorio: los tests de cada paso son los mínimos (`AGENTS.md` §7, «Los tests también documentan»).
+
+   **6a · Textos (`SearchTexts`).** ✅ **Hecha (2026-11-21).**
+   - Ficheros: `ui/screens/search/SearchTexts.kt` (funciones puras, como `CourseTexts.kt`) y
+     `app/src/test/java/es/ulpgc/pamn/dominio/ui/screens/search/SearchTextsTest.kt` (JUnit).
+   - Textos:
+     - `resultsCountText(n)`: «1 resultado», «8 resultados», «0 resultados».
+     - `SearchProblem.toText()` → título y texto: `UNREACHABLE` → «Sin conexión» / «No se ha podido
+       buscar. Comprueba la conexión y vuelve a intentarlo.»; `SERVER_FAILURE` → «Algo ha fallado» /
+       «El servidor no ha respondido bien. Vuelve a intentarlo en un momento.»
+     - Lista vacía (decisión C de esta tarea): con texto o filtros → «No hay cursos que coincidan» /
+       «Prueba con otras palabras.»; con `CourseQuery.EMPTY` → «Todavía no hay cursos publicados».
+     - «Cargar más» fallido: «No se han podido cargar más cursos.»
+   - Criterio: `SearchTextsTest` (singular, plural y 0; los dos problemas; los dos vacíos).
+     `./gradlew :app:testDebugUnitTest` pasa.
+
+   **6b · Pantalla sin estado (`ScreenSearch`).** ✅ **Hecha (2026-11-21).**
+   - Ficheros:
+     - `ui/screens/ScreenSearch.kt` (ya existe; deja de ser provisional):
+       `ScreenSearch(text: String, search: CourseSearchState, actions: SearchActions, modifier: Modifier = Modifier)`.
+       De arriba abajo: título «Buscar cursos» (`headlineLarge`), `SearchField` y los resultados.
+     - `ui/screens/search/SearchActions.kt`: `onTextChange`, `onSearch`, `onLoadMore`, `onRetry` y
+       `onCourseClick(id: String)` (como `LoginActions`).
+     - `ui/screens/search/SearchResultsContent.kt`: la parte de los resultados según `search.status`.
+     - `ui/components/ProblemMessage.kt` (decisión G): título, texto y, si se pasa `onRetry`,
+       «Reintentar» (48 dp); se anuncia solo con `liveRegion`, como en `CourseStatusContent`. Esa
+       pieza no se cambia ahora (no es de esta tarea), aunque podría reutilizarlo más adelante.
+     - `ui/components/MainScaffold.kt`: **solo su preview**, que llama a `ScreenSearch(it)` y dejará
+       de compilar; pasa a usar otra pestaña provisional (`ScreenSettings`).
+     - `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/screens/ScreenSearchTest.kt` (emulador).
+   - Qué se enseña:
+     - `Loading` **sin resultados** (primera carga): un círculo de progreso en el centro, que TalkBack
+       lee «Buscando cursos».
+     - `Loading` **con resultados** (búsqueda nueva, decisión A): la lista y «N resultados» siguen
+       visibles, con una **barra de progreso fina** (`LinearProgressIndicator`) encima. La lista no
+       parpadea al teclear.
+     - `Ready`: «N resultados» y una `LazyColumn` de `CourseCard` con `key = id` (por eso
+       `CourseSearchState` no repite cursos). Al final, «Cargar más» si `canLoadMore`.
+     - `LoadingMore`: al final de la lista, un círculo pequeño en lugar de «Cargar más».
+     - `MoreFailed`: al final, «No se han podido cargar más cursos.» y «Reintentar».
+     - `Failed`: `ProblemMessage` con «Reintentar».
+     - `isEmpty`: `ProblemMessage` sin botón, con el texto que toque (6a).
+     - **«N resultados» es `liveRegion` educado (decisión B)**: TalkBack lo anuncia cuando cambia.
+   - Previews en claro y oscuro (con `demoSearchResults`): primera carga, resultados con «Cargar
+     más», carga con resultados, cargando más, fallo al cargar más, error y vacío.
+   - Criterio: `ScreenSearchTest` (emulador): cada estado enseña lo suyo; «Reintentar» y «Cargar
+     más» llaman a su acción; tocar una tarjeta llama a `onCourseClick` con su `id`; «N resultados»
+     es `liveRegion`; escribir en la caja llama a `onTextChange`. `./gradlew :app:connectedDebugAndroidTest`
+     pasa y las previews se ven como la captura (sin la fila de filtros, que es de la tarea 7).
+
+   **6c · `SearchViewModel`.**
+   - Ficheros: `ui/screens/search/SearchViewModel.kt` y
+     `app/src/test/java/es/ulpgc/pamn/dominio/ui/screens/search/SearchViewModelTest.kt`.
+   - **Gradle (decisión D, aprobada):** en `app/build.gradle.kts`, una línea junto a
+     `testImplementation(libs.junit)`: `testImplementation(libs.kotlinx.coroutines.test)`. La librería
+     ya está en el catálogo (la usa `sharedLogic`). Nada más de Gradle.
+   - Forma (como `CourseViewModel`: estado con `mutableStateOf`, puertos por constructor, *factory*):
+     ```kotlin
+     class SearchViewModel(private val gateway: CourseGateway) : ViewModel() {
+         var text by mutableStateOf("")                            // lo que hay en la caja
+             private set
+         var search by mutableStateOf(CourseSearchState.start())  // consulta aplicada y resultados
+             private set
+         private var job: Job? = null
+
+         init { load() }                    // al abrir Buscar: todos los cursos, sin esperar
+
+         fun onTextChange(text: String)     // guarda el texto; tras 300 ms sin teclear, busca
+         fun onSearch()                     // tecla «Buscar»: busca ya, sin esperar
+         fun onLoadMore()                   // search.loadMore() y pide
+         fun onRetry()                      // search.retry() y pide
+
+         companion object { fun factory(gateway: CourseGateway) = viewModelFactory { … } }
+     }
+     ```
+   - Reglas:
+     - Pedir es siempre igual: `val request = search.pending ?: return`, llamar a
+       `gateway.search(request.query, request.page)` y `search = search.receive(request, outcome)`.
+     - `onTextChange`: guarda `text` al momento (la caja lo enseña); cancela la espera anterior y,
+       **tras 300 ms sin teclear**, `search.search(search.query.withText(text))` y pide.
+     - `onSearch`: cancela la espera y busca **ya** con el `text` actual.
+     - **Un solo `job` (decisión E):** cualquier petición nueva cancela la anterior, también un
+       «Cargar más» en curso si se vuelve a teclear. La máquina ya ignora las respuestas tardías;
+       cancelar ahorra peticiones.
+     - La espera es `delay(300)` dentro del `launch`, como `CourseViewModel` cancela su carga (sin
+       APIs en preview como `debounce`).
+     - El ViewModel **no navega**: tocar una tarjeta llega a `MainNavGraph` (6d).
+   - Criterio: `SearchViewModelTest` con tiempo simulado (`runTest`, `Dispatchers.setMain` con un
+     `StandardTestDispatcher`, `advanceTimeBy`) y `FakeCourseGateway` (`searches` dice qué se pidió):
+     - al crearse pide la primera página de `CourseQuery.EMPTY` sin esperar;
+     - teclear guarda `text` al momento; a los 299 ms no ha pedido nada y a los 300 sí;
+     - teclear dos veces seguidas: solo se pide la última (gana la última);
+     - `onSearch` pide al momento y la espera pendiente ya no pide nada después;
+     - `onLoadMore` pide la página siguiente y no hace nada si no hay más;
+     - `onRetry` tras un fallo vuelve a pedir;
+     - teclear durante «Cargar más»: la página siguiente no se añade a la búsqueda nueva.
+     - `./gradlew :app:testDebugUnitTest` pasa.
+
+   **6d · Conectarlo (`MainNavGraph`).**
+   - Fichero: `ui/navigation/MainNavGraph.kt`, en `tab<Route.Search>`.
+     - `viewModel(factory = SearchViewModel.factory(AppContainer.courseGateway))`.
+     - `ScreenSearch(text, search, SearchActions(…), modifier)` con las funciones del ViewModel.
+     - `onCourseClick = { id -> navController.navigate(Route.Course(id)) }`, **solo si la pantalla
+       está activa** (estado `RESUMED` de la entrada; decisión F): dos toques rápidos no abren el
+       curso dos veces.
+   - Criterio (emulador, con `gradus.sh up`), comprobado a mano:
+     - Buscar lista los cursos del servidor; escribir filtra tras dejar de teclear.
+     - Abrir un curso y volver deja la búsqueda igual; cambiar de pestaña y volver, también.
+     - Con el servidor apagado sale «Sin conexión»; al encenderlo, «Reintentar» funciona.
+     - Doble toque rápido en una tarjeta abre el curso una sola vez.
+     - TalkBack anuncia «N resultados» al terminar una búsqueda.
+
+   - Fuera de la tarea 6: los filtros (tarea 7), quitar el botón provisional de Inicio (tarea 9) y
+     recordar la búsqueda si Android cierra la app en segundo plano (`SavedStateHandle`; los demás
+     ViewModel tampoco lo hacen).
+   - Alternativa descartada a la decisión D: llevar la espera y la cancelación a `sharedLogic` (iOS
+     las reutilizaría), porque rompería el patrón actual de ViewModel en `app`.
 7. **Filtros: fila de chips + hoja con Etiquetas.**
    - `FilterChips` («Filtros n», «#grafos ✕», chip seleccionable con ✓) y `FilterSheet`.
    - Criterio (emulador): elegir dos etiquetas reduce los resultados; quitar un chip los amplía;
@@ -522,8 +641,43 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     de alto, como `FormField`.
   - Sin patrón nuevo: componente sin estado (*state hoisting*), con `modifier` y previews.
 
+- 2026-11-21: tarea 6 discutida y detallada, partida en 6a (textos), 6b (pantalla sin estado), 6c
+  (ViewModel) y 6d (conectarlo). Aprobado: durante una búsqueda nueva se conservan la lista y
+  «N resultados» con una barra de progreso fina (A); «N resultados» se anuncia con `liveRegion`
+  (B); dos textos de lista vacía (C); `kotlinx-coroutines-test` para los tests de `app` (D, toca
+  `app/build.gradle.kts`); un solo `job` (E); navegar solo con la pantalla activa (F);
+  `ProblemMessage` reutilizable (G).
+
+- 2026-11-21: **tareas 6a y 6b hechas** (`SearchTexts` con 11 tests JUnit; `SearchActions`,
+  `ProblemMessage`, `SearchResultsContent`, `ScreenSearch` y sus previews, con `ScreenSearchTest`,
+  23 tests de emulador). Hechas con tests primero (esqueleto con `TODO()`: 10 de 11 y 23 de 23 en
+  rojo) y luego el código mínimo. Pasan `:app:testDebugUnitTest`, `:app:connectedDebugAndroidTest`,
+  `:sharedLogic:testAndroidHostTest` y `:app:assembleDebug`. Detalles:
+  - Aprobado: `MainNavGraph.kt` (que el documento no mencionaba) llama a `ScreenSearch` con un
+    estado provisional (`CourseSearchState.start()` y `SearchActions()`): solo enseña la carga hasta
+    que 6d lo sustituya.
+  - `SearchMessage(title, body = "")` es propio de Buscar (no se reutiliza `CourseProblemText`, que es
+    del camino). `ProblemMessage` no pinta el texto si va vacío («Todavía no hay cursos publicados»).
+  - `RetryButton` (48 dp) es público en `ProblemMessage.kt`: lo usan el aviso y el pie de la lista.
+  - Fuera de la lista del documento: `demoSearchState(...)` en `DemoSearchResults.kt` (un
+    `CourseSearchState` de ejemplo para previews y tests; lo usarán las tareas 7 y 8) y
+    `ui/screens/search/ScreenSearchPreviews.kt` (las 7 previews, para no alargar `ScreenSearch.kt`).
+  - Sin resultados o con fallo no se pinta «0 resultados»: el aviso (`liveRegion`) ya lo dice y se
+    evita anunciar dos cosas. Con `MoreFailed` el pie también es `liveRegion`.
+  - Los tests cazaron un fallo real: una clave propia (`object`) para el pie de la `LazyColumn`
+    falla en Android (las claves deben poder guardarse en un `Bundle`). El pie va sin clave.
+  - La barra de progreso tiene un hueco fijo de 4 dp para no empujar la lista al aparecer, con 8 dp
+    de aire encima (antes quedaba pegada a la caja).
+  - **Revisión (Opus):** una búsqueda nueva vuelve arriba. La posición de la lista se ata a la
+    consulta: `rememberSaveable(search.query, saver = LazyListState.Saver)` en `ResultsList`. Con otra
+    consulta empieza de cero; con la misma («Cargar más», o volver de un curso) se conserva. No se
+    usa `LaunchedEffect(query) { scrollToItem(0) }` porque también se ejecutaría al volver de un
+    curso y se perdería el sitio. 4 tests más en `ScreenSearchTest` (27): consulta nueva arriba,
+    «Cargar más» mantiene la posición, la posición sobrevive a guardar y restaurar el estado
+    (`StateRestorationTester`) y el hueco de la barra. Los dos de posición que ya pasaban antes del
+    arreglo se dejan como red. Nota: el nodo de la barra mide 24 dp aunque la dibujada sea de 4 dp,
+    por eso el test mide desde su centro.
+
 ## Siguiente paso
 
-Tarea 6 (`SearchViewModel` + `ScreenSearch` con resultados). Toca más de dos ficheros: proponer
-antes un plan dividido en pasos (ViewModel con la espera de 300 ms, `SearchActions`,
-`SearchResultsContent`, `ScreenSearch` y el cambio en `MainNavGraph`).
+Tareas 6c y 6d (ViewModel y conexión) con Opus. Cada paso se revisa antes del siguiente.

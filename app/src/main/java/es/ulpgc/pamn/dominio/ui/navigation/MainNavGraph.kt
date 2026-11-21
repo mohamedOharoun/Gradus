@@ -20,6 +20,7 @@ import androidx.navigation.toRoute
 import es.ulpgc.pamn.dominio.course.CourseGateway
 import es.ulpgc.pamn.dominio.course.SearchOutcome
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
+import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
@@ -33,6 +34,7 @@ import es.ulpgc.pamn.dominio.ui.screens.course.ScreenCourse
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchActions
 import kotlinx.coroutines.launch
 
 // Grafo anidado de las pantallas con sesión (docs/tareas/barra-navegacion.md).
@@ -64,7 +66,10 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                 modifier = modifier,
             )
         }
-        tab<Route.Search>(TopLevelDestination.SEARCH, navController) { ScreenSearch(it) }
+        // Provisional hasta 6d: se conecta al SearchViewModel. Mientras, solo enseña la carga.
+        tab<Route.Search>(TopLevelDestination.SEARCH, navController) {
+            ScreenSearch(text = "", search = CourseSearchState.start(), actions = SearchActions(), modifier = it)
+        }
         tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { ScreenMyCourses(it) }
         tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { ScreenSettings(it) }
         // Sin barra: no es una pestaña, se entra desde una y «atrás» vuelve a ella.

@@ -7,7 +7,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import es.ulpgc.pamn.dominio.ui.navigation.TopLevelDestination
-import es.ulpgc.pamn.dominio.ui.screens.ScreenSearch
+import es.ulpgc.pamn.dominio.ui.screens.ScreenSettings
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Armazón de las pantallas con sesión: el contenido arriba y GradusNavigationBar abajo.
@@ -36,6 +36,6 @@ fun MainScaffold(
 @Composable
 private fun MainScaffoldPreview() {
     GradusTheme {
-        MainScaffold(selected = TopLevelDestination.SEARCH, onSelect = {}) { ScreenSearch(it) }
+        MainScaffold(selected = TopLevelDestination.SEARCH, onSelect = {}) { ScreenSettings(it) }
     }
 }
