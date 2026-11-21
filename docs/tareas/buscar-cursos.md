@@ -50,12 +50,12 @@ sharedLogic/commonMain/.../course/
 ├── CourseGateway                 search(query: CourseQuery, page)  (+ extensión search(text, page))
 ├── http/HttpCourseGateway        CourseQuery → ?q=…&tag=…&tag=…&page=…&size=…
 ├── FakeCourseGateway             también filtra por etiquetas (previews y tests)
+├── PublishedMonth                "2026-10-03T08:35:00Z" → año 2026, mes 10 (sin java.time)
 └── search/
     ├── CourseQuery               texto + etiquetas (fase 2: creador y fecha). Inmutable.
     ├── ActiveFilter              los chips quitables y el número del distintivo «Filtros 2»
     ├── CourseSearchState         máquina de estados: resultados, páginas, cargando, problema
-    ├── TagSuggestions            qué etiquetas ofrecer en la hoja y en qué orden
-    └── PublishedMonth            "2026-10-03T08:35:00Z" → año 2026, mes 10 (sin java.time)
+    └── TagSuggestions            qué etiquetas ofrecer en la hoja y en qué orden
 app/.../ui/
 ├── screens/ScreenSearch.kt                 (ya existe; deja de ser provisional)
 ├── screens/search/SearchViewModel.kt       espera al teclear, cancela la búsqueda anterior
@@ -260,9 +260,69 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - fallo de la primera página (los dos problemas) y de «más»;
      - reintentar tras cada fallo, y reintentar sin fallo.
      - Pasan con `./gradlew :sharedLogic:testAndroidHostTest`, junto con los que ya había.
-4. **`TagSuggestions` y `PublishedMonth`.**
-   - Criterio: tests del orden de las etiquetas (elegidas primero, frecuencia, alfabético, límite)
-     y de fechas válidas, raras y vacías.
+4. ✅ **Hecha (2026-11-21).** **`TagSuggestions` y `PublishedMonth`** (decisiones aprobadas el 2026-11-21).
+   - Qué es: dos funciones puras e independientes. `TagSuggestions`: qué etiquetas ofrecer en la
+     hoja y en qué orden (la usa la tarea 7). `PublishedMonth`: el año y el mes de `publishedAt`,
+     para «oct 2026» en la tarjeta (tarea 5). Sin corrutinas ni red.
+   - Ficheros (no se toca nada más):
+     - `sharedLogic/src/commonMain/kotlin/es/ulpgc/pamn/dominio/course/search/TagSuggestions.kt`
+       y su test en `sharedLogic/src/commonTest/kotlin/es/ulpgc/pamn/dominio/course/search/TagSuggestionsTest.kt`.
+     - `sharedLogic/src/commonMain/kotlin/es/ulpgc/pamn/dominio/course/PublishedMonth.kt` y su test
+       en `sharedLogic/src/commonTest/kotlin/es/ulpgc/pamn/dominio/course/PublishedMonthTest.kt`.
+       Va en `course/`, junto a `CourseSummary`: es un dato del curso, no de la búsqueda (decisión C).
+   - Forma:
+     ```kotlin
+     // course/search/TagSuggestions.kt
+     data class TagSuggestions(val shown: List<String>, val hidden: List<String>) {
+         val all: List<String> get() = shown + hidden        // tras pulsar «Ver todas»
+         val hasHidden: Boolean get() = hidden.isNotEmpty()  // ¿se enseña «Ver todas»?
+         companion object {
+             const val SHOWN = 7
+             // Factory method: a partir de los resultados cargados y las etiquetas elegidas.
+             fun from(results: List<CourseSummary>, selected: List<String>, shown: Int = SHOWN): TagSuggestions
+         }
+     }
+
+     // course/PublishedMonth.kt
+     data class PublishedMonth(val year: Int, val month: Int) {   // month: 1–12
+         companion object { fun parse(publishedAt: String): PublishedMonth? }  // null si no se entiende
+     }
+     val CourseSummary.publishedMonth: PublishedMonth? get() = PublishedMonth.parse(publishedAt)
+     ```
+     Los textos «ene», «feb»… no van aquí: son de la pantalla (`app`, tarea 5).
+   - Reglas de `TagSuggestions`:
+     - **Orden:** primero las elegidas, en el orden en que se eligieron; después, las que están en
+       más cursos; a igualdad, alfabético.
+     - **Alfabético sin mayúsculas ni tildes (decisión A):** para ordenar, á é í ó ú ü cuentan como
+       su vocal («árboles» antes que «bases de datos»). En `commonMain` no hay orden alfabético
+       español sin librería; la «ñ» se queda como está (en etiquetas es raro).
+     - **Cuántas veces está:** en cuántos cursos de `results`; cada curso cuenta una vez aunque
+       repita la etiqueta (`DUPLICATE_TAG` solo es un aviso del backend). Dos etiquetas son la misma
+       si coinciden con `tagKey` («Grafos» = «grafos»).
+     - **Qué forma se enseña:** la elegida, tal como está en `selected` (coincide con su chip
+       «#grafos ✕»); si no está elegida, la primera que aparece en `results` (la del curso más reciente).
+     - **Las elegidas se enseñan siempre**, aunque no salgan en los resultados (si no, no se
+       podrían quitar desde la hoja).
+     - **Cuántas se ven:** `shown` (7) y el resto en `hidden`. Si hay más de 7 elegidas, en `shown`
+       van todas las elegidas.
+     - Una etiqueta en blanco se ignora. Sin resultados ni elegidas: las dos listas vacías.
+     - Nota para la tarea 7 (decisión B): se calcula **al abrir la hoja** con las etiquetas
+       *aplicadas*, no las del borrador. Si siguiera al borrador, al tocar una etiqueta saltaría al
+       principio y los chips se moverían bajo el dedo.
+   - Reglas de `PublishedMonth`:
+     - Solo lee el principio, `AAAA-MM`; el resto (día, hora, zona) no hace falta.
+     - `null` si el mes no está entre 1 y 12, si está vacío o si no empieza así. La tarjeta enseñará
+       entonces solo «20 módulos».
+     - **El mes es el de la hora UTC (decisión D)**, sin ajustar a la zona del móvil: ajustarlo
+       necesita `kotlinx-datetime` (dependencia nueva) y no compensa por un día de diferencia.
+   - Criterio: tests con `kotlin.test`, sin corrutinas:
+     - `TagSuggestionsTest`: orden por frecuencia; empate alfabético con tildes; elegidas primero
+       y en su orden; una elegida que no está en los resultados; la misma etiqueta con otras
+       mayúsculas cuenta una vez y se enseña con su primera forma; un curso que repite una etiqueta
+       cuenta una vez; límite de 7 y `hidden`; más de 7 elegidas; sin nada, listas vacías.
+     - `PublishedMonthTest`: fecha normal; solo la fecha (sin hora); mes 0 y 13; texto vacío y
+       texto que no es una fecha; la extensión sobre `CourseSummary`.
+     - ✅ Pasan con `./gradlew :sharedLogic:testAndroidHostTest`, junto con los que ya había.
 
 ### Parte B · Pantalla (`app`)
 
@@ -337,6 +397,23 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     anterior): se ignora y no borra los resultados. Pasa sin cambiar el código, porque la
     comprobación de la petición va antes de mirar el desenlace; queda documentado con un test.
 
+- 2026-11-21: tarea 4 discutida y detallada. Aprobado: alfabético sin mayúsculas ni tildes (A),
+  las sugerencias se calculan al abrir la hoja con las etiquetas aplicadas (B), `PublishedMonth`
+  en `course/` (C) y el mes en UTC (D).
+
+- 2026-11-21: **tarea 4 hecha** (`PublishedMonth` con 8 tests y `TagSuggestions` con 15). Hecha en
+  dos pasos, cada uno con rojo (esqueleto en `TODO()`), verde y comentarios; toda la suite de
+  `sharedLogic` pasa, compila el código común y la app. Detalles:
+  - `PublishedMonth.parse` solo lee `AAAA-MM` y no mira lo que venga después (aprobado: `"2026-1012"`
+    daría octubre de 2026; el servidor siempre manda ISO 8601). Los dígitos se comprueban con
+    `in '0'..'9'`, no con `isDigit()`.
+  - `TagSuggestions.from` reutiliza `tagKey()` para decidir si dos etiquetas son la misma. Si dos
+    etiquetas solo se distinguen por la tilde («arbol» / «árbol»), se desempata por `tagKey()`
+    para que el orden sea siempre el mismo.
+  - Tests extra respecto a la lista del criterio: empate alfabético sin distinguir mayúsculas, la
+    elegida se enseña tal como se eligió, etiquetas en blanco ignoradas y `shown` personalizado.
+
 ## Siguiente paso
 
-Tarea 4 (`TagSuggestions` y `PublishedMonth`): discutir y detallar sus reglas; después, test primero.
+Tarea 5 (componentes `SearchField`, `CourseCard` y `TagLabel` con previews en claro y oscuro):
+proponerla antes de empezar. Usará `publishedMonth` para el «oct 2026» de la tarjeta.
