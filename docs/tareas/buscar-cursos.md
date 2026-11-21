@@ -376,7 +376,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - `./gradlew :app:testDebugUnitTest` y `./gradlew :app:connectedDebugAndroidTest` pasan; las
        previews se ven como la captura (sin ★ ni «Inscrito») en claro y oscuro.
 
-   **5b · La caja de búsqueda (`SearchField`).**
+   **5b · La caja de búsqueda (`SearchField`).** ✅ **Hecha (2026-11-21).**
    - Ficheros: `ui/components/SearchField.kt` y
      `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/components/SearchFieldTest.kt`.
    - `SearchField(value: String, onValueChange: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier)`.
@@ -506,7 +506,24 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     pulsable (rol botón, acción «Abrir curso») que TalkBack lee entero. Los textos sueltos solo se
     ven en el árbol sin fusionar (`useUnmergedTree = true` en los tests).
 
+- 2026-11-21: **tarea 5b hecha** (`SearchField` y `SearchFieldTest`, 12 tests de emulador). Hecha en
+  tres pasos: esqueleto con `TODO()` y tests en rojo (todos fallaban con `NotImplementedError`),
+  código mínimo en verde y previews en claro y oscuro. Pasan `:app:testDebugUnitTest`,
+  `:app:connectedDebugAndroidTest` y `:sharedLogic:testAndroidHostTest`. Detalles:
+  - Aprobado: la tecla «Buscar» **cierra el teclado dentro de `SearchField`**
+    (`LocalSoftwareKeyboardController.hide()`) y luego llama a `onSearch`. Se prueba en
+    `androidTest` con un teclado falso (`CompositionLocalProvider`): los avisos llegan en el orden
+    `hide`, `search` (comprobado invirtiendo el orden en el código: el test falla). Es el test 12.
+  - Tests extra respecto al criterio: escribir avisa con el texto nuevo, la caja muestra el `value`
+    que recibe y no lo guarda por sí sola (ni siquiera si el padre ignora el cambio), sigue al
+    `value` cuando el padre lo cambia, el texto de ayuda se ve vacía y desaparece con texto, y la
+    lupa no tiene `contentDescription`.
+  - La ✕ usa `IconButton` con `size(48.dp)`, como `ExerciseParts.kt`; la caja mide al menos 56 dp
+    de alto, como `FormField`.
+  - Sin patrón nuevo: componente sin estado (*state hoisting*), con `modifier` y previews.
+
 ## Siguiente paso
 
-Tarea 5b (`SearchField`), lista para empezar: caja de búsqueda con lupa, ✕ de 48 dp y tecla
-«Buscar». Los tests de emulador (`SearchFieldTest`) van primero.
+Tarea 6 (`SearchViewModel` + `ScreenSearch` con resultados). Toca más de dos ficheros: proponer
+antes un plan dividido en pasos (ViewModel con la espera de 300 ms, `SearchActions`,
+`SearchResultsContent`, `ScreenSearch` y el cambio en `MainNavGraph`).
