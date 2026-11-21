@@ -65,8 +65,10 @@ app/.../ui/
 └── components/
     ├── SearchField.kt            caja redondeada con lupa y ✕
     ├── CourseCard.kt             tarjeta de un resultado
+    ├── CourseTexts.kt            «20 módulos · oct 2026» y sus partes (funciones puras)
     ├── TagLabel.kt               etiqueta gris de la tarjeta
     └── FilterChips.kt            «Filtros n», chip quitable y chip seleccionable
+app/.../data/DemoSearchResults.kt           los 3 cursos del Figma, para las previews
 ```
 
 **Patrones** (para defenderlos igual que en cuentas y cursos):
@@ -326,10 +328,71 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
 
 ### Parte B · Pantalla (`app`)
 
-5. **Componentes con previews**: `SearchField`, `CourseCard` (+ `TagLabel`).
-   - Colores del tema (`surfaceVariant` para las etiquetas, `outlineVariant` para el borde).
-   - La tarjeta se lee entera con TalkBack («Estructuras de datos, por Ana Ruiz, …»).
-   - Criterio: previews en claro y oscuro iguales al Figma (sin ★ ni «Inscrito»).
+5. **Componentes** (decisiones aprobadas el 2026-11-21). Partida en dos (decisión E): 5a y 5b son
+   independientes y se revisan por separado. Diseño: `docs/tareas/resources/search-courses.png`.
+   Rutas: `app/src/main/java/es/ulpgc/pamn/dominio/` (abreviado `app/.../`).
+
+   **5a · La tarjeta (`CourseCard`).** ✅ **Hecha (2026-11-21).**
+   - Ficheros (no se toca nada más):
+     - `ui/components/TagLabel.kt`: etiqueta gris de la tarjeta (`surfaceVariant` y
+       `onSurfaceVariant`); no se puede pulsar.
+     - `ui/components/CourseTexts.kt`: los textos de la tarjeta, como funciones puras (como
+       `SubmissionTexts.kt`).
+     - `ui/components/CourseCard.kt`: la tarjeta.
+     - `data/DemoSearchResults.kt`: `demoSearchResults`, los 3 cursos del Figma como `CourseSummary`
+       («Estructuras de datos», Ana Ruiz, grafos/árboles/algoritmos, 20 módulos, oct 2026;
+       «Teoría de grafos para principiantes», Jorge Medina, grafos/matemáticas, 14, sep 2026;
+       «Búsqueda en grafos: BFS y DFS», Lucía Santana, grafos/algoritmos, 11, mar 2026). Solo para
+       previews y tests; la usarán también las tareas 6–8.
+     - `app/src/test/java/es/ulpgc/pamn/dominio/ui/components/CourseTextsTest.kt` (JUnit, como
+       `ExampleUnitTest`; decisión D).
+     - `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/components/CourseCardTest.kt` (como
+       `GradusNavigationBarTest`, en el emulador).
+   - Textos (`CourseTexts.kt`):
+     - `moduleCountText(n)`: «1 módulo», «20 módulos».
+     - `PublishedMonth.shortLabel()`: «oct 2026». Meses: ene, feb, mar, abr, may, jun, jul, ago,
+       sep, oct, nov, dic (el Figma dice «sep»).
+     - `PublishedMonth.spokenLabel()`: «octubre de 2026» (para TalkBack).
+     - `CourseSummary.metaText()`: «20 módulos · oct 2026», o solo «20 módulos» si
+       `publishedMonth` es null.
+   - La tarjeta: `CourseCard(course: CourseSummary, onClick: () -> Unit, modifier: Modifier = Modifier)`.
+     - Toda ella se pulsa: `Surface` con borde `outlineVariant`, esquinas redondeadas y `surface`.
+     - De arriba abajo: título (`titleLarge`), «por Ana Ruiz» (`bodySmall`, `onSurfaceVariant`),
+       etiquetas y la línea «20 módulos · oct 2026».
+     - **Como mucho 3 etiquetas** (decisión A); si hay más, una más con «+N» («+2»). El backend
+       admite hasta 10 y las tarjetas tendrían alturas muy distintas.
+     - Sin ★, sin «Inscrito» (decisión 2) y sin la descripción (el Figma no la enseña).
+     - **TalkBack (decisión B):** la tarjeta es una sola cosa, con la acción «Abrir curso», que se
+       lee «Estructuras de datos, por Ana Ruiz, grafos, árboles, algoritmos, 20 módulos, publicado
+       en octubre de 2026» (el mes completo: «oct 2026» se lee mal en voz alta).
+     - Previews en claro y oscuro (`@LightDarkPreviews`): los 3 cursos del Figma, uno con más de
+       3 etiquetas y uno con una fecha que no se entiende.
+   - Criterio (tests, como mínimo; ver «Los tests también documentan» en `AGENTS.md` §7):
+     - `CourseTextsTest`: singular y plural de módulos; los 12 meses cortos (o al menos enero,
+       septiembre y diciembre) y el largo; `metaText` con y sin fecha.
+     - `CourseCardTest` (emulador): la tarjeta es un solo nodo que se puede pulsar y llama a
+       `onClick`; su texto leído incluye «publicado en octubre de 2026»; con 5 etiquetas se ven 3 y
+       «+2»; mide al menos 48 dp de alto.
+     - `./gradlew :app:testDebugUnitTest` y `./gradlew :app:connectedDebugAndroidTest` pasan; las
+       previews se ven como la captura (sin ★ ni «Inscrito») en claro y oscuro.
+
+   **5b · La caja de búsqueda (`SearchField`).**
+   - Ficheros: `ui/components/SearchField.kt` y
+     `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/components/SearchFieldTest.kt`.
+   - `SearchField(value: String, onValueChange: (String) -> Unit, onSearch: () -> Unit, modifier: Modifier = Modifier)`.
+     Controlada como `FormField`: no guarda el texto.
+     - `OutlinedTextField` en forma de píldora, `surface`, una línea, lupa a la izquierda
+       (decorativa: `contentDescription = null`).
+     - Texto de ayuda: «Busca por título o descripción» (decisión C).
+     - La ✕ solo aparece con texto; avisa con `onValueChange("")` y TalkBack la lee «Borrar
+       búsqueda». **Zona táctil de 48 dp**: en esta versión de Material 3, `IconButton` mide 40 dp
+       (ya pasó con la ✕ de la práctica, `cursos-backend-app.md`).
+     - Tecla del teclado «Buscar» (`ImeAction.Search`), que llama a `onSearch`.
+     - Previews en claro y oscuro: vacía y con «grafos».
+   - Criterio (tests, como mínimo):
+     - `SearchFieldTest` (emulador): sin texto no hay ✕; con texto, la ✕ mide al menos 48 dp y al
+       pulsarla llama a `onValueChange("")`; la tecla «Buscar» llama a `onSearch`.
+     - `./gradlew :app:connectedDebugAndroidTest` pasa; las previews se ven como la captura.
 6. **`SearchViewModel` + `ScreenSearch` con resultados** (sin filtros todavía).
    - Lista, «N resultados» (y «1 resultado»), cargando, vacío, problema con «Reintentar», «Cargar más».
    - `MainNavGraph`: tocar una tarjeta → `Route.Course(id)`.
@@ -413,7 +476,37 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   - Tests extra respecto a la lista del criterio: empate alfabético sin distinguir mayúsculas, la
     elegida se enseña tal como se eligió, etiquetas en blanco ignoradas y `shown` personalizado.
 
+- 2026-11-21: tarea 5 discutida y detallada, partida en 5a (tarjeta) y 5b (caja). Aprobado: como
+  mucho 3 etiquetas y «+N» (A), TalkBack lee la tarjeta entera con el mes completo (B), texto de
+  ayuda «Busca por título o descripción» (C), textos con JUnit en `app/src/test` y accesibilidad
+  en `androidTest` (D) y la partición (E). Nueva regla en `AGENTS.md` §7: «Los tests también
+  documentan» (cada comportamiento descrito tiene su test).
+
+- 2026-11-21: **tarea 5a hecha** (`CourseTexts`, `TagLabel`, `DemoSearchResults` y `CourseCard`).
+  Hecha en cuatro pasos: tests de los textos en rojo (esqueleto con `TODO()`, 19 tests), código
+  mínimo en verde, tarjeta con previews y `CourseCardTest` en el emulador (12 tests). Pasan
+  `:app:testDebugUnitTest`, `:app:connectedDebugAndroidTest` y `:sharedLogic:testAndroidHostTest`.
+  Detalles aprobados o decididos por el camino:
+  - `CourseTexts.kt` tiene dos funciones puras más que el documento: `CourseSummary.spokenText()`
+    (la frase de TalkBack) y `CourseSummary.tagsPreview(max = 3)` (etiquetas visibles y cuántas
+    sobran, `TagsPreview`). Así se prueban en JVM y `CourseCardTest` solo comprueba lo que depende
+    de Compose.
+  - TalkBack lee **todas** las etiquetas, también las que la tarjeta esconde tras «+N».
+  - El título de la tarjeta usa `titleLarge` («Texto/Sección», 18 en negrita): confirmado contra el
+    Figma (no es «Texto/Cuerpo fuerte», 16).
+  - Repaso: `PublishedMonth` **no se puede construir con un mes fuera de 1..12** (`init { require(...) }`,
+    también con `copy`). Antes solo `parse` lo comprobaba y `PublishedMonth(2026, 13).shortLabel()`
+    se habría salido de la lista de meses. 4 tests nuevos en `PublishedMonthTest` (mes 0, 13, negativo
+    y `copy`) y uno para el primer y el último mes; `parse` no cambia.
+  - `TagLabel` lleva un borde `outlineVariant`: en el tema oscuro `surfaceVariant` es igual que
+    `surface` y sin borde la etiqueta no se veía dentro de la tarjeta. No se ha tocado el tema.
+    **Aprobado dejarlo así (2026-11-21)**, aunque en claro el Figma no tiene borde: arreglarlo en el
+    tema obligaría a definir otro `surfaceVariant` oscuro y afectaría a más piezas.
+  - La tarjeta usa `clickable` + `clearAndSetSemantics` dentro de la `Surface`: es un solo nodo
+    pulsable (rol botón, acción «Abrir curso») que TalkBack lee entero. Los textos sueltos solo se
+    ven en el árbol sin fusionar (`useUnmergedTree = true` en los tests).
+
 ## Siguiente paso
 
-Tarea 5 (componentes `SearchField`, `CourseCard` y `TagLabel` con previews en claro y oscuro):
-proponerla antes de empezar. Usará `publishedMonth` para el «oct 2026» de la tarjeta.
+Tarea 5b (`SearchField`), lista para empezar: caja de búsqueda con lupa, ✕ de 48 dp y tecla
+«Buscar». Los tests de emulador (`SearchFieldTest`) van primero.

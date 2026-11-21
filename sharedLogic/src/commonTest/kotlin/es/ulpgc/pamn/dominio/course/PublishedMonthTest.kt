@@ -2,6 +2,7 @@ package es.ulpgc.pamn.dominio.course
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 // Tarea 4 de buscar-cursos.md: el año y el mes de `publishedAt` («oct 2026» en la tarjeta).
@@ -43,6 +44,34 @@ class PublishedMonthTest {
         assertNull(PublishedMonth.parse("2026"))
         assertNull(PublishedMonth.parse("2026/10/03"))
         assertNull(PublishedMonth.parse("20a6-10-03"))
+    }
+
+    // Un mes imposible no se puede construir: así los textos de la tarjeta (`shortLabel`,
+    // `spokenLabel`) pueden buscar el mes en su lista sin salirse de ella.
+    @Test
+    fun `month 0 cannot be built`() {
+        assertFailsWith<IllegalArgumentException> { PublishedMonth(2026, 0) }
+    }
+
+    @Test
+    fun `month 13 cannot be built`() {
+        assertFailsWith<IllegalArgumentException> { PublishedMonth(2026, 13) }
+    }
+
+    @Test
+    fun `a negative month cannot be built`() {
+        assertFailsWith<IllegalArgumentException> { PublishedMonth(2026, -1) }
+    }
+
+    @Test
+    fun `a copy with an impossible month cannot be built either`() {
+        assertFailsWith<IllegalArgumentException> { PublishedMonth(2026, 10).copy(month = 13) }
+    }
+
+    @Test
+    fun `the first and the last month can be built`() {
+        assertEquals(1, PublishedMonth(2026, 1).month)
+        assertEquals(12, PublishedMonth(2026, 12).month)
     }
 
     @Test

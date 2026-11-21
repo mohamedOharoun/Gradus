@@ -4,7 +4,14 @@ package es.ulpgc.pamn.dominio.course
 //
 // Es el mes de la hora UTC, sin ajustar a la zona del móvil (haría falta `kotlinx-datetime`).
 // Los nombres de los meses («ene», «feb»…) son de la pantalla, no de aquí.
+//
+// Un mes fuera de 1..12 no se puede construir (ni con `copy`): los textos de la pantalla buscan el
+// mes en una lista de 12 y se saldrían de ella. `parse` devuelve null en esos casos antes de llegar aquí.
 data class PublishedMonth(val year: Int, val month: Int) {
+    init {
+        require(month in 1..12) { "month must be between 1 and 12, was $month" }
+    }
+
     companion object {
         // «AAAA-MM» al principio, y da igual lo que venga detrás (día, hora, zona).
         // Devuelve null si no empieza así o si el mes no está entre 1 y 12.
