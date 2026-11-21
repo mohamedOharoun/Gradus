@@ -450,7 +450,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      es `liveRegion`; escribir en la caja llama a `onTextChange`. `./gradlew :app:connectedDebugAndroidTest`
      pasa y las previews se ven como la captura (sin la fila de filtros, que es de la tarea 7).
 
-   **6c · `SearchViewModel`.**
+   **6c · `SearchViewModel`.** ✅ **Hecha (2026-11-21).**
    - Ficheros: `ui/screens/search/SearchViewModel.kt` y
      `app/src/test/java/es/ulpgc/pamn/dominio/ui/screens/search/SearchViewModelTest.kt`.
    - **Gradle (decisión D, aprobada):** en `app/build.gradle.kts`, una línea junto a
@@ -481,9 +481,12 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - `onTextChange`: guarda `text` al momento (la caja lo enseña); cancela la espera anterior y,
        **tras 300 ms sin teclear**, `search.search(search.query.withText(text))` y pide.
      - `onSearch`: cancela la espera y busca **ya** con el `text` actual.
-     - **Un solo `job` (decisión E):** cualquier petición nueva cancela la anterior, también un
-       «Cargar más» en curso si se vuelve a teclear. La máquina ya ignora las respuestas tardías;
-       cancelar ahorra peticiones.
+     - **Dos `Job` (decisión E, cambiada el 2026-11-21; antes era uno solo):** `typing` (la espera)
+       y `request` (la petición en camino). Una petición nueva cancela la anterior, también un
+       «Cargar más» en curso cuando la búsqueda tecleada empieza; una pulsación nueva reinicia la
+       espera; `onSearch` cancela la espera. Con un solo `job`, pulsar «Cargar más» o «Reintentar»
+       antes de 300 ms cancelaba la espera y el texto de la caja no se buscaba nunca. La máquina ya
+       ignora las respuestas tardías; cancelar ahorra peticiones.
      - La espera es `delay(300)` dentro del `launch`, como `CourseViewModel` cancela su carga (sin
        APIs en preview como `debounce`).
      - El ViewModel **no navega**: tocar una tarjeta llega a `MainNavGraph` (6d).
@@ -678,6 +681,23 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     arreglo se dejan como red. Nota: el nodo de la barra mide 24 dp aunque la dibujada sea de 4 dp,
     por eso el test mide desde su centro.
 
+- 2026-11-21: **tarea 6c hecha** (`SearchViewModel` y `SearchViewModelTest`, 25 tests JUnit con
+  tiempo simulado). Primero el esqueleto con `TODO()` (24 de 25 en rojo; el que pasaba solo mira el
+  estado inicial) y después el código mínimo. Pasan `:app:testDebugUnitTest` (56) y `:app:assembleDebug`.
+  Detalles:
+  - Aprobado al proponerla: **dos `Job`** en lugar de uno (decisión E actualizada). Dos tests lo
+    documentan: «Cargar más» y «Reintentar» durante la espera no se comen la búsqueda tecleada.
+  - Si la máquina devuelve el mismo estado (`===`), la acción no tocaba y no se cancela nada
+    («Cargar más» sin más, o mientras carga; «Reintentar» sin fallo).
+  - `TYPING_PAUSE = 300.milliseconds` (`Duration`, no `Long`: la versión con `Long` da aviso).
+  - Solo para tests, `app/src/test/.../search/DelayedCourseGateway.kt` (*Decorator*): pasa la
+    petición a `FakeCourseGateway` al momento y responde con retraso; `answered` dice qué búsquedas
+    llegaron a responderse, y así se ve que una petición cancelada no termina.
+  - Tests extra respecto al criterio: el estado inicial, los resultados y el fallo llegan a `search`,
+    la *factory*, «Buscar» con el mismo texto vuelve a buscar, la espera no cancela la petición en
+    camino, una búsqueda nueva cancela la anterior, «Cargar más» mientras carga la primera página o
+    ya cargando más, «Reintentar» tras fallar «Cargar más» y sin fallo.
+
 ## Siguiente paso
 
-Tareas 6c y 6d (ViewModel y conexión) con Opus. Cada paso se revisa antes del siguiente.
+Tarea 6d (conectarlo en `MainNavGraph`), tras revisar 6c. Después, comprobarlo en el emulador.
