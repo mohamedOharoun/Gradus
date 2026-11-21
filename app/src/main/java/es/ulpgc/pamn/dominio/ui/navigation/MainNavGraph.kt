@@ -10,6 +10,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -20,7 +23,6 @@ import androidx.navigation.toRoute
 import es.ulpgc.pamn.dominio.course.CourseGateway
 import es.ulpgc.pamn.dominio.course.SearchOutcome
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
-import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
@@ -35,6 +37,7 @@ import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchActions
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchViewModel
 import kotlinx.coroutines.launch
 
 // Grafo anidado de las pantallas con sesión (docs/tareas/barra-navegacion.md).
@@ -66,9 +69,25 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                 modifier = modifier,
             )
         }
-        // Provisional hasta 6d: se conecta al SearchViewModel. Mientras, solo enseña la carga.
-        tab<Route.Search>(TopLevelDestination.SEARCH, navController) {
-            ScreenSearch(text = "", search = CourseSearchState.start(), actions = SearchActions(), modifier = it)
+        // El ViewModel vive con la entrada de Buscar: al abrir un curso y volver, o al cambiar de
+        // pestaña y volver (saveState/restoreState), la búsqueda sigue igual.
+        tab<Route.Search>(TopLevelDestination.SEARCH, navController) { modifier ->
+            val searchViewModel: SearchViewModel = viewModel(factory = SearchViewModel.factory(AppContainer.courseGateway))
+            ScreenSearch(
+                text = searchViewModel.text,
+                search = searchViewModel.search,
+                actions = SearchActions(
+                    onTextChange = searchViewModel::onTextChange,
+                    onSearch = searchViewModel::onSearch,
+                    onLoadMore = searchViewModel::onLoadMore,
+                    onRetry = searchViewModel::onRetry,
+                    // Solo con la pantalla activa: dos toques rápidos no abren el curso dos veces.
+                    onCourseClick = LocalLifecycleOwner.current.onlyWhenResumed { id: String ->
+                        navController.navigate(Route.Course(id))
+                    },
+                ),
+                modifier = modifier,
+            )
         }
         tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { ScreenMyCourses(it) }
         tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { ScreenSettings(it) }
@@ -154,6 +173,13 @@ private fun NavController.navigateToTab(destination: TopLevelDestination) {
         launchSingleTop = true
         restoreState = true
     }
+}
+
+// Como dropUnlessResumed, pero para acciones que reciben un valor (el id del curso tocado).
+// Mira el estado en el momento del toque: al navegar, esta pantalla deja de estar RESUMED y un
+// segundo toque se descarta. Es `internal` para poder probarlo (OnlyWhenResumedTest).
+internal fun <T> LifecycleOwner.onlyWhenResumed(block: (T) -> Unit): (T) -> Unit = { value ->
+    if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) block(value)
 }
 
 // Provisional (con el botón de Inicio): el id del curso publicado más reciente, o el motivo para no abrirlo.
