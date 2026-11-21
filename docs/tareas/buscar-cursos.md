@@ -188,11 +188,78 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
        mayúsculas) y se adapta `it remembers what it was asked` (`CourseQuery(text = "grafos") to 1`).
      - Los demás tests, sin tocarlos, siguen pasando (`./gradlew :sharedLogic:testAndroidHostTest`)
        y la app compila (`./gradlew :app:assembleDebug`).
-3. **`CourseSearchState`.**
-   - Estados: cargando la primera página (conservando los resultados anteriores), listo (resultados,
-     `total`, `hasMore`), cargando más, problema (primera página o «más»).
-   - Una página de una búsqueda ya superada se ignora; «Cargar más» solo si `hasMore`.
-   - Criterio: tests de cada transición, también la respuesta tardía y el fallo al cargar más.
+3. ✅ **Hecha (2026-11-21).** **`CourseSearchState`** (decisiones aprobadas el 2026-11-21).
+   - Qué es: lo que enseña la lista de Buscar (resultados, cuántos hay, si quedan más, si carga o
+     ha fallado). **Máquina de estados inmutable**, como `ModuleStudy`: cada acción devuelve un
+     estado nuevo y, si no toca, el mismo. **Sin corrutinas ni red**: el ViewModel (tarea 6) lee la
+     petición pendiente, llama al gateway y le pasa la respuesta.
+   - Ficheros: `sharedLogic/src/commonMain/kotlin/es/ulpgc/pamn/dominio/course/search/CourseSearchState.kt`
+     y `sharedLogic/src/commonTest/kotlin/es/ulpgc/pamn/dominio/course/search/CourseSearchStateTest.kt`.
+     No se toca nada más.
+   - Forma (nombres aprobados, decisión D):
+     ```kotlin
+     data class SearchRequest(val query: CourseQuery, val page: Int)
+     enum class SearchProblem { UNREACHABLE, SERVER_FAILURE }   // los dos se pueden reintentar
+
+     sealed interface SearchStatus {
+         data class Loading(val request: SearchRequest) : SearchStatus      // primera página
+         data class LoadingMore(val request: SearchRequest) : SearchStatus  // «Cargar más»
+         data object Ready : SearchStatus
+         data class Failed(val problem: SearchProblem) : SearchStatus       // falló la primera página
+         data class MoreFailed(val problem: SearchProblem) : SearchStatus   // falló «Cargar más»
+     }
+
+     data class CourseSearchState(
+         val query: CourseQuery,             // la consulta aplicada (no lo que se está tecleando)
+         val results: List<CourseSummary>,
+         val total: Int,
+         val nextPage: Int,
+         val hasMore: Boolean,
+         val status: SearchStatus,
+     ) {
+         val pending: SearchRequest?         // la de Loading o LoadingMore; null en los demás
+         val canLoadMore: Boolean            // Ready y hasMore
+         val isEmpty: Boolean                // Ready y sin resultados
+         fun search(query: CourseQuery): CourseSearchState
+         fun loadMore(): CourseSearchState
+         fun retry(): CourseSearchState
+         fun receive(request: SearchRequest, outcome: SearchOutcome): CourseSearchState
+         companion object { fun start(query: CourseQuery = CourseQuery.EMPTY): CourseSearchState }
+     }
+     ```
+     La petición pendiente va **dentro** de `Loading` y `LoadingMore`: así no se puede escribir un
+     estado imposible («listo, pero esperando respuesta»).
+   - Reglas:
+     - `start(query)` (*factory method*): `Loading` de la página 0, sin resultados.
+     - `search(query)`: **siempre** empieza de nuevo (`Loading`, página 0), aunque la consulta sea
+       la misma, y **conserva los resultados anteriores** mientras carga (la lista no parpadea).
+     - **Respuestas tardías (decisión A):** `receive` solo acepta la respuesta si su `request` es
+       igual a `pending`; si no (búsqueda ya superada, «más» de una búsqueda anterior o nada
+       pendiente), devuelve el mismo estado.
+     - Primera página recibida: sustituye los resultados; `total`, `hasMore` y `nextPage = 1`; `Ready`.
+     - `loadMore()`: solo si `canLoadMore` → `LoadingMore` de `nextPage`, con los resultados.
+     - Página siguiente recibida: **añade sin repetir ningún curso por `id` (decisión C)**. Si se
+       publica un curso entre página y página, todo se desplaza un puesto y uno se repetiría; en
+       la tarea 6 eso rompe la `LazyColumn` (`key = id`). `total` y `hasMore` son los de esa página.
+     - Falla la primera página: `Failed`, **sin resultados (decisión B)**: los anteriores eran de
+       otra búsqueda.
+     - Falla «Cargar más»: `MoreFailed`, **conservando los resultados**.
+     - `retry()`: `Failed` → `Loading` de la página 0; `MoreFailed` → `LoadingMore` de `nextPage`;
+       en otro estado, el mismo.
+     - `SearchOutcome.Unreachable` → `UNREACHABLE`; `SearchOutcome.ServerFailure` → `SERVER_FAILURE`.
+   - Fuera de esta tarea: el texto que se está tecleando, la espera de 300 ms y cancelar (tarea 6,
+     con corrutinas); los textos de pantalla («N resultados», avisos), en `app`. La tarea 8
+     reutilizará esta máquina para el borrador de la hoja (otro `CourseSearchState`).
+   - ✅ Criterio: tests con `kotlin.test`, sin corrutinas, en `CourseSearchStateTest`:
+     - empezar; primera página con resultados y vacía (`isEmpty`);
+     - cargar más, y no cargar si no hay más, mientras carga o mientras carga más;
+     - página siguiente añadida y sin repetir un `id`;
+     - búsqueda nueva conservando los resultados;
+     - respuesta tardía de una búsqueda anterior; «más» tardío tras una búsqueda nueva;
+       respuesta sin nada pendiente;
+     - fallo de la primera página (los dos problemas) y de «más»;
+     - reintentar tras cada fallo, y reintentar sin fallo.
+     - Pasan con `./gradlew :sharedLogic:testAndroidHostTest`, junto con los que ya había.
 4. **`TagSuggestions` y `PublishedMonth`.**
    - Criterio: tests del orden de las etiquetas (elegidas primero, frecuencia, alfabético, límite)
      y de fechas válidas, raras y vacías.
@@ -253,7 +320,23 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   - Repaso: `comparisonKey` → `tagKey`, el comentario de `appendSearch` ya no dice «puro» y fuera
     las importaciones que sobraban con el `*`. Tests en verde; compila para Android e iOS.
 
+- 2026-11-21: tarea 3 discutida y detallada. Aprobado: respuestas tardías por comparación de la
+  petición (A), sin resultados si falla la primera página (B), sin repetir cursos al cargar más
+  (C) y los nombres (D). Las corrutinas van en el ViewModel (tarea 6), no en la máquina.
+
+- 2026-11-21: **tarea 3 hecha** (`CourseSearchState`, `SearchRequest`, `SearchProblem`, `SearchStatus`
+  y `CourseSearchStateTest`, 21 tests). Hecha en tres pasos: tests en rojo con un esqueleto en
+  `TODO()`, código mínimo en verde y comentarios. Todos los tests de `sharedLogic` pasan; compila
+  la app y `sharedLogic` para iOS. Detalles aprobados al proponerla:
+  - Mientras carga una búsqueda nueva se conservan también `total` y `hasMore` («N resultados» no
+    parpadea); `canLoadMore` es falso porque exige `Ready`.
+  - En `MoreFailed`, `loadMore()` no hace nada: se vuelve a pedir con `retry()` (la pantalla
+    enseñará «Reintentar» en lugar de «Cargar más»).
+  - Si falla la primera página: sin resultados, `total = 0`, `hasMore = false` y `nextPage = 0`.
+  - Repaso: un test más (22) para un **fallo** que llega tarde (`Unreachable` de una búsqueda
+    anterior): se ignora y no borra los resultados. Pasa sin cambiar el código, porque la
+    comprobación de la petición va antes de mirar el desenlace; queda documentado con un test.
+
 ## Siguiente paso
 
-Tarea 3 (`CourseSearchState`), test primero. Conviene detallar antes sus estados y sucesos, como
-se hizo con las tareas 1 y 2.
+Tarea 4 (`TagSuggestions` y `PublishedMonth`): discutir y detallar sus reglas; después, test primero.
