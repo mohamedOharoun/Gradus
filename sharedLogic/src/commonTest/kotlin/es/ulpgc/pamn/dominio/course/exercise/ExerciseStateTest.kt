@@ -10,10 +10,10 @@ import kotlin.test.assertTrue
 // Una pregunta mientras se responde: elegir, cambiar de idea, comprobar.
 class ExerciseStateTest {
 
-    private val single = SingleChoice("q1", "bfs", "¿Qué usa BFS?", listOf("Pila", "Cola", "Montículo"), correct = 1)
-    private val multiple = MultipleChoice("q2", "arboles", "¿Cuáles son árboles?", listOf("Binario", "Ciclo", "Montículo"), correct = setOf(0, 2))
+    private val single = SingleChoice("q1", "¿Qué usa BFS?", listOf("Pila", "Cola", "Montículo"), correct = 1)
+    private val multiple = MultipleChoice("q2", "¿Cuáles son árboles?", listOf("Binario", "Ciclo", "Montículo"), correct = setOf(0, 2))
     private val matching = Matching(
-        "q3", "bfs", "Une",
+        "q3", "Une",
         listOf(MatchPair("BFS", "Cola"), MatchPair("DFS", "Pila"), MatchPair("Dijkstra", "Montículo")),
     )
 

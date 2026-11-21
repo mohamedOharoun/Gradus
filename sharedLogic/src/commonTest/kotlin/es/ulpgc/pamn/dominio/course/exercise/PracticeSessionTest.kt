@@ -10,9 +10,9 @@ import kotlin.test.assertTrue
 // Una práctica: las preguntas de un módulo, una detrás de otra, hasta el resumen.
 class PracticeSessionTest {
 
-    private val q1 = SingleChoice("q1", "bfs", "¿Qué usa BFS?", listOf("Pila", "Cola"), correct = 1)
-    private val q2 = MultipleChoice("q2", "bfs", "¿Cuáles?", listOf("A", "B", "C"), correct = setOf(0, 2))
-    private val q3 = SingleChoice("q3", "bfs", "¿Y DFS?", listOf("Pila", "Cola"), correct = 0)
+    private val q1 = SingleChoice("q1", "¿Qué usa BFS?", listOf("Pila", "Cola"), correct = 1)
+    private val q2 = MultipleChoice("q2", "¿Cuáles?", listOf("A", "B", "C"), correct = setOf(0, 2))
+    private val q3 = SingleChoice("q3", "¿Y DFS?", listOf("Pila", "Cola"), correct = 0)
 
     private fun start() = PracticeSession.start(listOf(q1, q2, q3), Random(1))
 

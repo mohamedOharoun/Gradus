@@ -15,6 +15,10 @@ enum class ApiErrorCode {
     MALFORMED_BODY,
     INVALID_CREDENTIALS,
     UNAUTHENTICATED,
+    INVALID_PARAMETER,
+    COURSE_NOT_FOUND,
+    NOT_COURSE_AUTHOR,
+    IDENTICAL_TO_LATEST,
     UNKNOWN;
 
     companion object {

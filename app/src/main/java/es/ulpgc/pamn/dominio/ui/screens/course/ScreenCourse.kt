@@ -16,8 +16,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import es.ulpgc.pamn.dominio.course.masteredCount
-import es.ulpgc.pamn.dominio.course.statesFor
 import es.ulpgc.pamn.dominio.data.demoCourse
 import es.ulpgc.pamn.dominio.data.demoMastered
 import es.ulpgc.pamn.dominio.ui.components.CourseHeader
@@ -30,11 +28,28 @@ data class CourseActions(
     val onModuleClick: (moduleId: String) -> Unit = {},
     val onNoticeShown: () -> Unit = {},
     val onBack: () -> Unit = {},
+    val onRetry: () -> Unit = {},
 )
+
+// El curso descargado del servidor: mientras se descarga, la rueda; si falla, el problema; y si
+// llega, su camino.
+@Composable
+fun ScreenCourse(
+    state: CourseScreenState,
+    actions: CourseActions,
+    modifier: Modifier = Modifier,
+) {
+    when (state) {
+        CourseScreenState.Loading -> CourseLoadingContent(onBack = actions.onBack, modifier = modifier)
+        is CourseScreenState.Problem ->
+            CourseProblemContent(state.problem, onRetry = actions.onRetry, onBack = actions.onBack, modifier = modifier)
+        is CourseScreenState.Ready -> CourseContent(state.ui, actions, modifier)
+    }
+}
 
 // El camino de un curso: la cabecera y, debajo, el camino; todo se desplaza junto.
 @Composable
-fun ScreenCourse(
+private fun CourseContent(
     state: CourseUiState,
     actions: CourseActions,
     modifier: Modifier = Modifier,
@@ -85,7 +100,7 @@ fun ScreenCourse(
 private fun ScreenCoursePreview() {
     GradusTheme {
         ScreenCourse(
-            state = CourseUiState(demoCourse, demoCourse.statesFor(demoMastered), demoCourse.masteredCount(demoMastered)),
+            state = CourseScreenState.Ready(CourseUiState(demoCourse, demoMastered)),
             actions = CourseActions(),
         )
     }

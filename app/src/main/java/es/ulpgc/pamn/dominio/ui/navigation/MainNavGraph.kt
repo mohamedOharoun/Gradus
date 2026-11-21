@@ -4,6 +4,11 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -12,19 +17,22 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
-import es.ulpgc.pamn.dominio.data.demoCourse
-import es.ulpgc.pamn.dominio.data.demoMastered
+import es.ulpgc.pamn.dominio.course.CourseGateway
+import es.ulpgc.pamn.dominio.course.SearchOutcome
+import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenMyCourses
 import es.ulpgc.pamn.dominio.ui.screens.ScreenSearch
 import es.ulpgc.pamn.dominio.ui.screens.ScreenSettings
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseActions
+import es.ulpgc.pamn.dominio.ui.screens.course.CourseScreenState
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseViewModel
 import es.ulpgc.pamn.dominio.ui.screens.course.ScreenCourse
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
+import kotlinx.coroutines.launch
 
 // Grafo anidado de las pantallas con sesión (docs/tareas/barra-navegacion.md).
 // Va en su propio fichero para que GradusNavHost solo tenga que llamar a mainGraph(...).
@@ -38,24 +46,37 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None },
     ) {
-        tab<Route.Home>(TopLevelDestination.HOME, navController) {
+        tab<Route.Home>(TopLevelDestination.HOME, navController) { modifier ->
+            // Provisional hasta que exista Buscar (la hace el compañero): abre el curso más reciente del servidor.
+            val scope = rememberCoroutineScope()
+            var notice by remember { mutableStateOf<String?>(null) }
             ScreenHome(
-                onOpenCourse = dropUnlessResumed { navController.navigate(Route.Course(demoCourse.id)) },
-                modifier = it,
+                onOpenCourse = {
+                    scope.launch {
+                        notice = null
+                        latestCourseId(AppContainer.courseGateway)
+                            .onSuccess { navController.navigate(Route.Course(it)) }
+                            .onFailure { notice = it.message }
+                    }
+                },
+                notice = notice,
+                modifier = modifier,
             )
         }
         tab<Route.Search>(TopLevelDestination.SEARCH, navController) { ScreenSearch(it) }
         tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { ScreenMyCourses(it) }
         tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { ScreenSettings(it) }
         // Sin barra: no es una pestaña, se entra desde una y «atrás» vuelve a ella.
-        composable<Route.Course> {
-            // Provisional: solo existe el curso de ejemplo, así que no hace falta leer el courseId.
-            // Con el backend, el ViewModel pedirá el curso de la ruta a un CourseGateway.
-            val courseViewModel: CourseViewModel = viewModel(factory = CourseViewModel.factory(demoCourse, demoMastered))
+        composable<Route.Course> { entry ->
+            val route = entry.toRoute<Route.Course>()
+            val courseViewModel: CourseViewModel = viewModel(
+                factory = CourseViewModel.factory(route.courseId, AppContainer.courseGateway, AppContainer.progressStore),
+            )
             // Módulo desbloqueado tocado: se abre su práctica y se borra el evento.
-            courseViewModel.state.practiceToOpen?.let { moduleId ->
+            val practiceToOpen = (courseViewModel.state as? CourseScreenState.Ready)?.ui?.practiceToOpen
+            practiceToOpen?.let { moduleId ->
                 LaunchedEffect(moduleId) {
-                    navController.navigate(Route.Exercise(demoCourse.id, moduleId))
+                    navController.navigate(Route.Exercise(route.courseId, moduleId))
                     courseViewModel.onPracticeOpened()
                 }
             }
@@ -65,22 +86,39 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                     onModuleClick = courseViewModel::onModuleClick,
                     onNoticeShown = courseViewModel::onNoticeShown,
                     onBack = dropUnlessResumed { navController.popBackStack() },
+                    onRetry = courseViewModel::onRetry,
                 ),
             )
         }
-        // La práctica de un módulo. Sin barra; «atrás», cerrar y «Volver al camino» vuelven al camino.
+        // Estudiar un módulo (lecciones, ejercicios y prueba de dominio). Sin barra; «atrás», cerrar y
+        // «Volver al camino» vuelven al camino, que ya enseña lo dominado.
         composable<Route.Exercise> { entry ->
             val route = entry.toRoute<Route.Exercise>()
-            // Provisional, como en Route.Course: solo existe el curso de ejemplo.
-            val exerciseViewModel: ExerciseViewModel = viewModel(factory = ExerciseViewModel.factory(demoCourse, route.moduleId))
+            // El camino ya descargó el curso: se lee de la caché. Si no está (la app se cerró en
+            // segundo plano y Android la ha vuelto a abrir aquí), se vuelve al camino, que lo descarga.
+            val course = AppContainer.courseGateway.cached(route.courseId)
+            if (course == null) {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+                return@composable
+            }
+            val exerciseViewModel: ExerciseViewModel = viewModel(
+                factory = ExerciseViewModel.factory(course, route.moduleId, AppContainer.progressStore),
+            )
+            val study = exerciseViewModel.study
+            if (study == null) {
+                LaunchedEffect(Unit) { navController.popBackStack() }
+                return@composable
+            }
             ScreenExercise(
-                state = exerciseViewModel.state,
+                study = study,
                 actions = ExerciseActions(
                     onChoose = exerciseViewModel::onChoose,
                     onLeftClick = exerciseViewModel::onLeftClick,
                     onRightClick = exerciseViewModel::onRightClick,
                     onCheck = exerciseViewModel::onCheck,
                     onContinue = exerciseViewModel::onContinue,
+                    onStartTest = exerciseViewModel::onStartTest,
+                    onRetry = exerciseViewModel::onRetry,
                     onClose = dropUnlessResumed { navController.popBackStack() },
                 ),
             )
@@ -111,3 +149,12 @@ private fun NavController.navigateToTab(destination: TopLevelDestination) {
         restoreState = true
     }
 }
+
+// Provisional (con el botón de Inicio): el id del curso publicado más reciente, o el motivo para no abrirlo.
+private suspend fun latestCourseId(gateway: CourseGateway): Result<String> =
+    when (val outcome = gateway.search(query = "")) {
+        is SearchOutcome.Found -> outcome.page.items.firstOrNull()?.let { Result.success(it.id) }
+            ?: Result.failure(IllegalStateException("Todavía no hay cursos publicados en el servidor."))
+        SearchOutcome.Unreachable -> Result.failure(IllegalStateException("No se ha podido conectar con el servidor."))
+        SearchOutcome.ServerFailure -> Result.failure(IllegalStateException("El servidor no ha respondido bien."))
+    }

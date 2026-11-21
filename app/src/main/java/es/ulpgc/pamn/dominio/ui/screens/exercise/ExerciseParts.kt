@@ -3,6 +3,11 @@ package es.ulpgc.pamn.dominio.ui.screens.exercise
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -12,32 +17,43 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.exercise.ExerciseState
+import es.ulpgc.pamn.dominio.ui.components.MarkdownText
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.theme.EstadoDominado
 
 // Piezas de ScreenExercise, separadas para que ningún fichero sea largo.
 
-// Arriba: cerrar, barra de progreso y «2 / 5».
+// Arriba: cerrar, barra de progreso y «2 / 5». `itemLabel`: qué se cuenta («Paso» o «Pregunta»).
 @Composable
-fun ExerciseTopBar(completed: Int, position: Int, total: Int, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun ExerciseTopBar(
+    completed: Int,
+    position: Int,
+    total: Int,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+    itemLabel: String = "Pregunta",
+) {
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -46,8 +62,9 @@ fun ExerciseTopBar(completed: Int, position: Int, total: Int, onClose: () -> Uni
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        IconButton(onClick = onClose) {
-            Icon(painterResource(R.drawable.ic_close), contentDescription = "Cerrar la práctica")
+        // 48 dp: en esta versión de Material 3, IconButton mide 40 dp y no llega a la zona táctil mínima.
+        IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
+            Icon(painterResource(R.drawable.ic_close), contentDescription = "Cerrar y volver al camino")
         }
         LinearProgressIndicator(
             progress = { if (total == 0) 1f else completed.toFloat() / total },
@@ -61,20 +78,54 @@ fun ExerciseTopBar(completed: Int, position: Int, total: Int, onClose: () -> Uni
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             // TalkBack leería «2 barra 5»: mejor una frase.
-            modifier = Modifier.padding(end = 12.dp).semantics { contentDescription = "Pregunta $position de $total" },
+            modifier = Modifier.padding(end = 12.dp).semantics { contentDescription = "$itemLabel $position de $total" },
         )
     }
 }
 
-// Abajo: el resultado (tras comprobar) y el botón «Comprobar» / «Continuar».
+// Arriba, cuando no hay nada que contar (entrada a la prueba, resultado): solo cerrar.
+@Composable
+fun CloseBar(onClose: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
+            .padding(horizontal = 8.dp, vertical = 4.dp),
+    ) {
+        // 48 dp: en esta versión de Material 3, IconButton mide 40 dp y no llega a la zona táctil mínima.
+        IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
+            Icon(painterResource(R.drawable.ic_close), contentDescription = "Cerrar y volver al camino")
+        }
+    }
+}
+
+// Abajo: el resultado y la explicación (tras comprobar) y el botón «Comprobar» / `continueText`.
 @Composable
 fun ExerciseBottomBar(
     exercise: ExerciseState,
-    isLast: Boolean,
+    continueText: String,
     onCheck: () -> Unit,
     onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    BottomPanel(modifier) {
+        exercise.correct?.let { correct -> ResultMessage(correct, exercise) }
+        if (exercise.isChecked) {
+            PrimaryButton(text = continueText, onClick = onContinue)
+        } else {
+            PrimaryButton(text = "Comprobar", onClick = onCheck, enabled = exercise.canCheck)
+        }
+    }
+}
+
+// Abajo, en una lección: solo «Continuar».
+@Composable
+fun ContinueBar(onContinue: () -> Unit, modifier: Modifier = Modifier) {
+    BottomPanel(modifier) { PrimaryButton(text = "Continuar", onClick = onContinue) }
+}
+
+@Composable
+private fun BottomPanel(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -82,21 +133,19 @@ fun ExerciseBottomBar(
             .navigationBarsPadding()
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        exercise.correct?.let { correct -> ResultMessage(correct, exercise) }
-        if (exercise.isChecked) {
-            PrimaryButton(text = if (isLast) "Ver resultado" else "Continuar", onClick = onContinue)
-        } else {
-            PrimaryButton(text = "Comprobar", onClick = onCheck, enabled = exercise.canCheck)
-        }
-    }
+        content = content,
+    )
 }
 
-// «¡Correcto!» o «No es correcto» + la solución. liveRegion: TalkBack lo lee al aparecer.
+// «¡Correcto!» o «No es correcto» + la solución y la explicación del autor. liveRegion: TalkBack
+// lo lee al aparecer. Con una explicación larga, el panel se desplaza en vez de tapar la pregunta.
 @Composable
 private fun ResultMessage(correct: Boolean, exercise: ExerciseState) {
     Column(
-        modifier = Modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        modifier = Modifier
+            .heightIn(max = 240.dp)
+            .verticalScroll(rememberScrollState())
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (correct) {
@@ -105,28 +154,52 @@ private fun ResultMessage(correct: Boolean, exercise: ExerciseState) {
             Text("No es correcto", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.error)
             Text(exercise.question.solution(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
         }
+        if (exercise.question.explanation.isNotBlank()) {
+            MarkdownText(
+                exercise.question.explanation,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
 
-// Al terminar: aciertos y volver al camino. También sirve para un módulo sin preguntas.
+// Una pantalla de cierre o de paso: título, texto y uno o dos botones. Sirve para la entrada a la
+// prueba de dominio, su resultado y el final de un módulo sin prueba.
 @Composable
-fun PracticeSummary(moduleTitle: String, correct: Int, total: Int, onClose: () -> Unit, modifier: Modifier = Modifier) {
+fun StudyMessage(
+    title: String,
+    body: String,
+    primaryText: String,
+    onPrimary: () -> Unit,
+    modifier: Modifier = Modifier,
+    secondaryText: String? = null,
+    onSecondary: () -> Unit = {},
+) {
     Column(
-        modifier = modifier.fillMaxSize().padding(24.dp),
+        modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
     ) {
         Text(
-            if (total == 0) moduleTitle else "Práctica terminada",
+            title,
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
+            modifier = Modifier.semantics { heading(); liveRegion = LiveRegionMode.Polite },
         )
         Text(
-            if (total == 0) "Este módulo todavía no tiene preguntas." else summaryText(correct, total),
+            body,
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            modifier = Modifier.widthIn(max = 480.dp),
         )
-        PrimaryButton(text = "Volver al camino", onClick = onClose)
+        Column(Modifier.widthIn(max = 480.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            PrimaryButton(text = primaryText, onClick = onPrimary)
+            secondaryText?.let {
+                TextButton(onClick = onSecondary, modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)) { Text(it) }
+            }
+        }
     }
 }

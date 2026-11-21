@@ -202,7 +202,7 @@ private fun MatchingCard(
 // ── Previews ──
 
 private val previewQuestion = Matching(
-    id = "q3", moduleId = "bfs", prompt = "Une cada algoritmo con lo que usa",
+    id = "q3", prompt = "Une cada algoritmo con lo que usa",
     pairs = listOf(MatchPair("BFS", "Cola"), MatchPair("DFS", "Pila"), MatchPair("Dijkstra", "Cola de prioridad")),
 )
 private val previewOrder = listOf(1, 2, 0) // a la derecha: Pila, Cola de prioridad, Cola

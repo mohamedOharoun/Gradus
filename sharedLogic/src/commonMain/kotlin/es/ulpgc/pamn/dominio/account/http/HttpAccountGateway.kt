@@ -55,8 +55,9 @@ internal class HttpAccountGateway(
 }
 
 // Ejecuta una llamada al servidor y convierte las excepciones en el desenlace que toque.
-// Función de orden superior: recibe la llamada como lambda y la envuelve (la usan todas las peticiones).
-private suspend fun <T> callServer(unreachable: T, failure: T, call: suspend () -> T): T = try {
+// Función de orden superior: recibe la llamada como lambda y la envuelve (la usan todas las peticiones,
+// también las de cursos: course/http/HttpCourseGateway).
+internal suspend fun <T> callServer(unreachable: T, failure: T, call: suspend () -> T): T = try {
     call()
 } catch (e: CancellationException) {
     // Si se cancela (p. ej. se cierra la pantalla), se deja cancelar: no es un fallo de red.

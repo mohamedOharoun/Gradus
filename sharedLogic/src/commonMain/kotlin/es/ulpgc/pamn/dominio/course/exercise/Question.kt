@@ -2,14 +2,16 @@ package es.ulpgc.pamn.dominio.course.exercise
 
 import kotlin.random.Random
 
-// Una pregunta de un módulo (especificación §7). Cada tipo sabe corregirse (patrón Strategy):
+// Un ejercicio de un módulo (especificación §7). Vive dentro de su módulo (`steps` o `review`). Cada tipo sabe corregirse (patrón Strategy):
 // quien corrige no necesita saber de qué tipo es. Al ser sealed, un `when` sobre Question obliga
 // a cubrir los tres tipos, y añadir uno nuevo avisa en todos los sitios que lo necesitan.
 // Las preguntas mal hechas fallan al crearlas (require), no a mitad de una práctica.
 sealed interface Question {
     val id: String
-    val moduleId: String
     val prompt: String
+
+    // Por qué la respuesta es la que es (Markdown). Se enseña al comprobar.
+    val explanation: String
 
     fun isCorrect(answer: Answer): Boolean
 }
@@ -17,10 +19,10 @@ sealed interface Question {
 // Test de una sola respuesta. `correct` es el índice de la opción buena.
 data class SingleChoice(
     override val id: String,
-    override val moduleId: String,
     override val prompt: String,
     val options: List<String>,
     val correct: Int,
+    override val explanation: String = "",
 ) : Question {
     init {
         require(options.size >= 2) { "La pregunta «$id» necesita al menos dos opciones." }
@@ -33,10 +35,10 @@ data class SingleChoice(
 // Varias respuestas correctas. Solo cuenta si se eligen exactamente esas (sin puntos parciales).
 data class MultipleChoice(
     override val id: String,
-    override val moduleId: String,
     override val prompt: String,
     val options: List<String>,
     val correct: Set<Int>,
+    override val explanation: String = "",
 ) : Question {
     init {
         require(options.size >= 2) { "La pregunta «$id» necesita al menos dos opciones." }
@@ -53,9 +55,9 @@ data class MatchPair(val left: String, val right: String)
 // correcta; la interfaz enseña la columna derecha barajada (`rightOrder`).
 data class Matching(
     override val id: String,
-    override val moduleId: String,
     override val prompt: String,
     val pairs: List<MatchPair>,
+    override val explanation: String = "",
 ) : Question {
     init {
         require(pairs.size >= 2) { "La pregunta «$id» necesita al menos dos parejas." }

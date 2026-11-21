@@ -11,7 +11,7 @@ Contrato de la API: `backend/docs/api-cursos.md`. Formato del curso:
 (`conexion-registro-app-backend.md`): puerto + adaptador HTTP con Ktor en `sharedLogic`, para que
 cambiar a gRPC (u otra cosa) solo toque el adaptador.
 
-Estado: **en curso** (decisiones aprobadas el 2026-11-20).
+Estado: **terminado** (2026-11-21). Decisiones aprobadas el 2026-11-20.
 
 ## Objetivo
 
@@ -107,21 +107,21 @@ app/.../ui/screens/
 
 1. ✅ **Hecha (2026-11-20).** **Renombrar a módulo + arreglos de documentación** (decisiones 1 y 6).
    - ✅ Criterio: compila, los 266 tests pasan y no queda «concepto» en el código ni en las pantallas.
-2. **Modelo ampliado**.
+2. ✅ **Hecha (2026-11-20).** **Modelo ampliado**.
    - `Course` (+ descripción, idioma, etiquetas, `defaults.mastery`) y `Module` (`steps`, `review`,
      `mastery`).
    - `Step` sellado: `Lesson(text)` o un ejercicio; `explanation` en cada pregunta.
    - `CourseSummary` con los metadatos de la búsqueda.
    - ✅ Criterio: tests del modelo; el camino y la práctica siguen funcionando.
-3. **DTOs y *mapper*** del JSON del curso y de los metadatos.
+3. ✅ **Hecha (2026-11-21).** **DTOs y *mapper*** del JSON del curso y de los metadatos.
    - Ids de opción → índices. Un `formatVersion` distinto de 1 o un tipo desconocido → error claro,
      sin romper la app.
    - ✅ Criterio: tests con el JSON real de `backend/src/test/resources/courses/valid/ejemplo-grafos.json`.
-4. **`CourseGateway` + `HttpCourseGateway` + `FakeCourseGateway`**.
+4. ✅ **Hecha (2026-11-21).** **`CourseGateway` + `HttpCourseGateway` + `FakeCourseGateway`**.
    - `search(query, page)` y `course(id)`, con resultados sellados.
    - Los 4 códigos nuevos en `ApiErrorCode`.
    - ✅ Criterio: tests con `MockEngine`: 200, página vacía, 404, 400, sin conexión y 5xx.
-5. **Prueba de dominio y progreso**.
+5. ✅ **Hecha (2026-11-21).** **Prueba de dominio y progreso**.
    - `MasteryTest`: sortea `questions` de la reserva (con semilla, para los tests) y aprueba con
      `minCorrect`. Usa el valor del módulo o, si no tiene, el del curso.
    - `ProgressStore` + `InMemoryProgressStore`.
@@ -129,21 +129,22 @@ app/.../ui/screens/
 
 ### Parte B · Pantallas (`app`)
 
-6. **Buscar**.
-   - Campo de búsqueda, resultados (título, autor, etiquetas, nº de módulos) y «Cargar más».
-   - Estados: cargando, sin resultados, sin conexión.
-   - ✅ Criterio: previews de cada estado; en el emulador, busca en el servidor real.
-7. **Abrir un curso del servidor**.
+6. ➡️ **No es nuestra: Buscar la hace el compañero** (igual que Ajustes y los filtros).
+   - Lo que necesita ya está en `sharedLogic`: `CourseGateway.search(query, page)` →
+     `SearchOutcome` con `CoursePage` (`hasMore` para «Cargar más») y `FakeCourseGateway` para
+     previews; `AppContainer.courseGateway` ya existe. Al pulsar un resultado debe navegar a
+     `Route.Course(courseId)`.
+7. ✅ **Hecha (2026-11-21).** **Abrir un curso del servidor**.
    - `Route.Course(courseId)` carga del gateway: cargando → camino, o el error que toque.
    - El camino usa el progreso guardado.
    - ✅ Criterio: en el emulador, Buscar → curso → camino; atrás vuelve a Buscar.
-8. **Estudiar un módulo**.
+8. ✅ **Hecha (2026-11-21).** **Estudiar un módulo**.
    - Lecciones con Markdown básico, ejercicios con su explicación y, al final, la prueba de
      dominio con su resultado («¡Módulo dominado!» o «Te faltó 1 para aprobar»).
    - Al aprobar, el camino se actualiza.
    - ✅ Criterio: en el emulador, se domina un módulo del curso de ejemplo del backend y se
      desbloquea el siguiente.
-9. **Repaso final**: TalkBack, modo oscuro, especificación y `resumen-proyecto.md`.
+9. ✅ **Hecha (2026-11-21).** **Repaso final**: TalkBack, modo oscuro, especificación y `resumen-proyecto.md`.
 
 ## Progreso
 
@@ -166,8 +167,130 @@ app/.../ui/screens/
     dicen «concepto»:
     - Bienvenida: «Cada curso es un mapa de conceptos…» (`ScreenWelcome.kt`).
     - Registro: «cada concepto se desbloquea…» (`RegisterStepContent.kt`).
+  - Decidido después: se quedan como están (es lenguaje de marketing).
+- 2026-11-20: **tarea 2 hecha**.
+  - `course/Course.kt`:
+    - `Mastery` (se valida al crearla: `questions` ≥ 1 y `minCorrect` entre 1 y `questions`).
+    - `Step` sellado (`Step.Lesson`, `Step.Exercise`).
+    - `Module` con `steps`, `review`, `mastery` y `exercises`.
+    - `Course` con `description`, `language`, `tags` y `defaultMastery`.
+  - `course/CourseSummary.kt` (+ `Author`): los metadatos de la búsqueda.
+  - Cambio de diseño: los ejercicios viven **dentro de su módulo**, como en el backend.
+    - `Question` pierde `moduleId` y gana `explanation` (por defecto, vacía).
+    - `Course` pierde la lista `questions`.
+    - `questionsFor(moduleId)` devuelve los ejercicios de los `steps` del módulo.
+  - `DemoCourse.kt` rehecho con la forma nueva, con lecciones y explicaciones (para las tareas 7–8).
+  - 10 tests nuevos (`CourseModelTest`) y 1 quitado (el de la lista suelta de preguntas); 275 en
+    total, todos pasan.
+
+- 2026-11-21: **tarea 3 hecha**.
+  - `course/http/CourseDtos.kt`: DTO de metadatos, página de búsqueda, versión con contenido y
+    contenido v1. Pasos y ejercicios con polimorfismo de kotlinx.serialization (campo `type`).
+  - `course/http/CourseDtoMappers.kt`:
+    - `decodeCourseVersion(body)` → `CourseDecoding` sellado: `Decoded | UnsupportedFormat | Malformed`.
+      Primero mira `formatVersion` y solo si es 1 lee el resto.
+    - `decodeCoursePage(body)` → `CoursePage?`.
+    - Ids de opción → índices; una respuesta que no es ninguna opción → `Malformed`.
+  - `CoursePage` (+ `hasMore`, para «Cargar más») en `CourseSummary.kt`.
+  - Test con el curso real: `ExampleCourseJson.kt` es una **copia** de `ejemplo-grafos.json` (en
+    `commonTest` no se leen ficheros); si el del backend cambia, hay que volver a copiarlo.
+  - 20 tests nuevos (`CourseDtoMappersTest`); 295 en total, todos pasan.
+
+- 2026-11-21: **tarea 4 hecha**.
+  - `course/CourseGateway.kt`: puerto con `search(query, page)` y `course(id)`, y sus desenlaces
+    sellados `SearchOutcome` (`Found | Unreachable | ServerFailure`) y `CourseOutcome`
+    (`Found | NotFound | UnsupportedFormat | Unreachable | ServerFailure`).
+  - `course/http/HttpCourseGateway.kt`: adaptador Ktor; 20 resultados por página; sin texto no
+    manda `q`; el id va como un solo trozo de la ruta (un `/` se manda como `%2F`).
+  - `course/FakeCourseGateway.kt` (busca en título y descripción) y `course/CourseGateways.kt`
+    (*factory* `http(baseUrl)`).
+  - `ApiErrorCode`: `INVALID_PARAMETER`, `COURSE_NOT_FOUND`, `NOT_COURSE_AUTHOR`, `IDENTICAL_TO_LATEST`.
+  - `callServer` de `HttpAccountGateway.kt` pasa de `private` a `internal` para reutilizarlo.
+  - Un 400 en la búsqueda se trata como `ServerFailure`: solo pasa si la app pide una página imposible.
+  - 22 tests nuevos (`HttpCourseGatewayTest`, `FakeCourseGatewayTest`); 317 en total, todos pasan.
+  - Sin probar todavía contra el servidor real (estaba apagado): se hará en la tarea 6.
+
+- 2026-11-21: **tarea 5 hecha**.
+  - `course/mastery/MasteryTest.kt`:
+    - `Course.masteryFor(module)`: la prueba del módulo o, si no tiene, la del curso.
+    - `Course.masteryTest(moduleId, random)` (*factory*): sortea sin repetir de `review`; null si
+      no hay reserva. Si la reserva fuese menor que la prueba, se usa entera.
+    - `MasteryTest.start(random)` → `PracticeSession` (se responde con la práctica que ya hay).
+    - `resultFor` / `resultOf` → `MasteryResult` sellado: `Passed | Failed(missing)`.
+  - `course/progress/ProgressStore.kt` (puerto) + `InMemoryProgressStore.kt`: `mastered(courseId)`
+    es un `Flow` (el camino se entera solo) y `markMastered(courseId, moduleId)`.
+  - 18 tests nuevos (`MasteryTestTest`, `InMemoryProgressStoreTest`); 335 en total, todos pasan.
+
+- 2026-11-21: la **tarea 6 (Buscar) pasa al compañero**. Se había empezado por error y se ha
+  quitado entera (pantalla, ViewModel, componentes y la lógica `CourseSearch`). Se queda
+  `AppContainer.courseGateway`, que la tarea 7 también necesita. 335 tests.
+
+- 2026-11-21: **tarea 7, código hecho**.
+  - `course/CachingCourseGateway.kt` (sharedLogic, patrón *Decorator*): guarda en memoria los
+    cursos descargados; `cached(id)` los da sin esperar. Los fallos y las búsquedas no se guardan.
+    4 tests nuevos; 339 en total.
+  - `AppContainer`: `courseGateway` (con caché) y `progressStore` (`InMemoryProgressStore`).
+  - `CourseViewModel(courseId, gateway, progress)`: descarga el curso y escucha el progreso.
+    `CourseScreenState` = `Loading | Problem(CourseProblem) | Ready(CourseUiState)`; «Reintentar»
+    solo sin conexión o con fallo del servidor.
+  - `ScreenCourse` elige según el estado; `CourseStatusContent.kt`: descargando y problemas (con
+    «atrás»), con previews.
+  - La práctica (`Route.Exercise`) lee el curso de la caché; si no está, vuelve al camino.
+  - Inicio, provisional: «Abrir curso del servidor» abre el más reciente (hasta que exista Buscar).
+    Si no puede, dice por qué. `demoCourse` ya solo se usa en previews.
+  - Compila sin avisos y lint sin avisos nuevos. El servidor local responde y su curso más
+    reciente es «Introducción a los grafos».
+
+- 2026-11-21: **tarea 8, código hecho**.
+  - sharedLogic:
+    - `text/Markdown.kt`: `parseMarkdown` (párrafos y listas `-` / `1.`) y `parseInline`
+      (`**negrita**`, `*cursiva*`, `` `código` ``). Un `*` suelto se queda como texto.
+    - `course/study/StepSession.kt`: la parte formativa (`StepState.Reading | Answering`).
+    - `course/study/ModuleStudy.kt`: máquina de estados `Learning → TestIntro → Testing →
+      Finished` (o `Done` sin reserva). Al acabar los pasos se sortea la prueba; «Repetir la
+      prueba» sortea otra sin volver a las lecciones; fallar en la parte formativa no frena.
+    - 25 tests nuevos (`MarkdownTest`, `ModuleStudyTest`); 364 en total.
+  - app:
+    - `MarkdownText` (componente): bloques → `Text` con `AnnotatedString`.
+    - `ExerciseViewModel` usa `ModuleStudy` y, **al aprobar**, `progressStore.markMastered`: el
+      camino lo escucha y desbloquea lo siguiente.
+    - `ScreenExercise` pinta cada etapa; `ExerciseParts`: explicación tras comprobar (desplazable),
+      `ContinueBar`, `CloseBar` y `StudyMessage` (entrada a la prueba, resultado, fin sin prueba;
+      sustituye a `PracticeSummary`). Previews por etapa en `ScreenExercisePreviews.kt`.
+    - `DemoCourse`: «grafos» tiene reserva y prueba (3 preguntas, 2 aciertos) para las previews.
+  - Compila sin avisos y lint sin avisos nuevos.
+
+- 2026-11-21: **tareas 7 y 8 probadas en el emulador** contra el servidor local, con el curso
+  «Introducción a los grafos»: descarga, camino, lecciones, ejercicios (también emparejar),
+  prueba de dominio y desbloqueo del módulo siguiente. La prueba final la hizo el usuario.
+
+- 2026-11-21: **tarea 9, documentos y revisión**.
+  - `especificacion.md`: §4 (el progreso hoy va en memoria) y §5 (abrir un curso del servidor y
+    sus errores; estudiar un módulo: lecciones, explicación, prueba de dominio y resultado).
+  - `resumen-proyecto.md` al día (2026-11-21): §1, §3.4 camino y ejercicios, §3.5 cursos del
+    servidor, contrato de cursos, §4.5 el viaje de un curso, conceptos de Kotlin y Compose,
+    patrones (Decorator, Strategy, máquinas de estados, funciones puras), 364 tests, preguntas y límites.
+  - Accesibilidad (revisión del código): iconos decorativos sin descripción y los que significan
+    algo, con ella. Dos mejoras: el título de cada lección es encabezado y cada elemento de lista
+    se lee entero.
+- 2026-11-21: **tarea 9 terminada en el emulador**.
+  - Modo oscuro y claro, con el curso del servidor: camino → lecciones → ejercicio con explicación
+    → emparejar → «Prueba de dominio» → «Te faltaron 3» → «Repetir la prueba» → «¡Módulo dominado!»
+    → BFS pasa a frontera.
+  - `androidTest/.../StudyAccessibilityTest.kt` (6 tests, en el emulador): encabezados, «Paso 1 de 2»
+    y «Pregunta 1 de 1», avisos que se leen solos, estado de cada opción y de cada módulo, y zonas
+    táctiles de 48 dp. Encontró dos fallos de verdad, ya arreglados:
+    - La ✕ de la práctica medía 40 dp (en esta versión de Material 3 `IconButton` es más pequeño):
+      ahora 48 dp.
+    - `BackButton` medía 44 dp (se creía que el `Surface` pulsable llegaba a 48 y no): ahora el
+      círculo sigue siendo de 44 dp, dentro de una zona táctil de 48. Afecta también a registro e
+      inicio de sesión (se ven igual).
+  - «al menos 3» ya no deja el número solo en otra línea.
+  - **Sin cambiar (no es de este documento):** el ojo de la contraseña (`PasswordField`) es un
+    `IconButton` y probablemente también mide 40 dp.
 
 ## Siguiente paso
 
-**Tarea 2**: modelo ampliado (`Course`, `Module` con `steps`/`review`/`mastery`, `Step`,
-`explanation`, `CourseSummary`), con test primero.
+Documento terminado. Lo siguiente, en otros documentos: guardar cursos y progreso en el móvil
+(Room), quitar el botón provisional de Inicio cuando exista Buscar (compañero) y, si se hace,
+Mis cursos (necesita una ruta nueva en el backend).

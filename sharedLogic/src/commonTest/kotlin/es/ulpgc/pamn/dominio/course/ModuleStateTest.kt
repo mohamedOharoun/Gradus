@@ -1,6 +1,5 @@
 package es.ulpgc.pamn.dominio.course
 
-import es.ulpgc.pamn.dominio.course.exercise.SingleChoice
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -95,18 +94,6 @@ class ModuleStateTest {
     fun `a module is found by its id`() {
         assertEquals("Grafos", course.module("grafos")?.title)
         assertNull(course.module("no-existe"))
-    }
-
-    // ── Preguntas de un módulo ──
-
-    @Test
-    fun `the questions of a module are only its own, in the order of the course`() {
-        val first = SingleChoice("q1", "grafos", "¿?", listOf("Sí", "No"), correct = 0)
-        val other = SingleChoice("q2", "bfs", "¿?", listOf("Sí", "No"), correct = 1)
-        val second = SingleChoice("q3", "grafos", "¿?", listOf("Sí", "No"), correct = 1)
-        val withQuestions = course.copy(questions = listOf(first, other, second))
-        assertEquals(listOf(first, second), withQuestions.questionsFor("grafos"))
-        assertTrue(withQuestions.questionsFor("conjuntos").isEmpty())
     }
 
     @Test

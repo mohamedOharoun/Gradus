@@ -42,6 +42,8 @@ desbloquea cuando se dominan sus prerrequisitos, y los repasos espaciados evitan
    cambiarlo más adelante (por ejemplo, por BKT).
 4. Cada respuesta se guarda como una fila nueva (pregunta, acierto, fecha) y nunca se modifica.
    El estado de dominio se calcula a partir de ese registro.
+   *(Hoy, mientras no exista Room: el progreso se guarda en memoria, solo qué módulos se han
+   dominado, y se pierde al cerrar la app. Ver `tareas/cursos-backend-app.md`.)*
 5. Si se falla el repaso de un módulo dominado, se marca como «necesita repaso», pero **no** se
    vuelven a bloquear los módulos que dependen de él. *(Decisión provisional.)*
 6. Las tarjetas autoevaluadas (cuando existan, ver §7) cuentan para los repasos, pero no para
@@ -83,9 +85,12 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
   - Cerrar sesión y eliminar cuenta.
 
 **Dentro de un curso** (sin barra inferior; diseñadas en Compose, el Figma no las tiene; ver
-`tareas/camino-curso-y-ejercicios.md`):
+`tareas/camino-curso-y-ejercicios.md` y `tareas/cursos-backend-app.md`):
 
 - **Camino del curso:**
+  - El curso se descarga del servidor al abrirlo. Mientras, una rueda; si falla, el motivo
+    (no existe, sin conexión, formato más nuevo que la app o fallo del servidor) y, si sirve,
+    «Reintentar».
   - Los módulos, de arriba abajo, unidos por líneas a sus prerrequisitos. Si una fila solo
     tiene un módulo, el camino hace zigzag; como mucho caben 3 por fila.
   - Cada módulo tiene color e icono según su estado: dominado (morado, ✓), frontera (naranja, ▶)
@@ -93,12 +98,19 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
     uno bloqueado, discontinuas y grises.
   - Cabecera con el título y el progreso («3 de 10 dominados»).
   - Tocar un módulo bloqueado dice qué falta para desbloquearlo. Tocar uno de la frontera o
-    dominado abre su práctica.
-- **Práctica:**
-  - Una pregunta cada vez, con barra de progreso.
-  - «Comprobar», después el resultado (con la solución si se falla) y «Continuar».
-  - Al acabar, un resumen con los aciertos.
-  - Tipos: opción única, selección múltiple y emparejar (§7).
+    dominado abre su estudio. Al dominar un módulo, el camino se actualiza solo.
+- **Estudiar un módulo:**
+  - **Parte formativa:** sus pasos en orden, con una barra de progreso («Paso 2 de 5»).
+    - Lección: texto en Markdown básico (negrita, cursiva, código, párrafos y listas) y «Continuar».
+    - Ejercicio: «Comprobar»; después, el resultado (con la solución si se falla), la
+      **explicación** del autor y «Continuar». Fallar aquí no impide seguir.
+  - **Prueba de dominio:** una pantalla dice cuántas preguntas hay y cuántas hay que acertar
+    («Empezar la prueba» o «Ahora no»). Las preguntas se sortean de la reserva y se responden igual
+    que los ejercicios.
+  - **Resultado:** «¡Módulo dominado!» (y se desbloquea lo que dependía de él) o «Te faltó 1 para
+    aprobar», con «Repetir la prueba» (otro sorteo, sin repetir las lecciones) y «Volver al camino».
+  - Un módulo sin reserva termina tras sus pasos, sin prueba.
+  - Tipos de ejercicio: opción única, selección múltiple y emparejar (§7).
 
 **Pendientes de diseñar:** repasos y notas con cámara.
 
