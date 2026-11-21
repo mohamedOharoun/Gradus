@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.course
 
+import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -44,8 +45,27 @@ class FakeCourseGatewayTest {
     fun `it remembers what it was asked`() = runTest {
         gateway.search("grafos", page = 1)
         gateway.course("t")
-        assertEquals(listOf("grafos" to 1), gateway.searches)
+        assertEquals(listOf(CourseQuery(text = "grafos") to 1), gateway.searches)
         assertEquals(listOf("t"), gateway.requestedCourses)
+    }
+
+    // El curso debe tener todas las etiquetas pedidas, no solo alguna.
+    @Test
+    fun `it only finds the courses that have all the tags`() = runTest {
+        val tagged = FakeCourseGateway(
+            listOf(
+                Course("a", "A", emptyList(), tags = listOf("grafos", "árboles")),
+                Course("b", "B", emptyList(), tags = listOf("grafos")),
+            ),
+        )
+        assertEquals(listOf("a", "b"), found(tagged.search(CourseQuery().toggleTag("grafos"))).map { it.id })
+        assertEquals(listOf("a"), found(tagged.search(CourseQuery().toggleTag("grafos").toggleTag("árboles"))).map { it.id })
+    }
+
+    @Test
+    fun `tags are compared ignoring case and extra spaces`() = runTest {
+        val tagged = FakeCourseGateway(listOf(Course("a", "A", emptyList(), tags = listOf("Grafos"))))
+        assertEquals(listOf("a"), found(tagged.search(CourseQuery().toggleTag("  grafos "))).map { it.id })
     }
 
     @Test

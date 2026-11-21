@@ -2,8 +2,10 @@ package es.ulpgc.pamn.dominio.course.http
 
 import es.ulpgc.pamn.dominio.account.http.gradusHttpClient
 import es.ulpgc.pamn.dominio.account.http.json
-import es.ulpgc.pamn.dominio.course.CourseOutcome
-import es.ulpgc.pamn.dominio.course.SearchOutcome
+import es.ulpgc.pamn.dominio.course.search.CourseQuery
+// «*» y no `...course.search`: ese nombre es también el subpaquete `course.search`, y no se puede
+// importar la extensión `search(text)` por su nombre.
+import es.ulpgc.pamn.dominio.course.*
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.MockRequestHandleScope
 import io.ktor.client.request.HttpRequestData
@@ -43,6 +45,32 @@ class HttpCourseGatewayTest {
         var sent: HttpRequestData? = null
         gatewayAnswering { sent = it; json(HttpStatusCode.OK, EMPTY_PAGE) }.search("  ")
         assertTrue("q" !in sent!!.url.parameters.names())
+    }
+
+    // Una etiqueta = un parámetro «tag» repetido, en el orden en que se eligieron.
+    @Test
+    fun `each tag is sent as its own tag parameter, in order`() = runTest {
+        var sent: HttpRequestData? = null
+        val query = CourseQuery().toggleTag("grafos").toggleTag("árboles")
+        gatewayAnswering { sent = it; json(HttpStatusCode.OK, EMPTY_PAGE) }.search(query)
+        assertEquals(listOf("grafos", "árboles"), sent?.url?.parameters?.getAll("tag"))
+    }
+
+    @Test
+    fun `without tags no tag parameter is sent`() = runTest {
+        var sent: HttpRequestData? = null
+        gatewayAnswering { sent = it; json(HttpStatusCode.OK, EMPTY_PAGE) }.search(CourseQuery.EMPTY)
+        assertTrue("tag" !in sent!!.url.parameters.names())
+    }
+
+    @Test
+    fun `the text and the tags are sent together`() = runTest {
+        var sent: HttpRequestData? = null
+        val query = CourseQuery(text = "  recorridos ").toggleTag("grafos")
+        gatewayAnswering { sent = it; json(HttpStatusCode.OK, EMPTY_PAGE) }.search(query, page = 1)
+        assertEquals("recorridos", sent?.url?.parameters?.get("q"))
+        assertEquals(listOf("grafos"), sent?.url?.parameters?.getAll("tag"))
+        assertEquals("1", sent?.url?.parameters?.get("page"))
     }
 
     // ── Búsqueda: las respuestas ──

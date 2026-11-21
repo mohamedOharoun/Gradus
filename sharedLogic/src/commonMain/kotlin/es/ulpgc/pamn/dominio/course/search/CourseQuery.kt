@@ -20,18 +20,18 @@ data class CourseQuery(
 
     // Añade la etiqueta si no está y la quita si está. Una etiqueta en blanco no cambia nada.
     fun toggleTag(tag: String): CourseQuery {
-        val key = tag.comparisonKey()
+        val key = tag.tagKey()
         return when {
             key.isEmpty() -> this
-            tags.any { it.comparisonKey() == key } -> withoutTag(tag)
+            tags.any { it.tagKey() == key } -> withoutTag(tag)
             else -> copy(tags = tags + tag.tidy())
         }
     }
 
     // Quita la etiqueta; si no estaba, devuelve la consulta igual.
     fun withoutTag(tag: String): CourseQuery {
-        val key = tag.comparisonKey()
-        return copy(tags = tags.filterNot { it.comparisonKey() == key })
+        val key = tag.tagKey()
+        return copy(tags = tags.filterNot { it.tagKey() == key })
     }
 
     // «Restablecer»: quita las etiquetas y conserva el texto.
@@ -48,4 +48,4 @@ private val whitespace = Regex("\\s+")
 private fun String.tidy(): String = trim().replace(whitespace, " ")
 
 // Con qué se compara una etiqueta: ordenada y en minúsculas.
-private fun String.comparisonKey(): String = tidy().lowercase()
+internal fun String.tagKey(): String = tidy().lowercase()

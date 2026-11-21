@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.course
 
+import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -15,7 +16,7 @@ class CachingCourseGateway(private val delegate: CourseGateway) : CourseGateway 
     // El curso ya descargado, o null si todavía no se ha descargado.
     fun cached(id: String): Course? = courses.value[id]
 
-    override suspend fun search(query: String, page: Int): SearchOutcome = delegate.search(query, page)
+    override suspend fun search(query: CourseQuery, page: Int): SearchOutcome = delegate.search(query, page)
 
     override suspend fun course(id: String): CourseOutcome {
         cached(id)?.let { return CourseOutcome.Found(it) }

@@ -160,12 +160,34 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
    - ✅ Criterio: tests de cada regla (etiqueta repetida con otras mayúsculas, quitar la que no está,
      texto en blanco, restablecer conserva el texto, orden de los chips). Pasan con
      `./gradlew :sharedLogic:testAndroidHostTest`, junto con los que ya había.
-2. **La búsqueda del puerto recibe un `CourseQuery`** (toca 4 ficheros + tests: se pide OK antes).
-   - `CourseGateway.search(query: CourseQuery, page)`; extensión `search(text, page)` para no
-     romper a quien ya la usa. `HttpCourseGateway` manda un `tag` por etiqueta; `FakeCourseGateway`
-     exige todas; `CachingCourseGateway` la deja pasar.
-   - Criterio: tests con `MockEngine` (`?tag=a&tag=b`, sin `tag` si no hay, sin `q` si está vacío)
-     y del falso con etiquetas. Los tests que ya había siguen pasando.
+2. ✅ **Hecha (2026-11-21).** **La búsqueda del puerto recibe un `CourseQuery`** (decisiones aprobadas el 2026-11-21).
+   - Ficheros de `sharedLogic/src/commonMain/kotlin/es/ulpgc/pamn/dominio/course/`:
+     - `CourseGateway.kt`: `suspend fun search(query: CourseQuery, page: Int = 0): SearchOutcome`.
+       Debajo de la interfaz, una **extensión** para buscar solo por texto:
+       `suspend fun CourseGateway.search(text: String, page: Int = 0) = search(CourseQuery(text = text), page)`.
+       Se queda: los tests que ya llaman a `search("grafos")` no cambian y sirven de red.
+     - `http/HttpCourseGateway.kt`: una función privada en el mismo fichero (sin fichero aparte),
+       `appendSearch(query)`, que añade a los parámetros de la URL `q` (recortado) solo si
+       `query.hasText` y un `tag` por etiqueta, en su orden. `page` y `size` (20), como ahora.
+     - `FakeCourseGateway.kt`: `searchAnswer: (CourseQuery, Int) -> SearchOutcome` y
+       `searches: List<Pair<CourseQuery, Int>>`. El curso debe tener **todas** las etiquetas,
+       comparadas con la misma regla que `CourseQuery`, sin copiarla: `comparisonKey` pasa de
+       `private` a `internal` en `search/CourseQuery.kt` y se renombra a `tagKey` (al ser
+       `internal` se ve en todo `sharedLogic`, y el nombre dice para qué sirve).
+     - `CachingCourseGateway.kt`: pasa la consulta tal cual; las búsquedas no se guardan.
+   - Una línea de `app`: en `latestCourseId` de `ui/navigation/MainNavGraph.kt`,
+     `gateway.search(query = "")` → `gateway.search(CourseQuery.EMPTY)` (con su `import`). Sin este
+     cambio no compila: el nombre `query` lleva a la función nueva, que espera un `CourseQuery`.
+     Ese código se borra en la tarea 9.
+   - No cambia: el adaptador sigue recortando el texto; las etiquetas se mandan como se guardaron
+     (el backend las normaliza); los desenlaces (`SearchOutcome`) son los mismos.
+   - ✅ Criterio:
+     - `HttpCourseGatewayTest`, 3 tests nuevos: dos etiquetas → `parameters.getAll("tag")` es
+       `["grafos", "árboles"]`; sin etiquetas no hay `tag`; texto y etiquetas juntos.
+     - `FakeCourseGatewayTest`: 2 tests nuevos (exige todas las etiquetas; sin distinguir
+       mayúsculas) y se adapta `it remembers what it was asked` (`CourseQuery(text = "grafos") to 1`).
+     - Los demás tests, sin tocarlos, siguen pasando (`./gradlew :sharedLogic:testAndroidHostTest`)
+       y la app compila (`./gradlew :app:assembleDebug`).
 3. **`CourseSearchState`.**
    - Estados: cargando la primera página (conservando los resultados anteriores), listo (resultados,
      `total`, `hasMore`), cargando más, problema (primera página o «más»).
@@ -217,7 +239,21 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   junto con los que ya había). Las etiquetas se guardan con los espacios ordenados (recortados y
   agrupados) y las mayúsculas de la primera forma elegida; una etiqueta en blanco se ignora. No se
   aplica NFC (no hay en `commonMain`; el servidor sí compara con NFC).
+- 2026-11-21: tarea 2 discutida y detallada. Aprobado: se mantiene la extensión `search(text)`,
+  una línea de `MainNavGraph.kt` pasa a `search(CourseQuery.EMPTY)` y `appendSearch` va dentro de
+  `HttpCourseGateway.kt`.
+- 2026-11-21: **tarea 2 hecha**. `CourseGateway.search(CourseQuery, page)` y el atajo
+  `search(text, page)`; `HttpCourseGateway` manda `q` y un `tag` por etiqueta (`appendSearch`);
+  `FakeCourseGateway` exige todas las etiquetas con `tagKey` (antes `comparisonKey`, ahora `internal`);
+  `MainNavGraph` usa `CourseQuery.EMPTY`. 5 tests nuevos y 1 adaptado (`HttpCourseGatewayTest` 19,
+  `FakeCourseGatewayTest` 8); todos pasan y la app compila.
+  - Nota: `HttpCourseGatewayTest` importa `es.ulpgc.pamn.dominio.course.*` porque la función
+    `search` y el subpaquete `course.search` se llaman igual. Solo afecta al código de fuera del
+    paquete `course` que use el atajo de texto.
+  - Repaso: `comparisonKey` → `tagKey`, el comentario de `appendSearch` ya no dice «puro» y fuera
+    las importaciones que sobraban con el `*`. Tests en verde; compila para Android e iOS.
 
 ## Siguiente paso
 
-Tarea 2 (el puerto recibe un `CourseQuery`): se discute antes de empezar, toca 4 ficheros + tests.
+Tarea 3 (`CourseSearchState`), test primero. Conviene detallar antes sus estados y sucesos, como
+se hizo con las tareas 1 y 2.

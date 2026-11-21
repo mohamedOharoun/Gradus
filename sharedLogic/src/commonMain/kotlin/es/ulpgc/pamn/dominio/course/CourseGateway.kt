@@ -1,16 +1,22 @@
 package es.ulpgc.pamn.dominio.course
 
+import es.ulpgc.pamn.dominio.course.search.CourseQuery
+
 // Puerto (arquitectura hexagonal): lo que la app necesita del catálogo de cursos del servidor, sin
 // decir cómo se habla con él. Lo implementan HttpCourseGateway (Ktor) y FakeCourseGateway.
 // Nunca lanza excepciones: cualquier fallo llega como un desenlace.
 interface CourseGateway {
 
-    // Busca por texto en el título o la descripción. `page` empieza en 0. Texto vacío = todos.
-    suspend fun search(query: String, page: Int = 0): SearchOutcome
+    // Busca por texto en el título o la descripción y por etiquetas (el curso debe tener todas).
+    // `page` empieza en 0. Sin texto ni etiquetas (CourseQuery.EMPTY) = todos.
+    suspend fun search(query: CourseQuery, page: Int = 0): SearchOutcome
 
     // Descarga la última versión publicada de un curso, con su contenido.
     suspend fun course(id: String): CourseOutcome
 }
+
+// Atajo para buscar solo por texto.
+suspend fun CourseGateway.search(text: String, page: Int = 0): SearchOutcome = search(CourseQuery(text = text), page)
 
 sealed interface SearchOutcome {
     // 200: una página de resultados (puede estar vacía).
