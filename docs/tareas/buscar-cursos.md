@@ -603,7 +603,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      lectura de TalkBack; el chip quitable avisa al tocarlo y se lee «Quitar filtro…»; el chip de
      etiqueta está marcado o no y avisa al tocarlo; 48 dp en los tres.
 
-   **7c · La fila y la hoja en la pantalla.**
+   **7c · La fila y la hoja en la pantalla.** ✅ **Hecha (2026-11-22)** en tres pasos (7c-1, 7c-2 y 7c-3).
    - Ficheros:
      - `ui/screens/search/FilterBar.kt`: fila bajo `SearchField`, desplazable en horizontal:
        `FiltersButton` con `search.query.activeFilters.size` y un `RemovableFilterChip` por cada
@@ -646,7 +646,13 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - `onCloseFilters`: cierra la hoja sin buscar.
      - `onRemoveFilter(filter)` (decisión B): busca **al momento** con
        `search.query.withoutTag(…).withText(text)` y cancela la espera al teclear.
-   - `MainNavGraph`: pasa `filters` y las acciones nuevas del ViewModel.
+   - `MainNavGraph`: pasa `filters` y las acciones del ViewModel **con una sola llamada**
+     (aprobado el 2026-11-22): `fun SearchViewModel.actions(onCourseClick: (String) -> Unit): SearchActions`,
+     extensión al final de `SearchViewModel.kt` (fuera de la clase: el ViewModel no depende de
+     `SearchActions`, y `SearchActions` sigue sin depender de nada para previews y tests). La
+     navegación (`onCourseClick` con `onlyWhenResumed`) la sigue decidiendo `MainNavGraph`. Las
+     pantallas del curso y de la práctica no se tocan (no es de esta tarea). Con su test en
+     `SearchViewModelTest`: cada acción llega a su función del ViewModel y `onCourseClick` pasa tal cual.
    - Criterio:
      - `SearchViewModelTest` (como mínimo): abrir calcula las sugerencias con los resultados
        cargados; marcar no busca nada; aplicar busca una sola vez con el texto de la caja y
@@ -880,7 +886,62 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   en el contenido para que el número y la ✕ no se lean aparte; `SelectableTagChip` es un `FilterChip`
   con los colores del tema. El ✓ es decorativo y no tiene test propio (el estado lo dice la casilla).
 
+- 2026-11-22: **tarea 7c partida en tres pasos (aprobado):** 7c-1 la fila `FilterBar`, 7c-2 la hoja
+  `FilterSheet` (el `FlowRow` de etiquetas con `verticalArrangement = spacedBy(0.dp)`: cada chip ya
+  reserva 48 dp de alto) y 7c-3 previews y `filters = null` en `MainNavGraph`.
+- 2026-11-22: **tarea 7c-1 hecha.** `FilterBar.kt` (fila con `horizontalScroll`: `FiltersButton` y un
+  `RemovableFilterChip` por `ActiveFilter`, con `when` exhaustivo) y los 7 avisos nuevos de
+  `SearchActions`. 10 tests nuevos en `ScreenSearchTest` (primero en rojo contra un esqueleto que no
+  dibujaba nada: fallaron los 10 y pasaron los que ya había). Además del criterio: «Filtros, 1
+  activo», el «#» del chip, la fila se desplaza si no caben, queda entre la caja y los resultados y
+  está también en la primera carga y tras un fallo. Un test que ya existía
+  (`an_empty_result_has_no_cards_or_buttons`) cuenta ahora el botón «Filtros» como excepción, igual
+  que la caja. Desviación del plan: el parámetro `filters: FilterSheetState?` de `ScreenSearch` se
+  añade en 7c-2 (donde se usa), para no tocar `MainNavGraph` ni las previews antes de tiempo.
+  `ScreenSearchTest` pasa en el emulador.
+
+- 2026-11-22: **tarea 7c-2 hecha.** `FilterSheet.kt` (la ventana: `ModalBottomSheet` entera, cierra
+  con animación con `hideThen`), `FilterSheetContent.kt` (cabecera, Etiquetas con `FlowRow`,
+  «Ver todas» de borde discontinuo y «Mostrar cursos») y 7 constantes de texto en
+  `FilterTexts.kt`. `ScreenSearch` recibe `filters: FilterSheetState?` y dibuja la hoja si no es
+  `null`. Tests primero: 24 de 26 en rojo contra un esqueleto vacío (los 2 que pasaban eran de «no
+  aparece»). `FilterSheetTest` (27, nuevo fichero) y 3 en `ScreenSearchTest` (40). Con `:app:testDebugUnitTest`
+  y `:app:connectedDebugAndroidTest` (121 en el emulador) en verde.
+  - El `FlowRow` de etiquetas usa `verticalArrangement = spacedBy(0.dp)` (cada chip ya reserva 48 dp
+    de alto); un test comprueba que las filas quedan a 48 dp de distancia entre sí.
+  - **Fallo real que cazaron los tests:** con `hide()` cancelado por la animación de «atrás», el
+    aviso de «Mostrar cursos» se perdía (la primera versión miraba `isVisible`). Ahora se avisa
+    siempre salvo que el `scope` esté cancelado (la hoja ya ha salido de la pantalla).
+    Tests: «atrás» mientras se esconde se ignora, el segundo toque no avisa dos veces y el otro
+    botón queda ignorado.
+  - Desviaciones del plan aprobado: los tests de la hoja van en un fichero nuevo
+    (`FilterSheetTest.kt`) para no alargar `ScreenSearchTest` (que ya pasa de 480 líneas); el
+    contenido va en `FilterSheetContent.kt` aparte de la ventana (`FilterSheet.kt`); y el
+    `filters = null` de `MainNavGraph.kt` y de la preview base se puso ya aquí (si no, no
+    compilaba), así que el 7c-3 solo añade previews.
+
+- 2026-11-22: **tarea 7c-3 hecha y, con ella, la 7c.** 5 previews nuevas en
+  `ScreenSearchPreviews.kt`, todas en claro y oscuro: `FiltersAppliedPreview` (la pantalla con dos
+  etiquetas aplicadas) y la hoja sin ventana (`FilterSheetContent`, porque `ModalBottomSheet` no se
+  dibuja en preview): con «Ver todas», tras pulsarlo, sin «Ver todas» y sin etiquetas. Revisadas
+  renderizadas frente a la captura del Figma. Diferencias conocidas: las filas de chips quedan a
+  48 dp (Figma, ~42) por el `verticalArrangement = 0.dp` pedido, y el chip de etiqueta mide 32 dp
+  (Figma, 36; viene de la 7b-2, no se ha tocado). Sin tests nuevos: son solo previews.
+- 2026-11-22: **dos detalles de la 7c, arreglados** (revisión de la 7c):
+  1. La fila de filtros ocupa todo el ancho y el margen de 20 dp es relleno interior
+     (`FilterBar(contentPadding)`): los chips que no caben pasan por debajo del borde en lugar de
+     cortarse en el margen. Para eso `ScreenSearch` ya no pone el margen en la columna sino en
+     cada hijo (`ScreenMargin`). Tests en `ScreenSearchTest`: la fila ocupa todo el ancho (en rojo
+     antes), el primer chip empieza a 20 dp, el último acaba a 20 dp al final del desplazamiento y
+     el chip que asoma se corta en el borde de la pantalla.
+  2. «Ver todas» tiene `role = Role.Button` (como `FiltersButton`) y TalkBack lo anuncia como
+     botón. Test `show_all_is_read_as_a_button` (en rojo antes).
+  - Un test que escribí para el punto 1 («no cabe → fuera del borde») estaba mal planteado y
+    fallaba antes y después: `getBoundsInRoot` da los límites ya recortados por la fila. Se
+    sustituyó por el de «se corta en el borde de la pantalla». `ScreenSearchTest` (44) y
+    `FilterSheetTest` (28) pasan.
+
 ## Siguiente paso
 
-Tarea 7c (la fila `FilterBar` y la hoja `FilterSheet` en la pantalla), con Sonnet; toca varios
-ficheros, así que primero se propone el plan por pasos. Después 7d con Opus.
+Tarea 7d (ViewModel y conexión: `SearchViewModel` con `filters`, sus acciones y `MainNavGraph`),
+con Opus; toca varios ficheros, así que primero se propone el plan por pasos. Después, la 8.

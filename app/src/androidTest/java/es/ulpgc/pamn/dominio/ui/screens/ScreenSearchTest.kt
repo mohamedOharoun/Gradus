@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.hasScrollToIndexAction
 import androidx.compose.ui.test.hasSetTextAction
@@ -21,14 +22,20 @@ import androidx.compose.ui.test.junit4.StateRestorationTester
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import es.ulpgc.pamn.dominio.course.search.ActiveFilter
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
+import es.ulpgc.pamn.dominio.course.search.FilterSheetState
 import es.ulpgc.pamn.dominio.course.search.SearchProblem
 import es.ulpgc.pamn.dominio.course.search.SearchRequest
 import es.ulpgc.pamn.dominio.course.search.SearchStatus
@@ -60,8 +67,9 @@ class ScreenSearchTest {
         search: CourseSearchState,
         text: String = "",
         actions: SearchActions = SearchActions(),
+        filters: FilterSheetState? = null,
     ) = composeRule.setContent {
-        GradusTheme { ScreenSearch(text = text, search = search, actions = actions) }
+        GradusTheme { ScreenSearch(text = text, search = search, filters = filters, actions = actions) }
     }
 
     private fun card(index: Int) = composeRule.onNodeWithContentDescription(demoSearchResults[index].spokenText())
@@ -107,6 +115,178 @@ class ScreenSearchTest {
         composeRule.onNode(hasSetTextAction()).performImeAction()
 
         assertEquals(1, searches)
+    }
+
+    // --- Fila de filtros (bajo la caja) ---
+
+    private fun filtersApplied(vararg tags: String) =
+        demoSearchState(query = CourseQuery(tags = tags.toList()))
+
+    @Test
+    fun without_filters_the_button_has_no_count_and_there_are_no_chips() {
+        show(demoSearchState())
+
+        composeRule.onNodeWithContentDescription("Filtros").assertIsDisplayed()
+        composeRule.onAllNodes(hasContentDescription("activo", substring = true)).assertCountEquals(0)
+        composeRule.onAllNodes(hasContentDescription("Quitar filtro", substring = true)).assertCountEquals(0)
+    }
+
+    @Test
+    fun with_two_tags_the_button_reads_two_active_and_there_is_a_chip_for_each() {
+        show(filtersApplied("grafos", "algoritmos"))
+
+        composeRule.onNodeWithContentDescription("Filtros, 2 activos").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Quitar filtro grafos").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Quitar filtro algoritmos").assertIsDisplayed()
+        composeRule.onAllNodes(hasContentDescription("Quitar filtro", substring = true)).assertCountEquals(2)
+    }
+
+    @Test
+    fun with_one_tag_the_button_reads_one_active() {
+        show(filtersApplied("grafos"))
+
+        composeRule.onNodeWithContentDescription("Filtros, 1 activo").assertIsDisplayed()
+    }
+
+    @Test
+    fun a_chip_shows_its_tag_with_a_hash() {
+        show(filtersApplied("grafos"))
+
+        // El texto suelto solo se ve en el árbol sin fusionar: el chip se lee entero («Quitar filtro…»).
+        composeRule.onNodeWithText("#grafos", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun tapping_a_chip_reports_its_filter() {
+        val removed = mutableListOf<ActiveFilter>()
+        show(filtersApplied("grafos", "algoritmos"), actions = SearchActions(onRemoveFilter = { removed += it }))
+
+        composeRule.onNodeWithContentDescription("Quitar filtro algoritmos").performClick()
+
+        assertEquals(listOf<ActiveFilter>(ActiveFilter.Tag("algoritmos")), removed)
+    }
+
+    @Test
+    fun tapping_the_filters_button_calls_onOpenFilters() {
+        var opened = 0
+        show(demoSearchState(), actions = SearchActions(onOpenFilters = { opened++ }))
+
+        composeRule.onNodeWithContentDescription("Filtros").performClick()
+
+        assertEquals(1, opened)
+    }
+
+    @Test
+    fun the_row_scrolls_sideways_when_the_chips_do_not_fit() {
+        val removed = mutableListOf<ActiveFilter>()
+        val tags = (1..12).map { "etiqueta$it" }
+        show(filtersApplied(*tags.toTypedArray()), actions = SearchActions(onRemoveFilter = { removed += it }))
+
+        // La última no cabe en pantalla: hay que desplazar la fila para llegar a ella.
+        composeRule.onNodeWithContentDescription("Quitar filtro etiqueta12").performScrollTo().performClick()
+
+        assertEquals(listOf<ActiveFilter>(ActiveFilter.Tag("etiqueta12")), removed)
+    }
+
+    // La fila ocupa todo el ancho de la pantalla y el margen de 20 dp es relleno interior: los chips
+    // que no caben pasan por debajo del borde en lugar de cortarse 20 dp antes.
+    private val horizontalScrollRow = SemanticsMatcher.keyIsDefined(SemanticsProperties.HorizontalScrollAxisRange)
+
+    @Test
+    fun the_row_spans_the_full_width_of_the_screen() {
+        show(filtersApplied("grafos"))
+
+        val row = composeRule.onNode(horizontalScrollRow).getBoundsInRoot()
+        val root = composeRule.onRoot().getBoundsInRoot()
+
+        assertEquals(0f, row.left.value, 0.5f)
+        assertEquals(root.right.value, row.right.value, 0.5f)
+    }
+
+    @Test
+    fun the_first_chip_keeps_the_screen_margin_as_inner_padding() {
+        show(filtersApplied("grafos"))
+
+        val button = composeRule.onNodeWithContentDescription("Filtros, 1 activo").getBoundsInRoot()
+
+        assertEquals(20f, button.left.value, 0.5f)
+    }
+
+    @Test
+    fun a_chip_that_does_not_fit_is_cut_by_the_screen_edge_and_not_by_the_margin() {
+        show(filtersApplied(*(1..12).map { "etiqueta$it" }.toTypedArray()))
+
+        val root = composeRule.onRoot().getBoundsInRoot()
+        // `getBoundsInRoot` da los límites ya recortados por la fila: el chip que asoma por la derecha
+        // llega justo hasta el borde de la pantalla (antes se cortaba 20 dp antes).
+        val rightmost = (1..12).maxOf { n ->
+            composeRule.onNodeWithContentDescription("Quitar filtro etiqueta$n").getBoundsInRoot().right.value
+        }
+
+        assertEquals(root.right.value, rightmost, 0.5f)
+    }
+
+    @Test
+    fun at_the_end_of_the_row_the_last_chip_keeps_the_screen_margin() {
+        show(filtersApplied(*(1..12).map { "etiqueta$it" }.toTypedArray()))
+
+        composeRule.onNode(horizontalScrollRow).performTouchInput { repeat(8) { swipeLeft() } }
+
+        val root = composeRule.onRoot().getBoundsInRoot()
+        val last = composeRule.onNodeWithContentDescription("Quitar filtro etiqueta12").getBoundsInRoot()
+        assertEquals(root.right.value - 20f, last.right.value, 1f)
+    }
+
+    @Test
+    fun the_row_sits_between_the_search_field_and_the_results() {
+        show(demoSearchState(hasMore = false))
+
+        val field = composeRule.onNode(hasSetTextAction()).getBoundsInRoot()
+        val button = composeRule.onNodeWithContentDescription("Filtros").getBoundsInRoot()
+        val firstCard = card(0).getBoundsInRoot()
+
+        assertTrue("debajo de la caja", button.top >= field.bottom)
+        assertTrue("encima de los resultados", button.bottom <= firstCard.top)
+    }
+
+    @Test
+    fun the_row_is_there_during_the_first_load() {
+        show(demoSearchState(loading, results = emptyList(), total = 0))
+        composeRule.onNodeWithContentDescription("Filtros").assertIsDisplayed()
+    }
+
+    @Test
+    fun the_row_is_there_when_the_search_failed() {
+        show(demoSearchState(SearchStatus.Failed(SearchProblem.UNREACHABLE), results = emptyList(), total = 0))
+        composeRule.onNodeWithContentDescription("Filtros").assertIsDisplayed()
+    }
+
+    // --- Hoja de filtros (su contenido se prueba en FilterSheetTest) ---
+
+    private val openSheet = FilterSheetState.open(CourseQuery.EMPTY, demoSearchResults)
+
+    @Test
+    fun without_filters_state_there_is_no_sheet() {
+        show(demoSearchState(), filters = null)
+
+        composeRule.onNodeWithText("Etiquetas").assertDoesNotExist()
+    }
+
+    @Test
+    fun with_filters_state_the_sheet_is_shown_over_the_screen() {
+        show(demoSearchState(), filters = openSheet)
+
+        composeRule.onNodeWithText("Etiquetas").assertIsDisplayed()
+    }
+
+    @Test
+    fun the_sheet_reports_through_the_screen_actions() {
+        val toggled = mutableListOf<String>()
+        show(demoSearchState(), filters = openSheet, actions = SearchActions(onToggleTag = { toggled += it }))
+
+        composeRule.onNodeWithText("grafos").performClick()
+
+        assertEquals(listOf("grafos"), toggled)
     }
 
     // --- Primera carga ---
@@ -279,7 +459,7 @@ class ScreenSearchTest {
     @Test
     fun a_new_query_starts_at_the_top_of_the_list() {
         var state by mutableStateOf(searchOf("a", 12, CourseQuery(text = "a")))
-        composeRule.setContent { GradusTheme { ScreenSearch(text = "", search = state, actions = SearchActions()) } }
+        composeRule.setContent { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } }
         resultsList().performScrollToIndex(11)
         courseCard("a", 11).assertIsDisplayed()
 
@@ -292,7 +472,7 @@ class ScreenSearchTest {
     fun more_results_of_the_same_query_keep_the_position() {
         val query = CourseQuery(text = "a")
         var state by mutableStateOf(searchOf("a", 12, query))
-        composeRule.setContent { GradusTheme { ScreenSearch(text = "", search = state, actions = SearchActions()) } }
+        composeRule.setContent { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } }
         resultsList().performScrollToIndex(11)
 
         // «Cargar más»: los mismos 12 cursos y 6 más al final.
@@ -308,7 +488,7 @@ class ScreenSearchTest {
         // hace lo mismo (guarda el estado y lo restaura), con la misma consulta.
         val restoration = StateRestorationTester(composeRule)
         val state = searchOf("a", 12, CourseQuery(text = "a"))
-        restoration.setContent { GradusTheme { ScreenSearch(text = "", search = state, actions = SearchActions()) } }
+        restoration.setContent { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } }
         resultsList().performScrollToIndex(11)
 
         restoration.emulateSavedInstanceStateRestore()
@@ -363,7 +543,10 @@ class ScreenSearchTest {
     fun an_empty_result_has_no_cards_or_buttons() {
         show(demoSearchState(results = emptyList(), total = 0, query = CourseQuery(text = "zzz")))
 
-        // La caja de búsqueda también responde al toque (para enfocarse): no cuenta.
-        composeRule.onAllNodes(hasClickAction() and hasSetTextAction().not()).assertCountEquals(0)
+        // La caja de búsqueda también responde al toque (para enfocarse) y el botón «Filtros» siempre
+        // está en la fila de debajo: ninguno de los dos es de la zona de resultados, no cuentan.
+        composeRule.onAllNodes(
+            hasClickAction() and hasSetTextAction().not() and hasContentDescription("Filtros").not(),
+        ).assertCountEquals(0)
     }
 }

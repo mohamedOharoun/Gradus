@@ -76,6 +76,8 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             ScreenSearch(
                 text = searchViewModel.text,
                 search = searchViewModel.search,
+                // La hoja de filtros la conecta la tarea 7d (el ViewModel guardará su estado).
+                filters = null,
                 actions = SearchActions(
                     onTextChange = searchViewModel::onTextChange,
                     onSearch = searchViewModel::onSearch,
