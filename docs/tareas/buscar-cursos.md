@@ -9,7 +9,8 @@ Especificación: `docs/especificacion.md`, «Con sesión → Buscar».
 Diseño: captura del Figma en `docs/tareas/resources/search-courses.png` (las dos pantallas). Es una
 foto del 2026-11-21: si no coincide con el Figma, manda el Figma.
 
-Estado: **decisiones 1–10 aprobadas** (2026-11-21). Sin empezar.
+Estado: **fase 1 terminada** (2026-11-22). Decisiones 1–10 aprobadas el 2026-11-21. Queda la
+fase 2 (tareas 10 y 11).
 
 ## Objetivo
 
@@ -334,7 +335,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
 
 ### Parte B · Pantalla (`app`)
 
-5. **Componentes** (decisiones aprobadas el 2026-11-21). Partida en dos (decisión E): 5a y 5b son
+5. ✅ **Hecha (2026-11-21).** **Componentes** (decisiones aprobadas el 2026-11-21). Partida en dos (decisión E): 5a y 5b son
    independientes y se revisan por separado. Diseño: `docs/tareas/resources/search-courses.png`.
    Rutas: `app/src/main/java/es/ulpgc/pamn/dominio/` (abreviado `app/.../`).
 
@@ -666,7 +667,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
 
    - Fuera de la tarea 7: el número de «Mostrar N cursos» (tarea 8), creador y fecha (fase 2) y
      cómo se ve en horizontal.
-8. **«Mostrar N cursos»** (decisión 6; decisiones A–G aprobadas el 2026-11-22). Mientras la hoja
+8. ✅ **Hecha (2026-11-22).** **«Mostrar N cursos»** (decisión 6; decisiones A–G aprobadas el 2026-11-22). Mientras la hoja
    está abierta, el botón dice cuántos cursos daría el borrador; al pulsarlo se usan esos
    resultados sin volver a pedirlos. El recuento es **otro `CourseSearchState`** (lo previsto en la
    tarea 3), así que la paginación, los fallos y las respuestas tardías ya están resueltos.
@@ -821,7 +822,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - En el emulador, con `gradus.sh up`, a mano: el número cambia al elegir etiquetas y
        coincide con «N resultados» al aplicar; con 0, «Ningún curso coincide» y no se puede pulsar.
    - Fuera de la tarea 8: el arreglo de rendimiento de `onCourseClick` (tarea 9).
-9. **Repaso final** (decisiones A–D aprobadas el 2026-11-22). Cierra la fase 1: quitar lo
+9. ✅ **Hecha (2026-11-22).** **Repaso final** (decisiones A–D aprobadas el 2026-11-22). Cierra la fase 1: quitar lo
    provisional, el arreglo de rendimiento pendiente, repaso de TalkBack y del modo oscuro, y
    documentos. Cuatro pasos (9a–9d) en un solo chat, con revisión entre pasos. Recordatorio: los
    tests son los mínimos (`AGENTS.md` §7). La captura del diseño sigue fuera de los commits
@@ -867,7 +868,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      `:app:testDebugUnitTest` y `:app:connectedDebugAndroidTest` **completo** (también la
      práctica, el camino y la barra de navegación), y `:sharedLogic:compileKotlinIosSimulatorArm64`.
 
-   **9d · Documentos.**
+   **9d · Documentos.** ✅ **Hecho (2026-11-22).**
    - `docs/especificacion.md`, apartado Buscar (decisión B): búsqueda **por título o
      descripción**; filtros: **etiquetas** hoy, **creador y fecha** en la fase 2; **orden fijo:
      más recientes**, y «mejor valorados» cuando haya valoraciones. Sin «relevancia» (decisión 10).
@@ -1270,8 +1271,19 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   (justo después del repaso a mano); repetida con el emulador libre, pasó entera. Los tests de
   emulador se lanzan con TalkBack apagado, sin el *Layout Inspector* enganchado y sin tocar el
   emulador mientras corren.
+- 2026-11-22: **paso 9d hecho y, con él, la tarea 9 y la fase 1.** `especificacion.md`, Buscar:
+  por título o descripción; filtros: etiquetas hoy, creador y fecha en la fase 2; orden fijo «más
+  recientes», sin «relevancia». `cursos-backend-app.md`: la tarea 6 pasa a «hecha en
+  `buscar-cursos.md`» y su siguiente paso ya no incluye quitar el botón de Inicio. Aquí: cabecera,
+  tarea 9 marcada y siguiente paso. `CourseStatusContent` no se toca (decisión C).
+  - **Para el revisor:** en la lista de tareas, la 5 (Componentes) y la 8 («Mostrar N cursos»)
+    siguen sin ✅, aunque el progreso las da por hechas (5a y 5b el 2026-11-21; la 8 el
+    2026-11-22). No se han marcado porque el 9d solo pedía la 9; queda a vuestra decisión.
+  - **Revisado (2026-11-22):** marcadas con ✅ la 5, la 8 y el paso 9d. Ya están hechas las
+    tareas 1–9; quedan la 10 y la 11 (fase 2).
 
 ## Siguiente paso
 
-Tarea 9: queda el 9d (documentos), en el mismo chat con Sonnet. Con él se cierra la fase 1;
-después, como se acordó, un chat orquestador nuevo para la fase 2 (tareas 10 y 11).
+Fase 1 terminada. Lo siguiente es la fase 2 (Parte C) con un chat orquestador nuevo, como se
+acordó: primero la tarea 10 (backend, con su propio documento en `backend/docs/tareas/`) y después
+la 11 (app).

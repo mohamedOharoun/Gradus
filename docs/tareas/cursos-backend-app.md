@@ -129,7 +129,7 @@ app/.../ui/screens/
 
 ### Parte B · Pantallas (`app`)
 
-6. ➡️ **No es nuestra: Buscar la hace el compañero** (igual que Ajustes y los filtros).
+6. ✅ **Hecha en `buscar-cursos.md` (2026-11-22).** **Buscar** (la hizo el compañero, con filtros).
    - Lo que necesita ya está en `sharedLogic`: `CourseGateway.search(query, page)` →
      `SearchOutcome` con `CoursePage` (`hasMore` para «Cargar más») y `FakeCourseGateway` para
      previews; `AppContainer.courseGateway` ya existe. Al pulsar un resultado debe navegar a
@@ -292,5 +292,5 @@ app/.../ui/screens/
 ## Siguiente paso
 
 Documento terminado. Lo siguiente, en otros documentos: guardar cursos y progreso en el móvil
-(Room), quitar el botón provisional de Inicio cuando exista Buscar (compañero) y, si se hace,
-Mis cursos (necesita una ruta nueva en el backend).
+(Room) y, si se hace, Mis cursos (necesita una ruta nueva en el backend). El botón provisional
+de Inicio ya está quitado (`buscar-cursos.md`, paso 9a).
