@@ -55,14 +55,17 @@ sharedLogic/commonMain/.../course/
     ├── CourseQuery               texto + etiquetas (fase 2: creador y fecha). Inmutable.
     ├── ActiveFilter              los chips quitables y el número del distintivo «Filtros 2»
     ├── CourseSearchState         máquina de estados: resultados, páginas, cargando, problema
-    └── TagSuggestions            qué etiquetas ofrecer en la hoja y en qué orden
+    ├── TagSuggestions            qué etiquetas ofrecer en la hoja y en qué orden
+    └── FilterSheetState          la hoja de filtros: borrador, sugerencias, «Ver todas», qué aplicar
 app/.../ui/
 ├── screens/ScreenSearch.kt                 (ya existe; deja de ser provisional)
 ├── screens/search/SearchViewModel.kt       espera al teclear, cancela la búsqueda anterior
 ├── screens/search/SearchActions.kt         eventos de la pantalla (como LoginActions)
 ├── screens/search/SearchResultsContent.kt  lista, cargando, vacío, problema, «Cargar más»
 ├── screens/search/SearchTexts.kt           «8 resultados», vacío y problemas (funciones puras)
+├── screens/search/FilterBar.kt             fila bajo la caja: «Filtros n» y chips quitables
 ├── screens/search/FilterSheet.kt           hoja inferior (ModalBottomSheet)
+├── screens/search/FilterTexts.kt           textos de los filtros (funciones puras)
 └── components/
     ├── SearchField.kt            caja redondeada con lupa y ✕
     ├── CourseCard.kt             tarjeta de un resultado
@@ -395,7 +398,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - `SearchFieldTest` (emulador): sin texto no hay ✕; con texto, la ✕ mide al menos 48 dp y al
        pulsarla llama a `onValueChange("")`; la tecla «Buscar» llama a `onSearch`.
      - `./gradlew :app:connectedDebugAndroidTest` pasa; las previews se ven como la captura.
-6. **`SearchViewModel` + `ScreenSearch` con resultados**, sin filtros todavía (decisiones aprobadas
+6. ✅ **Hecha (2026-11-21).** **`SearchViewModel` + `ScreenSearch` con resultados**, sin filtros todavía (decisiones aprobadas
    el 2026-11-21). Junta las piezas: `CourseSearchState` (tarea 3), `SearchField` y `CourseCard`
    (tarea 5), las corrutinas (espera de 300 ms y cancelar) y la navegación al curso. Partida en
    cuatro pasos (6a–6d), en este orden: primero la pantalla sin estado, que se ve y se prueba con
@@ -501,7 +504,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - teclear durante «Cargar más»: la página siguiente no se añade a la búsqueda nueva.
      - `./gradlew :app:testDebugUnitTest` pasa.
 
-   **6d · Conectarlo (`MainNavGraph`).**
+   **6d · Conectarlo (`MainNavGraph`).** ✅ **Hecha (2026-11-21).**
    - Fichero: `ui/navigation/MainNavGraph.kt`, en `tab<Route.Search>`.
      - `viewModel(factory = SearchViewModel.factory(AppContainer.courseGateway))`.
      - `ScreenSearch(text, search, SearchActions(…), modifier)` con las funciones del ViewModel.
@@ -520,10 +523,142 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      ViewModel tampoco lo hacen).
    - Alternativa descartada a la decisión D: llevar la espera y la cancelación a `sharedLogic` (iOS
      las reutilizaría), porque rompería el patrón actual de ViewModel en `app`.
-7. **Filtros: fila de chips + hoja con Etiquetas.**
-   - `FilterChips` («Filtros n», «#grafos ✕», chip seleccionable con ✓) y `FilterSheet`.
-   - Criterio (emulador): elegir dos etiquetas reduce los resultados; quitar un chip los amplía;
-     «Restablecer» y ✕ funcionan como dice la decisión 7.
+7. **Filtros: fila de chips + hoja con Etiquetas** (decisiones A–I aprobadas el 2026-11-21).
+   Partida en cuatro pasos (7a–7d), en el mismo orden que la 6: lo que no depende de nada primero
+   y el ViewModel al final. Rutas: `app/src/main/java/es/ulpgc/pamn/dominio/` (`app/.../`).
+   Recordatorio: los tests de cada paso son los mínimos (`AGENTS.md` §7). Diseño: pantalla
+   «4 · Buscar con filtros» de la captura (`docs/tareas/resources/search-courses.png`); solo la
+   sección Etiquetas (Creador y Fecha son de la fase 2; «Ordenar por» no existe, decisión 10).
+   - **Dónde va la lógica (aprobado):** todo lo de la hoja que no es dibujo va en `sharedLogic`
+     (`FilterSheetState`, puro e inmutable), para que iOS solo rehaga las vistas. El ViewModel
+     guarda `filters: FilterSheetState?` (`null` = cerrada): si se gira el móvil con la hoja
+     abierta, no se pierde. Cómo se ve en horizontal queda para más adelante.
+
+   **7a · `FilterSheetState` (`sharedLogic`, test primero).** ✅ **Hecha (2026-11-21).**
+   - Ficheros: `sharedLogic/src/commonMain/kotlin/es/ulpgc/pamn/dominio/course/search/FilterSheetState.kt`
+     y `sharedLogic/src/commonTest/kotlin/es/ulpgc/pamn/dominio/course/search/FilterSheetStateTest.kt`.
+   - Forma:
+     ```kotlin
+     data class FilterSheetState(
+         val draft: CourseQuery,             // el borrador (empieza igual que la consulta aplicada)
+         val suggestions: TagSuggestions,    // calculadas al abrir (tarea 4, decisión B)
+         val showingAll: Boolean = false,    // se ha pulsado «Ver todas»
+     ) {
+         val visibleTags: List<String>       // suggestions.shown, o suggestions.all tras «Ver todas»
+         val canShowAll: Boolean             // !showingAll && suggestions.hasHidden
+         val canReset: Boolean               // el borrador tiene etiquetas
+         fun isSelected(tag: String): Boolean
+         fun toggle(tag: String): FilterSheetState
+         fun reset(): FilterSheetState
+         fun showAll(): FilterSheetState
+         fun queryToApply(typedText: String, applied: CourseQuery): CourseQuery?
+         companion object {
+             fun open(applied: CourseQuery, results: List<CourseSummary>): FilterSheetState  // factory method
+         }
+     }
+     ```
+   - Reglas:
+     - `open`: `draft = applied`; `suggestions = TagSuggestions.from(results, applied.tags)`.
+     - `isSelected` compara como `CourseQuery` (`tagKey`: sin mayúsculas ni espacios de sobra).
+     - `toggle` usa `draft.toggleTag`; **las sugerencias no cambian** al marcar (los chips no se
+       mueven bajo el dedo, tarea 4 decisión B).
+     - `reset` usa `draft.withoutFilters()` (conserva el texto); no toca `showingAll`.
+     - `showAll`: `showingAll = true`; si ya estaba, el mismo estado.
+     - `queryToApply(typedText, applied)` (decisión A): `draft.withText(typedText)`; `null` si pide
+       lo mismo que `applied` (no hay nada que buscar): mismo texto y mismas etiquetas **sin importar
+       el orden ni las mayúsculas** (cambiado el 2026-11-21: quitar una etiqueta y volver a ponerla
+       deja el borrador en otro orden y repetiría una búsqueda idéntica). El texto se compara
+       **recortado** (`trim()`, como el adaptador HTTP; 2026-11-22): «red » y «red» piden lo mismo.
+   - Criterio (tests, como mínimo): abrir (borrador = aplicado; sugerencias con las elegidas
+     primero); marcar y desmarcar (también con otras mayúsculas); las sugerencias no cambian al
+     marcar; restablecer conserva el texto y `canReset` pasa a falso; «Ver todas» (`visibleTags`
+     y `canShowAll`); `queryToApply` con cambios, sin cambios (`null`) y con el texto tecleado
+     distinto del aplicado. `./gradlew :sharedLogic:testAndroidHostTest` pasa.
+
+   **7b · Los chips (`FilterChips`) y sus textos.** ✅ **Hecha (2026-11-22).** Partida en dos:
+   **7b-1** `FilterTexts` y su test (✅) y **7b-2** `FilterChips` y su test de emulador (✅).
+   - Ficheros:
+     - `ui/components/FilterChips.kt`: `FiltersButton(count, onClick)`, `RemovableFilterChip(label,
+       removeDescription, onRemove)` y `SelectableTagChip(tag, selected, onToggle)`, con previews en
+       claro y oscuro.
+     - `ui/screens/search/FilterTexts.kt` (funciones puras, como `SearchTexts.kt`).
+     - `app/src/test/java/es/ulpgc/pamn/dominio/ui/screens/search/FilterTextsTest.kt` (JUnit) y
+       `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/components/FilterChipsTest.kt` (emulador).
+   - Textos (`FilterTexts.kt`): «Filtros»; TalkBack del botón: «Filtros, 1 activo», «Filtros, 2
+     activos», «Filtros» con 0; etiqueta del chip quitable de una etiqueta: «#grafos»; su lectura:
+     «Quitar filtro grafos»; sin sugerencias: «No hay etiquetas que elegir» (decisión G).
+   - Reglas:
+     - `FiltersButton` (decisión D): icono `ic_tune` (decorativo), «Filtros» y un círculo con el
+       número (`primary` / `onPrimary`), que **no aparece con 0**. TalkBack lo lee como un botón con
+       el texto de arriba («Filtros, 2 activos»), no el número suelto.
+     - `RemovableFilterChip` (decisión C): «#grafos» y ✕; **todo el chip** quita el filtro y
+       TalkBack lo lee «Quitar filtro grafos». Fondo `primaryContainer`, como en el Figma.
+     - `SelectableTagChip` (decisión E): `FilterChip` de Material. Marcado: relleno `primary`,
+       texto `onPrimary` y ✓ (`ic_check`); sin marcar: borde `outline`. **Colores puestos a mano
+       desde el tema** (el tema no define `secondary`, que es el que usa Material por defecto).
+       TalkBack lo lee como casilla, marcada o no.
+     - Los tres miden al menos 48 dp de zona táctil.
+   - Criterio (tests, como mínimo): `FilterTextsTest` (singular, plural y 0; «#»; «Quitar
+     filtro»; sin sugerencias). `FilterChipsTest` (emulador): el número solo con filtros y la
+     lectura de TalkBack; el chip quitable avisa al tocarlo y se lee «Quitar filtro…»; el chip de
+     etiqueta está marcado o no y avisa al tocarlo; 48 dp en los tres.
+
+   **7c · La fila y la hoja en la pantalla.**
+   - Ficheros:
+     - `ui/screens/search/FilterBar.kt`: fila bajo `SearchField`, desplazable en horizontal:
+       `FiltersButton` con `search.query.activeFilters.size` y un `RemovableFilterChip` por cada
+       `ActiveFilter` aplicado (`when` sobre `ActiveFilter.Tag`).
+     - `ui/screens/search/FilterSheet.kt`: `ModalBottomSheet` con, de arriba abajo, el título
+       «Filtros» (encabezado), «Restablecer» (desactivado si `!canReset`, decisión F) y ✕
+       «Cerrar filtros» (48 dp); la sección «Etiquetas» con «· elige una o varias» y los
+       `SelectableTagChip` de `visibleTags` en un `FlowRow`, más «Ver todas» si `canShowAll` (al
+       pulsarlo desaparece; no hay «Ver menos»), o «No hay etiquetas que elegir» si no hay
+       ninguna; abajo, el botón «Mostrar cursos» (sin número: llega en la tarea 8, decisión H).
+     - `ui/screens/ScreenSearch.kt`: parámetro nuevo `filters: FilterSheetState?`; `FilterBar`
+       entre la caja y los resultados; la hoja solo si `filters != null`.
+     - `ui/screens/search/SearchActions.kt`: `onOpenFilters`, `onToggleTag(tag)`, `onResetFilters`,
+       `onShowAllTags`, `onApplyFilters`, `onCloseFilters` y `onRemoveFilter(ActiveFilter)`.
+     - `ui/screens/search/ScreenSearchPreviews.kt`: previews con filtros aplicados y con la hoja
+       abierta (con y sin «Ver todas», y sin etiquetas).
+     - `ui/navigation/MainNavGraph.kt`: **solo** pasar `filters = null` para que compile (lo
+       conecta 7d; en 6b faltaba prever esto).
+   - Reglas de la hoja (decisión I):
+     - Se abre **entera** (`rememberModalBottomSheetState(skipPartiallyExpanded = true)`).
+     - Deslizar hacia abajo, tocar fuera o «atrás» → `onCloseFilters` (descarta el borrador).
+     - «Mostrar cursos» y ✕ **cierran con animación**: primero `sheetState.hide()` y, al acabar,
+       la acción (`onApplyFilters` / `onCloseFilters`). Si no, la hoja desaparece de golpe.
+   - Criterio (tests, como mínimo) en `ScreenSearchTest`: sin filtros, «Filtros» sin número y sin
+     chips; con dos etiquetas aplicadas, «Filtros, 2 activos» y dos chips que avisan con su
+     `ActiveFilter`; tocar «Filtros» avisa; con `filters` la hoja se ve con sus etiquetas marcadas
+     o no; tocar una etiqueta avisa con ella; «Ver todas» aparece solo si hay ocultas y avisa;
+     «Restablecer» desactivado sin etiquetas; «No hay etiquetas que elegir»; «Mostrar cursos» y
+     ✕ avisan. `./gradlew :app:connectedDebugAndroidTest` pasa.
+
+   **7d · ViewModel y conexión.**
+   - Ficheros: `ui/screens/search/SearchViewModel.kt` (+ `SearchViewModelTest.kt`) y
+     `ui/navigation/MainNavGraph.kt`.
+   - `SearchViewModel`:
+     - `var filters: FilterSheetState?` (`null` = cerrada).
+     - `onOpenFilters`: `FilterSheetState.open(search.query, search.results)`.
+     - `onToggleTag`, `onResetFilters`, `onShowAllTags`: cambian `filters` (si es `null`, nada).
+     - `onApplyFilters` (decisión A): cierra la hoja, cancela la espera al teclear y, si
+       `queryToApply(text, search.query)` no es `null`, busca con ella **una sola vez**.
+     - `onCloseFilters`: cierra la hoja sin buscar.
+     - `onRemoveFilter(filter)` (decisión B): busca **al momento** con
+       `search.query.withoutTag(…).withText(text)` y cancela la espera al teclear.
+   - `MainNavGraph`: pasa `filters` y las acciones nuevas del ViewModel.
+   - Criterio:
+     - `SearchViewModelTest` (como mínimo): abrir calcula las sugerencias con los resultados
+       cargados; marcar no busca nada; aplicar busca una sola vez con el texto de la caja y
+       cancela la espera pendiente; aplicar sin cambios cierra sin buscar; cerrar descarta el
+       borrador; quitar un chip busca al momento con el resto de etiquetas y el texto de la caja.
+     - En el emulador, con `gradus.sh up`, comprobado a mano: elegir dos etiquetas reduce los
+       resultados y la fila muestra «Filtros 2» y sus chips; quitar un chip los amplía;
+       «Restablecer», ✕, deslizar y «atrás» funcionan como dice la decisión 7 del plan; girar el
+       móvil con la hoja abierta no la pierde; TalkBack lee «Filtros, 2 activos» y «Quitar filtro…».
+
+   - Fuera de la tarea 7: el número de «Mostrar N cursos» (tarea 8), creador y fecha (fase 2) y
+     cómo se ve en horizontal.
 8. **«Mostrar N cursos»** (decisión 6).
    - Criterio: el número cambia al elegir etiquetas y coincide con «N resultados» al aplicar.
 9. **Repaso final.**
@@ -698,6 +833,54 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     camino, una búsqueda nueva cancela la anterior, «Cargar más» mientras carga la primera página o
     ya cargando más, «Reintentar» tras fallar «Cargar más» y sin fallo.
 
+- 2026-11-21: **tarea 6d, código hecho** (`MainNavGraph.kt`: la pestaña Buscar usa `SearchViewModel`;
+  fuera el estado provisional de 6b). Pasan `:app:testDebugUnitTest` (61) y `:app:assembleDebug`.
+  Detalles:
+  - `dropUnlessResumed` solo admite acciones sin parámetros y `onCourseClick` recibe el `id`: nuevo
+    ayudante `LifecycleOwner.onlyWhenResumed`, `internal` al final de `MainNavGraph.kt`, que mira el
+    estado **en el momento del toque**. Fichero nuevo, no previsto en el plan:
+    `app/src/test/.../ui/navigation/OnlyWhenResumedTest.kt` (5 tests JUnit con un `LifecycleRegistry`
+    falso; primero en rojo con `TODO()`): `RESUMED` sí, `STARTED` y `CREATED` no, se mira al llamar
+    y no al crear, y el segundo toque se descarta cuando la pantalla deja de estar activa.
+- 2026-11-21: **tarea 6d hecha y, con ella, la tarea 6.** Comprobada a mano en el emulador con el
+  servidor (`gradus.sh up`): funciona como se esperaba.
+
+- 2026-11-21: tarea 7 discutida y detallada, partida en 7a (`FilterSheetState`), 7b (chips y
+  textos), 7c (fila y hoja en la pantalla) y 7d (ViewModel y conexión). Aprobado: la lógica de la
+  hoja en `sharedLogic`; las sugerencias al abrir; aplicar con el texto de la caja y solo si cambia
+  algo (A); quitar un chip busca al momento (B); el chip quitable entero es la zona táctil (C);
+  «Filtros n» y su lectura (D); chips marcados en `primary` (E); «Restablecer» desactivado y
+  «Ver todas» sin «Ver menos» (F); «No hay etiquetas que elegir» (G); «Mostrar cursos» sin
+  número (H); la hoja se abre entera y se cierra con animación (I). Horizontal, más adelante.
+- 2026-11-21: **tarea 7a hecha.** `FilterSheetState` y `FilterSheetStateTest` (31 tests, primero en
+  rojo contra un esqueleto con `TODO()`). Además del criterio, tests de: «Ver todas» dos veces
+  (mismo estado), `reset` sin tocar «Ver todas», `canReset` sin contar el texto, etiqueta elegida
+  que no sale en los resultados, etiqueta en blanco, y `queryToApply` con el orden y las
+  mayúsculas cambiados (`null`). `./gradlew :sharedLogic:testAndroidHostTest` pasa.
+- 2026-11-22: **detalle 1 hecho** (el texto de `queryToApply` se compara con `trim()`): 3 tests en
+  rojo y después en verde, más 2 que documentan lo que no cambia (espacios dentro del texto y
+  texto tecleado tal cual cuando cambia otra cosa). `FilterSheetStateTest` pasa a 36 tests.
+- 2026-11-22: **tarea 7b-1 hecha.** `FilterTexts.kt` (`FILTERS_LABEL`, `NO_TAGS_TEXT`,
+  `filtersButtonDescription`, `tagChipLabel`, `removeFilterDescription`) y `FilterTextsTest`
+  (10 tests JUnit; primero en rojo contra un esqueleto con `TODO()`). Además del criterio: una
+  cuenta negativa se lee como 0, etiquetas con mayúsculas, tildes y espacios, y el «Quitar filtro»
+  sin «#». `./gradlew :sharedLogic:testAndroidHostTest :app:testDebugUnitTest` pasa.
+- Pendiente para la tarea 8 (detalle 2 del orquestador): mover `asksTheSameAs` (hoy privada en
+  `FilterSheetState.kt`) a `CourseQuery.kt`, con sus tests en `CourseQueryTest`, para compararlo
+  con el borrador y decidir si hay que pedir el número de cursos.
+- 2026-11-22: **tarea 7b-2 hecha y, con ella, la 7b.** `FilterChips.kt` (`FiltersButton`,
+  `RemovableFilterChip`, `SelectableTagChip`, con `@LightDarkPreviews`) y `FilterChipsTest` (21
+  tests de emulador; primero en rojo, 19 de 20, contra un esqueleto que no dibujaba nada). Previews
+  revisadas en claro y oscuro frente al Figma. Cambio respecto al criterio: **la prueba de 48 dp es
+  tocar, no medir.** `assertHeightIsAtLeast` mide el nodo (lo que se ve: 32–37 dp) y no la zona
+  táctil que Material amplía con `minimumInteractiveComponentSize` (igual que el `IconButton` de
+  `SearchField`, que por eso fuerza `size(48.dp)`). Los tests tocan 22 dp fuera del dibujo y
+  comprueban que cuenta, y 30 dp fuera (chip quitable) que no. `FiltersButton` y
+  `RemovableFilterChip` usan `Surface(onClick)` con `semantics` (rol y lectura) y `clearAndSetSemantics`
+  en el contenido para que el número y la ✕ no se lean aparte; `SelectableTagChip` es un `FilterChip`
+  con los colores del tema. El ✓ es decorativo y no tiene test propio (el estado lo dice la casilla).
+
 ## Siguiente paso
 
-Tarea 6d (conectarlo en `MainNavGraph`), tras revisar 6c. Después, comprobarlo en el emulador.
+Tarea 7c (la fila `FilterBar` y la hoja `FilterSheet` en la pantalla), con Sonnet; toca varios
+ficheros, así que primero se propone el plan por pasos. Después 7d con Opus.
