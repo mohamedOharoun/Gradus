@@ -821,16 +821,62 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      - En el emulador, con `gradus.sh up`, a mano: el número cambia al elegir etiquetas y
        coincide con «N resultados» al aplicar; con 0, «Ningún curso coincide» y no se puede pulsar.
    - Fuera de la tarea 8: el arreglo de rendimiento de `onCourseClick` (tarea 9).
-9. **Repaso final.**
-   - Quitar el botón provisional de Inicio (decisión 9).
-   - TalkBack: «Quitar filtro grafos», «Filtros, 2 activos», etiquetas seleccionadas como tales.
-   - Modo oscuro, `especificacion.md` (qué filtros hay hoy; quitar «relevancia» de los órdenes,
-     decisión 10) y `cursos-backend-app.md` (tarea 6 hecha).
-   - Rendimiento (visto en la revisión de 7d): en `MainNavGraph`, `onlyWhenResumed { … }` crea una
-     función nueva en cada recomposición, así que `SearchActions` nunca es «igual» y la fila, la
-     lista y las tarjetas se vuelven a dibujar con cada tecla. Arreglo: recordarla con
-     `remember(lifecycleOwner, navController) { … }`. Comprobarlo con el contador de
-     recomposiciones del *Layout Inspector* antes y después de teclear.
+9. **Repaso final** (decisiones A–D aprobadas el 2026-11-22). Cierra la fase 1: quitar lo
+   provisional, el arreglo de rendimiento pendiente, repaso de TalkBack y del modo oscuro, y
+   documentos. Cuatro pasos (9a–9d) en un solo chat, con revisión entre pasos. Recordatorio: los
+   tests son los mínimos (`AGENTS.md` §7). La captura del diseño sigue fuera de los commits
+   (decidido el 2026-11-22).
+
+   **9a · Quitar el botón provisional de Inicio** (decisión 9 del plan). ✅ **Hecho (2026-11-22).**
+   - `ui/screens/ScreenHome.kt`: vuelve a ser solo el saludo provisional (`PlaceholderScreen` con
+     «¡Hola!»), sin `onOpenCourse` ni `notice`; su preview, igual.
+   - `ui/navigation/MainNavGraph.kt`: la pestaña Inicio pasa a `ScreenHome(it)`; fuera
+     `latestCourseId`, el `scope`/`notice` de esa pestaña y las importaciones que dejan de usarse.
+   - Se quedan: `PlaceholderAction` en `PlaceholderScreen.kt` (decisión A: lo usarán Mis cursos o
+     Ajustes) y la extensión `CourseGateway.search(text)` (la usan los tests).
+   - Criterio: compila sin avisos nuevos (lint); en el emulador, Inicio enseña el saludo y los
+     cursos se abren desde Buscar.
+
+   **9b · Rendimiento de `onCourseClick`** (visto en la revisión de la 7d).
+   - Problema: en `MainNavGraph`, `onlyWhenResumed { … }` crea una función nueva en cada
+     recomposición, así que `SearchActions` nunca es «igual» y la fila, la lista y las tarjetas se
+     vuelven a dibujar con cada tecla.
+   - Arreglo: recordarla una vez:
+     ```kotlin
+     val lifecycleOwner = LocalLifecycleOwner.current
+     val openCourse = remember(lifecycleOwner, navController) {
+         lifecycleOwner.onlyWhenResumed { id: String -> navController.navigate(Route.Course(id)) }
+     }
+     … actions = searchViewModel.actions(onCourseClick = openCourse)
+     ```
+   - Criterio: test en `SearchViewModelTest`: dos llamadas a `actions(f)` con la misma `f` dan
+     `SearchActions` **iguales** (las referencias `vm::onX` al mismo ViewModel son iguales en
+     Kotlin; documenta por qué basta con recordar `onCourseClick`). A mano: con el contador de
+     recomposiciones del *Layout Inspector*, al teclear ya no se recomponen las tarjetas.
+
+   **9c · Repaso de TalkBack y modo oscuro** (a mano, en el emulador, por el usuario; decisión D).
+   - TalkBack, recorriendo la pestaña: título como encabezado; la caja con su texto de ayuda y la
+     ✕ «Borrar búsqueda»; «Filtros, 2 activos» y «Quitar filtro grafos»; «N resultados» anunciado
+     al terminar una búsqueda; cada tarjeta leída entera con la acción «Abrir curso»; en la hoja,
+     «Filtros» como encabezado, las etiquetas como casillas, «Ver todas» como botón,
+     «Restablecer» desactivado sin etiquetas y «Mostrar N cursos».
+   - Modo oscuro: la pestaña, la hoja, los estados de error y vacío y «Ningún curso coincide».
+   - Lo que salga se arregla en el chat, cada arreglo con su test.
+   - Criterio: pasan **todos** los tests: `:sharedLogic:testAndroidHostTest`,
+     `:app:testDebugUnitTest` y `:app:connectedDebugAndroidTest` **completo** (también la
+     práctica, el camino y la barra de navegación), y `:sharedLogic:compileKotlinIosSimulatorArm64`.
+
+   **9d · Documentos.**
+   - `docs/especificacion.md`, apartado Buscar (decisión B): búsqueda **por título o
+     descripción**; filtros: **etiquetas** hoy, **creador y fecha** en la fase 2; **orden fijo:
+     más recientes**, y «mejor valorados» cuando haya valoraciones. Sin «relevancia» (decisión 10).
+   - `docs/tareas/cursos-backend-app.md`: la tarea 6 («Buscar la hace el compañero») pasa a
+     «hecha en `buscar-cursos.md`», y en su siguiente paso el botón provisional de Inicio ya está
+     quitado.
+   - Este documento: el estado de la cabecera pasa a «fase 1 terminada», la tarea 9 marcada y el
+     siguiente paso apunta a la fase 2 con un orquestador nuevo.
+   - Fuera (decisión C): que `CourseStatusContent` use `ProblemMessage`. Es reutilizar, pero es del
+     camino del curso, no de esta tarea; queda como idea para otro momento.
 
 ### Parte C · Fase 2 (después de la fase 1)
 
@@ -1194,8 +1240,22 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   servidor (usuario): el número cambia al elegir etiquetas y coincide con «N resultados» al aplicar;
   con 0, «Ningún curso coincide» y no se puede pulsar. Revisada: la nota de `cancelPreview` se
   cierra con «se mantiene».
+- 2026-11-22: tarea 9 discutida y detallada, partida en 9a (quitar el botón de Inicio), 9b
+  (rendimiento de `onCourseClick`), 9c (TalkBack y modo oscuro, a mano) y 9d (documentos).
+  Aprobado: `PlaceholderAction` se queda (A); el texto de la especificación para Buscar (B);
+  `CourseStatusContent` no se toca (C); 9c lo hace el usuario a mano (D). La captura del diseño
+  sigue fuera de los commits.
+- 2026-11-22: **paso 9a hecho** (falta probarlo en el emulador). `ScreenHome` vuelve a ser solo
+  el saludo (`PlaceholderScreen` con «¡Hola!») y la pestaña Inicio es `ScreenHome(it)`. Fuera
+  `latestCourseId`, el `scope`/`notice` de Inicio y nueve importaciones. Se quedan
+  `PlaceholderAction` y `CourseGateway.search(text)`. `./gradlew :app:assembleDebug :app:lintDebug
+  :app:testDebugUnitTest` pasa, sin avisos nuevos en los dos ficheros, y la preview se ve en claro
+  y en oscuro.
+- 2026-11-22: **paso 9a probado en el emulador** (usuario) y revisado: Inicio enseña el saludo y
+  los cursos se abren desde Buscar. No queda ningún resto de `latestCourseId` ni de `onOpenCourse`.
 
 ## Siguiente paso
 
-Tarea 9 (repaso final), con la que se cierra la fase 1: detallarla antes de empezar. Después, como
-se acordó, un chat orquestador nuevo para la fase 2 (tareas 10 y 11).
+Tarea 9 (repaso final): sigue el 9b, luego 9c (a mano) y 9d, en el mismo chat con Sonnet y con
+revisión entre pasos. Después, como se acordó, un chat orquestador nuevo para la fase 2 (tareas 10
+y 11).
