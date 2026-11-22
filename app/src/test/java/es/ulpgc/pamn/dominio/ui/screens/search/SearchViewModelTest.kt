@@ -6,6 +6,7 @@ import es.ulpgc.pamn.dominio.course.CoursePage
 import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.course.FakeCourseGateway
 import es.ulpgc.pamn.dominio.course.SearchOutcome
+import es.ulpgc.pamn.dominio.course.search.ActiveFilter
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.course.search.SearchProblem
@@ -23,6 +24,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -345,6 +348,90 @@ class SearchViewModelTest {
         advanceUntilIdle()
         assertEquals(listOf(CourseQuery.EMPTY to 0, CourseQuery.EMPTY to 0, grafos to 0), gateway.searches)
         assertEquals(grafos, viewModel.search.query)
+    }
+
+    // --- actions(): cada acción de la pantalla llega a su función del ViewModel ---
+
+    @Test
+    fun `actions pass the course click as it is`() = runTest {
+        val onCourseClick: (String) -> Unit = {}
+        val viewModel = SearchViewModel(FakeCourseGateway(searchAnswer = catalog()))
+        assertSame(onCourseClick, viewModel.actions(onCourseClick).onCourseClick)
+    }
+
+    @Test
+    fun `actions onTextChange and onSearch reach the view model`() = runTest {
+        val gateway = FakeCourseGateway(searchAnswer = catalog())
+        val viewModel = SearchViewModel(gateway)
+        val actions = viewModel.actions {}
+        runCurrent()
+        actions.onTextChange("grafos")
+        assertEquals("grafos", viewModel.text)
+        actions.onSearch()
+        runCurrent()
+        assertEquals(grafos to 0, gateway.searches.last())
+    }
+
+    @Test
+    fun `actions onLoadMore reaches the view model`() = runTest {
+        val gateway = FakeCourseGateway(searchAnswer = catalog(total = 25))
+        val viewModel = SearchViewModel(gateway)
+        runCurrent()
+        viewModel.actions {}.onLoadMore()
+        runCurrent()
+        assertEquals(CourseQuery.EMPTY to 1, gateway.searches.last())
+    }
+
+    @Test
+    fun `actions onRetry reaches the view model`() = runTest {
+        var answer = always(SearchOutcome.Unreachable)
+        val gateway = FakeCourseGateway(searchAnswer = { query, page -> answer(query, page) })
+        val viewModel = SearchViewModel(gateway)
+        runCurrent()
+        answer = catalog()
+        viewModel.actions {}.onRetry()
+        runCurrent()
+        assertEquals(SearchStatus.Ready, viewModel.search.status)
+    }
+
+    @Test
+    fun `actions for the draft reach the view model`() = runTest {
+        val viewModel = SearchViewModel(FakeCourseGateway(searchAnswer = catalog()))
+        val actions = viewModel.actions {}
+        runCurrent()
+        actions.onOpenFilters()
+        actions.onToggleTag("grafos")
+        assertTrue(viewModel.filters!!.isSelected("grafos"))
+        actions.onShowAllTags()
+        assertTrue(viewModel.filters!!.showingAll)
+        actions.onResetFilters()
+        assertEquals(false, viewModel.filters!!.canReset)
+    }
+
+    @Test
+    fun `actions onCloseFilters reaches the view model`() = runTest {
+        val viewModel = SearchViewModel(FakeCourseGateway(searchAnswer = catalog()))
+        val actions = viewModel.actions {}
+        runCurrent()
+        viewModel.onOpenFilters()  // directamente: así el test solo depende de onCloseFilters
+        actions.onCloseFilters()
+        assertNull(viewModel.filters)
+    }
+
+    @Test
+    fun `actions onApplyFilters and onRemoveFilter reach the view model`() = runTest {
+        val gateway = FakeCourseGateway(searchAnswer = catalog())
+        val viewModel = SearchViewModel(gateway)
+        val actions = viewModel.actions {}
+        runCurrent()
+        actions.onOpenFilters()
+        actions.onToggleTag("grafos")
+        actions.onApplyFilters()
+        runCurrent()
+        assertEquals(CourseQuery(tags = listOf("grafos")) to 0, gateway.searches.last())
+        actions.onRemoveFilter(ActiveFilter.Tag("grafos"))
+        runCurrent()
+        assertEquals(CourseQuery.EMPTY to 0, gateway.searches.last())
     }
 
     // --- Ayudantes ---

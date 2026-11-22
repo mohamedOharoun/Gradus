@@ -523,7 +523,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      ViewModel tampoco lo hacen).
    - Alternativa descartada a la decisión D: llevar la espera y la cancelación a `sharedLogic` (iOS
      las reutilizaría), porque rompería el patrón actual de ViewModel en `app`.
-7. **Filtros: fila de chips + hoja con Etiquetas** (decisiones A–I aprobadas el 2026-11-21).
+7. ✅ **Hecha (2026-11-22).** **Filtros: fila de chips + hoja con Etiquetas** (decisiones A–I aprobadas el 2026-11-21).
    Partida en cuatro pasos (7a–7d), en el mismo orden que la 6: lo que no depende de nada primero
    y el ViewModel al final. Rutas: `app/src/main/java/es/ulpgc/pamn/dominio/` (`app/.../`).
    Recordatorio: los tests de cada paso son los mínimos (`AGENTS.md` §7). Diseño: pantalla
@@ -634,7 +634,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      «Restablecer» desactivado sin etiquetas; «No hay etiquetas que elegir»; «Mostrar cursos» y
      ✕ avisan. `./gradlew :app:connectedDebugAndroidTest` pasa.
 
-   **7d · ViewModel y conexión.**
+   **7d · ViewModel y conexión.** ✅ **Hecha (2026-11-22)** en dos pasos (7d-1 y 7d-2).
    - Ficheros: `ui/screens/search/SearchViewModel.kt` (+ `SearchViewModelTest.kt`) y
      `ui/navigation/MainNavGraph.kt`.
    - `SearchViewModel`:
@@ -941,7 +941,33 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     sustituyó por el de «se corta en el borde de la pantalla». `ScreenSearchTest` (44) y
     `FilterSheetTest` (28) pasan.
 
+- 2026-11-22: **tarea 7d partida en dos pasos (aprobado):** 7d-1 la hoja en el ViewModel y 7d-2
+  la extensión `actions()` y `MainNavGraph`. Tres reglas nuevas aprobadas: abrir con la hoja ya
+  abierta no hace nada (un doble toque no borra el borrador); cerrar no cancela la espera al
+  teclear; los tests de los filtros van en un fichero nuevo (`SearchViewModelFiltersTest.kt`).
+- 2026-11-22: **tarea 7d-1 hecha.** `SearchViewModel` guarda `filters: FilterSheetState?` y tiene
+  `onOpenFilters`, `onToggleTag`, `onResetFilters`, `onShowAllTags` (las tres con `editFilters`:
+  con la hoja cerrada no hacen nada), `onApplyFilters`, `onCloseFilters` y `onRemoveFilter`.
+  `SearchViewModelFiltersTest` (26 tests; primero 17 en rojo contra funciones vacías: los 9 que
+  pasaban son de «no ocurre nada»). Además del criterio: abrir dos veces, desmarcar, «Ver todas»,
+  las acciones con la hoja cerrada, aplicar sin cambios también cancela la espera, aplicar con la
+  hoja cerrada no la cancela, cerrar no la cancela, y quitar el último chip vuelve al catálogo
+  entero. `./gradlew :app:testDebugUnitTest` pasa.
+
+- 2026-11-22: **tarea 7d-2 hecha.** `fun SearchViewModel.actions(onCourseClick): SearchActions` al
+  final de `SearchViewModel.kt` (referencias `this::onX`; `onCourseClick` pasa tal cual) y
+  `MainNavGraph` pasa `filters = searchViewModel.filters` y `actions = searchViewModel.actions(…)`
+  (la navegación con `onlyWhenResumed` sigue allí). 7 tests nuevos en `SearchViewModelTest` (32),
+  primero los 7 en rojo contra un `actions()` que devolvía `SearchActions()`. Uno pasaba sin motivo
+  (abría la hoja con la acción vacía y la daba por cerrada); ahora abre con el ViewModel y solo
+  cierra con la acción. `./gradlew :app:testDebugUnitTest :app:assembleDebug` pasa.
+- 2026-11-22: **tarea 7d hecha y, con ella, la tarea 7.** Comprobada a mano en el emulador con el
+  servidor (`gradus.sh up`): dos etiquetas reducen los resultados con «Filtros 2» y sus chips;
+  quitar un chip los amplía; «Restablecer», ✕, deslizar y «atrás» se comportan como la decisión 7;
+  girar el móvil no pierde la hoja; TalkBack lee «Filtros, 2 activos» y «Quitar filtro…».
+
 ## Siguiente paso
 
-Tarea 7d (ViewModel y conexión: `SearchViewModel` con `filters`, sus acciones y `MainNavGraph`),
-con Opus; toca varios ficheros, así que primero se propone el plan por pasos. Después, la 8.
+Tarea 8 («Mostrar N cursos», decisión 6). Antes de empezarla, el pendiente anotado en el progreso:
+mover `asksTheSameAs` de `FilterSheetState.kt` a `CourseQuery.kt`, con sus tests en
+`CourseQueryTest`. Toca varios ficheros, así que primero se propone el plan por pasos.
