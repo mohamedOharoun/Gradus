@@ -4,6 +4,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -48,16 +49,18 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         // pestaña y volver (saveState/restoreState), la búsqueda sigue igual.
         tab<Route.Search>(TopLevelDestination.SEARCH, navController) { modifier ->
             val searchViewModel: SearchViewModel = viewModel(factory = SearchViewModel.factory(AppContainer.courseGateway))
+            // Solo con la pantalla activa: dos toques rápidos no abren el curso dos veces.
+            // Se recuerda para que sea la misma función en cada recomposición: si no, SearchActions
+            // cambiaría con cada tecla y la lista y las tarjetas se volverían a dibujar.
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val openCourse = remember(lifecycleOwner, navController) {
+                lifecycleOwner.onlyWhenResumed { id: String -> navController.navigate(Route.Course(id)) }
+            }
             ScreenSearch(
                 text = searchViewModel.text,
                 search = searchViewModel.search,
                 filters = searchViewModel.filters,
-                actions = searchViewModel.actions(
-                    // Solo con la pantalla activa: dos toques rápidos no abren el curso dos veces.
-                    onCourseClick = LocalLifecycleOwner.current.onlyWhenResumed { id: String ->
-                        navController.navigate(Route.Course(id))
-                    },
-                ),
+                actions = searchViewModel.actions(onCourseClick = openCourse),
                 modifier = modifier,
             )
         }

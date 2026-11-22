@@ -837,7 +837,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
    - Criterio: compila sin avisos nuevos (lint); en el emulador, Inicio enseña el saludo y los
      cursos se abren desde Buscar.
 
-   **9b · Rendimiento de `onCourseClick`** (visto en la revisión de la 7d).
+   **9b · Rendimiento de `onCourseClick`** (visto en la revisión de la 7d). ✅ **Hecho (2026-11-22).**
    - Problema: en `MainNavGraph`, `onlyWhenResumed { … }` crea una función nueva en cada
      recomposición, así que `SearchActions` nunca es «igual» y la fila, la lista y las tarjetas se
      vuelven a dibujar con cada tecla.
@@ -855,6 +855,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
      recomposiciones del *Layout Inspector*, al teclear ya no se recomponen las tarjetas.
 
    **9c · Repaso de TalkBack y modo oscuro** (a mano, en el emulador, por el usuario; decisión D).
+   ✅ **Hecho (2026-11-22).**
    - TalkBack, recorriendo la pestaña: título como encabezado; la caja con su texto de ayuda y la
      ✕ «Borrar búsqueda»; «Filtros, 2 activos» y «Quitar filtro grafos»; «N resultados» anunciado
      al terminar una búsqueda; cada tarjeta leída entera con la acción «Abrir curso»; en la hoja,
@@ -1253,9 +1254,24 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   y en oscuro.
 - 2026-11-22: **paso 9a probado en el emulador** (usuario) y revisado: Inicio enseña el saludo y
   los cursos se abren desde Buscar. No queda ningún resto de `latestCourseId` ni de `onOpenCourse`.
+- 2026-11-22: **paso 9b hecho** (falta el Layout Inspector en el emulador). En `MainNavGraph`,
+  `openCourse = remember(lifecycleOwner, navController) { lifecycleOwner.onlyWhenResumed { … } }`
+  y `actions(onCourseClick = openCourse)`. Tests en `SearchViewModelTest`: con la misma función,
+  `actions(f)` da `SearchActions` iguales (el comentario explica por qué basta con recordar
+  `onCourseClick`); además del criterio, con una lambda nueva no son iguales (el problema del 9b).
+  Pasaron a la primera: documentan lo que el ViewModel ya cumplía; el arreglo está en la interfaz.
+  `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:lintDebug` pasa sin avisos nuevos.
+- 2026-11-22: **pasos 9b y 9c hechos y revisados.** 9c: recorrido a mano en el emulador por el
+  usuario (TalkBack y modo oscuro), sin nada que arreglar. Todos los tests en verde:
+  `:sharedLogic:testAndroidHostTest`, `:sharedLogic:compileKotlinIosSimulatorArm64`,
+  `:app:testDebugUnitTest`, `:app:lintDebug` y `:app:connectedDebugAndroidTest` **completo**
+  (136 tests: búsqueda, tarjeta, chips, caja, hoja, barra de navegación y la práctica). Nota: una
+  primera ejecución completa falló con «No compose hierarchies found» por el estado del emulador
+  (justo después del repaso a mano); repetida con el emulador libre, pasó entera. Los tests de
+  emulador se lanzan con TalkBack apagado, sin el *Layout Inspector* enganchado y sin tocar el
+  emulador mientras corren.
 
 ## Siguiente paso
 
-Tarea 9 (repaso final): sigue el 9b, luego 9c (a mano) y 9d, en el mismo chat con Sonnet y con
-revisión entre pasos. Después, como se acordó, un chat orquestador nuevo para la fase 2 (tareas 10
-y 11).
+Tarea 9: queda el 9d (documentos), en el mismo chat con Sonnet. Con él se cierra la fase 1;
+después, como se acordó, un chat orquestador nuevo para la fase 2 (tareas 10 y 11).
