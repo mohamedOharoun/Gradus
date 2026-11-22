@@ -886,6 +886,8 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     `api-cursos.md` al día. Documento propio en `backend/docs/tareas/`.
     - Decidido (2026-11-21): el nombre del autor se compara **sin distinguir mayúsculas y
       minúsculas** (`u.name` no está normalizado como `search_text`).
+    - Detallada (2026-11-22) en `backend/docs/tareas/busqueda-autor-fecha.md`: decisiones A–G y
+      pasos 10a (dominio), 10b (caso de uso y web), 10c (SQL) y 10d (documentos y Yaak).
 11. **App**: `CourseQuery` con creador y fecha; secciones Creador y Fecha de publicación en la hoja.
 
 ## Progreso
@@ -1282,8 +1284,13 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   - **Revisado (2026-11-22):** marcadas con ✅ la 5, la 8 y el paso 9d. Ya están hechas las
     tareas 1–9; quedan la 10 y la 11 (fase 2).
 
+- 2026-11-22: **fase 2 empezada** con un chat orquestador nuevo. Tarea 10 detallada en
+  `backend/docs/tareas/busqueda-autor-fecha.md` (decisiones A–G aprobadas: `author` y
+  `published=month|year`; un `published` no válido da 400; ventana de calendario en UTC; pasos
+  10a–10d). Resuelta en `docs/especificacion.md` §10 la pregunta de las etiquetas: libres, y
+  normalizadas solo para comparar.
+
 ## Siguiente paso
 
-Fase 1 terminada. Lo siguiente es la fase 2 (Parte C) con un chat orquestador nuevo, como se
-acordó: primero la tarea 10 (backend, con su propio documento en `backend/docs/tareas/`) y después
-la 11 (app).
+Fase 2: la tarea 10 sigue su documento, `backend/docs/tareas/busqueda-autor-fecha.md`, empezando
+por el paso 10a (dominio) en un chat nuevo. Después, la 11 (app).
