@@ -49,3 +49,10 @@ private fun String.tidy(): String = trim().replace(whitespace, " ")
 
 // Con qué se compara una etiqueta: ordenada y en minúsculas.
 internal fun String.tagKey(): String = tidy().lowercase()
+
+// Dos consultas piden lo mismo si tienen el mismo texto y las mismas etiquetas, **sin importar el
+// orden** (el curso debe tenerlas todas). El texto se compara recortado, como hace el adaptador
+// HTTP: «red » y «red» piden lo mismo.
+internal fun CourseQuery.asksTheSameAs(other: CourseQuery): Boolean =
+    text.trim() == other.text.trim() &&
+        tags.map(String::tagKey).toSet() == other.tags.map(String::tagKey).toSet()
