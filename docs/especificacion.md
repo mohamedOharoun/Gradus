@@ -180,7 +180,12 @@ Previstos para versiones posteriores del formato:
 - ¿El fallo en un repaso se queda en «necesita repaso» o vuelve a bloquear lo que depende de él?
 - ~~¿Cuentas reales con nuestro servidor o con Firebase Authentication?~~ Resuelto: con nuestro
   servidor Javalin (ver `backend/docs/tareas/registro-usuario.md` e `inicio-sesion.md`).
-- ¿Las etiquetas son una lista cerrada o libres, normalizadas a minúsculas?
+- ~~¿Las etiquetas son una lista cerrada o libres, normalizadas a minúsculas?~~ Resuelto: **libres**.
+  Cada curso lleva de 1 a 10, de 1 a 32 caracteres, y se guardan y se muestran tal como las escribió
+  el autor. Solo para comparar (repetidas y búsqueda) se normalizan: Unicode NFC, espacios recortados
+  y agrupados, y minúsculas. Dos etiquetas que coinciden así dan el aviso `DUPLICATE_TAG`, y filtrar
+  por «Grafos» encuentra los cursos con «grafos» (ver `backend/docs/especificacion-cursos-v1.md`
+  §2.2 y §3.4).
 
 ## 11. Fuera de alcance
 
