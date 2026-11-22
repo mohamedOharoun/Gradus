@@ -769,9 +769,42 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
    - Criterio (tests, como mínimo): `FilterTextsTest` (1, N, 0 y sin número en los dos casos);
      `FilterSheetTest`: cada texto del botón y desactivado con 0 (pulsarlo no avisa).
 
-   **8c · ViewModel: recuento, cancelaciones y aplicar reutilizando.**
-   - Ficheros: `SearchViewModel.kt` y `SearchViewModelFiltersTest.kt` (y `MainNavGraph.kt` solo si
-     hay que pasar algo nuevo).
+   **8c · ViewModel: recuento, cancelaciones y aplicar reutilizando.** ✅ **Hecha (2026-11-22).**
+   Partida en dos pasos (aprobado el 2026-11-22): **8c-1** `FilterSheetState.cancelPreview()` (✅) y
+   **8c-2** el ViewModel (✅).
+   - **Hueco del plan, visto al proponer el 8c (2026-11-22).** La decisión E (cada cambio cancela la
+     petición en curso) choca con `previewNeeded` del 8a (no se vuelve a contar un borrador que «ya
+     se está contando»). Ejemplo: marcar «grafos» → a los 300 ms sale el recuento → antes de la
+     respuesta, marcar «árboles» (se cancela la petición, pero `preview` sigue en `Loading(grafos)`)
+     → desmarcar «árboles»: el borrador vuelve a «grafos», `previewNeeded` da `false` y nadie pide
+     nada. El botón se queda en «Mostrar cursos» para siempre (aplicar sí funciona: búsqueda normal).
+   - **Decisión (8c-1):** `fun cancelPreview(): FilterSheetState` en `FilterSheetState`: un recuento
+     **a medias** (`preview.pending != null`) se olvida (`preview = null`); uno terminado o fallido se
+     conserva (mismo estado). El ViewModel la llama **cada vez que cancela** el trabajo `preview`.
+   - **Nota para el revisor:** la propuso Claude y la aprobó el usuario «en principio»; al revisar el
+     8c, decidir si fue la correcta. A favor: la regla «un recuento cancelado se olvida» queda en
+     `sharedLogic`, probada y igual para iOS; el `previewNeeded` del 8a no cambia. En contra: toca el
+     8a (un método más y 6 tests), y al volver al borrador cancelado se vuelve a pedir lo mismo (tras
+     otros 300 ms). Alternativas descartadas: (1) arreglarlo solo en el ViewModel con
+     `filters?.copy(preview = null)` (dos ficheros, pero la regla sin test en `sharedLogic` y que iOS
+     tendría que repetir); (2) no cancelar la petición si el nuevo borrador pide lo mismo que la que
+     va en camino (ahorra una petición, pero se aparta de E y el ViewModel necesitaría
+     `asksTheSameAs`, que es `internal` de `sharedLogic`); (3) que `previewNeeded` no cuente como
+     «ya contado» un recuento en curso (cambia una regla probada del 8a y solo es correcto si quien la
+     usa cancela siempre antes de preguntar).
+   - **Revisado (2026-11-22): se mantiene.** El hueco era real y era del plan: con la regla del 8a
+     y la decisión E juntas, el botón podía quedarse sin número para siempre. `cancelPreview` lo
+     arregla donde está la regla, en `sharedLogic` (probada e igual para iOS), sin cambiar
+     `previewNeeded`. El coste (volver a pedir un recuento cancelado tras otros 300 ms) es pequeño
+     y solo ocurre si se cambia el borrador antes de que llegue la respuesta. Las alternativas
+     dejaban la regla sin probar en `sharedLogic` (1), se apartaban de E (2) o hacían que
+     `previewNeeded` dependiera de que quien la usa cancele antes (3).
+   - Ficheros: 8c-1, `FilterSheetState.kt` (+ `FilterSheetStateTest.kt`). 8c-2, `SearchViewModel.kt` y
+     **`SearchViewModelPreviewTest.kt`**, fichero nuevo para los tests del recuento (aprobado el
+     2026-11-22: `SearchViewModelFiltersTest` pasaría de 600 líneas); en `SearchViewModelFiltersTest`
+     solo se adapta `toggling a tag marks it in the draft without searching`, que con
+     `advanceUntilIdle` vería ahora el recuento. `MainNavGraph.kt` no cambia (`ScreenSearch` ya
+     calcula `count(text, search)`).
    - Un trabajo `preview` (como `typing`): `onToggleTag` y `onResetFilters` lo cancelan y, si
      `previewNeeded(text, search.query)`, tras **300 ms** `startPreview(text)` y piden su `pending`;
      la respuesta va a `receivePreview` (si la hoja sigue abierta). Si el borrador vuelve a pedir lo
@@ -1125,7 +1158,44 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
 - 2026-11-22: **tarea 8b hecha.** Probada a mano en el emulador con el servidor (usuario) y revisada.
   La nota para el revisor del 8a quedó cerrada en la revisión del 8a («se mantiene»).
 
+- 2026-11-22: **tarea 8c partida en dos pasos (aprobado)** por un hueco del plan (E frente a
+  `previewNeeded`; ver la nota para el revisor en el 8c). Los tests del recuento en el ViewModel van
+  en un fichero nuevo, `SearchViewModelPreviewTest.kt`.
+- 2026-11-22: **tarea 8c-1 hecha** (pendiente de revisión). `FilterSheetState.cancelPreview()`: olvida
+  un recuento a medias y conserva uno terminado o fallido. 6 tests nuevos en `FilterSheetStateTest`
+  (88), primero en rojo contra un esqueleto con `TODO()`: olvida el recuento en curso y conserva lo
+  demás (borrador, «Ver todas»); tras cancelarlo el mismo borrador vuelve a necesitar recuento y
+  `count` da `Counting`; una respuesta tardía del recuento cancelado se ignora; terminado, fallido y
+  sin recuento → mismo estado. `./gradlew :sharedLogic:testAndroidHostTest :app:compileDebugKotlin`
+  pasa.
+- 2026-11-22: **tarea 8c-2 hecha** (pendiente de la prueba a mano en el emulador y de revisión).
+  `SearchViewModel` tiene un trabajo `preview`: `onToggleTag` y `onResetFilters` pasan por
+  `editDraft` (cancela el trabajo, `cancelPreview()` y, si `previewNeeded`, cuenta tras 300 ms con
+  `countDraft`); `onApplyFilters` reutiliza `previewToApply` sin pedir nada (`useCounted`, que además
+  cancela la petición de la lista en camino) o busca como siempre; `onCloseFilters` cancela el
+  recuento. `onShowAllTags` sigue sin contar.
+  - Ayudantes de test movidos (con permiso) a `SearchTestCatalog.kt` (`object`, se importan sus
+    miembros: así no se confunden con el `catalog(total)` privado de `SearchViewModelTest`).
+    `SearchViewModelFiltersTest` sigue con 26 tests; solo cambia `toggling a tag marks it in the
+    draft without searching` → `… without searching at once` (`runCurrent` en vez de
+    `advanceUntilIdle`, que ahora vería el recuento).
+  - `SearchViewModelPreviewTest` (25 tests): primero 19 en rojo; los 6 que pasaban son de «no
+    ocurre nada» (abrir, antes de la pausa, «Ver todas», volver a lo aplicado en la pausa, aplicar
+    en la pausa, cerrar en la pausa). Cinco que pasaban sin motivo (no comprobaban que se hubiera
+    contado) ganaron esa comprobación y pasaron a rojo. Además del criterio: mientras la petición va
+    en camino el número es `Counting`; contar no cambia la lista; usa el texto de la caja;
+    «Restablecer» también cuenta; «Ver todas» no; un cambio con la petición en camino la cancela;
+    volver a un borrador cancelado lo cuenta otra vez (el hueco del 8c-1), a uno ya contado no, y a
+    uno fallido tampoco; aplicar reutilizando cancela la espera al teclear y la petición de la lista
+    en camino; aplicar en la pausa o tras un fallo busca como siempre; reabrir empieza sin recuento.
+  - `./gradlew :sharedLogic:testAndroidHostTest :app:testDebugUnitTest :app:assembleDebug` pasa
+    (paquete `search` de `app`: 111 tests). `MainNavGraph.kt` no cambia.
+- 2026-11-22: **tarea 8c hecha y, con ella, la tarea 8.** Probada a mano en el emulador con el
+  servidor (usuario): el número cambia al elegir etiquetas y coincide con «N resultados» al aplicar;
+  con 0, «Ningún curso coincide» y no se puede pulsar. Revisada: la nota de `cancelPreview` se
+  cierra con «se mantiene».
+
 ## Siguiente paso
 
-Tarea 8c (ViewModel: recuento, cancelaciones y aplicar reutilizando) en otro chat con Opus.
-Después, la tarea 9 (repaso final), con la que se cierra la fase 1.
+Tarea 9 (repaso final), con la que se cierra la fase 1: detallarla antes de empezar. Después, como
+se acordó, un chat orquestador nuevo para la fase 2 (tareas 10 y 11).

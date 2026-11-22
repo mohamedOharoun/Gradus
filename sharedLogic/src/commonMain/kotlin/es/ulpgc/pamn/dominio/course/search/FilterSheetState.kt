@@ -46,7 +46,8 @@ data class FilterSheetState(
 
     // ── Recuento del borrador («Mostrar N cursos») ──
     // Este estado no pide nada ni espera: el ViewModel decide cuándo contar (tras 300 ms) y devuelve
-    // la respuesta con `receivePreview`. `toggle` y `reset` no tocan `preview`.
+    // la respuesta con `receivePreview` (o lo cancela con `cancelPreview`). `toggle` y `reset` no
+    // tocan `preview`.
 
     // Lo que se pediría con el borrador: sus etiquetas y el texto de la caja en este momento.
     fun previewQuery(typedText: String): CourseQuery = draft.withText(typedText)
@@ -67,6 +68,12 @@ data class FilterSheetState(
 
     fun receivePreview(request: SearchRequest, outcome: SearchOutcome): FilterSheetState =
         preview?.let { copy(preview = it.receive(request, outcome)) } ?: this
+
+    // El ViewModel ha cancelado el recuento. Uno a medias ya no va a terminar: se olvida, para que
+    // `previewNeeded` vuelva a pedirlo si el borrador regresa a él (si no, el botón se quedaría en
+    // «Mostrar cursos» para siempre). Uno terminado o fallido se conserva: su resultado sigue valiendo.
+    // (Tarea 8c-1; ver la nota para el revisor en buscar-cursos.md.)
+    fun cancelPreview(): FilterSheetState = if (preview?.pending != null) copy(preview = null) else this
 
     // Lo que dice el botón. Primero lo aplicado (su total ya se conoce), después el recuento; si el
     // borrador no coincide con ninguno de los dos, aún se está esperando a contar.

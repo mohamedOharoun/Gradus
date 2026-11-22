@@ -672,6 +672,55 @@ class FilterSheetStateTest {
         assertEquals(state.preview, state.reset().preview)
     }
 
+    // ── cancelPreview (tarea 8c-1) ──
+    // El ViewModel cancela el recuento (la espera y la petición) con cada cambio del borrador. Un
+    // recuento a medias que se cancela ya no va a terminar: si se conservara, `previewNeeded` diría
+    // que «ya se está contando» y el número no llegaría nunca.
+
+    @Test
+    fun `cancelPreview forgets a preview that is still loading and keeps the rest`() {
+        val state = opened().toggle("grafos").showAll().startPreview("red")
+
+        assertEquals(state.copy(preview = null), state.cancelPreview())
+    }
+
+    @Test
+    fun `after cancelling a loading preview the same draft needs counting again`() {
+        val state = opened().toggle("grafos").startPreview("").cancelPreview()
+
+        assertTrue(state.previewNeeded(typedText = "", applied = CourseQuery.EMPTY))
+        assertEquals(DraftCount.Counting, state.count(typedText = "", applied = appliedWith(CourseQuery.EMPTY, 8)))
+    }
+
+    @Test
+    fun `a late answer of a cancelled preview is ignored`() {
+        val started = opened().toggle("grafos").startPreview("")
+        val cancelled = started.cancelPreview()
+
+        assertSame(cancelled, cancelled.receivePreview(started.preview!!.pending!!, found(total = 3, "a", "b")))
+    }
+
+    @Test
+    fun `cancelPreview keeps a finished preview`() {
+        val state = opened().toggle("grafos").counted("", found(total = 3, "a", "b"))
+
+        assertSame(state, state.cancelPreview())
+    }
+
+    @Test
+    fun `cancelPreview keeps a failed preview, so it is not retried on its own`() {
+        val state = opened().toggle("grafos").counted("", SearchOutcome.Unreachable)
+
+        assertSame(state, state.cancelPreview())
+    }
+
+    @Test
+    fun `cancelPreview without a preview is the same state`() {
+        val state = opened().toggle("grafos")
+
+        assertSame(state, state.cancelPreview())
+    }
+
     // ── Ayudas de los tests de recuento ──
 
     // Una página de tamaño 2: con `total` mayor que 2 quedan más («Cargar más»).

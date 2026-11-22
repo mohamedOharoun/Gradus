@@ -1,16 +1,16 @@
 package es.ulpgc.pamn.dominio.ui.screens.search
 
-import es.ulpgc.pamn.dominio.course.Author
-import es.ulpgc.pamn.dominio.course.CoursePage
 import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.course.FakeCourseGateway
-import es.ulpgc.pamn.dominio.course.SearchOutcome
 import es.ulpgc.pamn.dominio.course.search.ActiveFilter
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.applyTags
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.catalog
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.catalogOf
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.course
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.resetMain
@@ -28,7 +28,8 @@ import org.junit.Test
 
 // La hoja de filtros en SearchViewModel (tarea 7d). Va aparte de SearchViewModelTest para que
 // ningún fichero de tests sea demasiado largo. Mismo reloj simulado: nada ocurre hasta runCurrent,
-// advanceTimeBy o advanceUntilIdle.
+// advanceTimeBy o advanceUntilIdle. El recuento de «Mostrar N cursos» (tarea 8c) se prueba en
+// SearchViewModelPreviewTest; el catálogo de los dos está en SearchTestCatalog.
 @OptIn(ExperimentalCoroutinesApi::class)
 class SearchViewModelFiltersTest {
 
@@ -103,14 +104,15 @@ class SearchViewModelFiltersTest {
 
     // --- El borrador ---
 
+    // Sin pedir nada al momento: el recuento del borrador espera la pausa (SearchViewModelPreviewTest).
     @Test
-    fun `toggling a tag marks it in the draft without searching`() = runTest {
+    fun `toggling a tag marks it in the draft without searching at once`() = runTest {
         val gateway = FakeCourseGateway(searchAnswer = catalog())
         val viewModel = SearchViewModel(gateway)
         runCurrent()
         viewModel.onOpenFilters()
         viewModel.onToggleTag("grafos")
-        advanceUntilIdle()
+        runCurrent()
         assertTrue(viewModel.filters!!.isSelected("grafos"))
         assertEquals(CourseQuery.EMPTY, viewModel.search.query)
         assertEquals(listOf(CourseQuery.EMPTY to 0), gateway.searches)
@@ -366,51 +368,5 @@ class SearchViewModelFiltersTest {
         runCurrent()
         assertEquals(emptyList<ActiveFilter>(), viewModel.search.query.activeFilters)
         assertEquals(4, viewModel.search.results.size)
-    }
-
-    // --- Ayudantes ---
-
-    // Abre la hoja, marca las etiquetas, aplica y deja que llegue la respuesta. Es extensión de
-    // TestScope (el `this` de runTest) para poder llamar a runCurrent.
-    private fun TestScope.applyTags(viewModel: SearchViewModel, vararg tags: String) {
-        viewModel.onOpenFilters()
-        tags.forEach(viewModel::onToggleTag)
-        viewModel.onApplyFilters()
-        runCurrent()
-    }
-
-    // «grafos» está en 3 cursos, «algoritmos» y «redes» en 2 y «árboles» en 1.
-    private fun catalog() = catalogOf(
-        course("grafos-1", "grafos", "algoritmos"),
-        course("grafos-2", "grafos", "redes"),
-        course("arboles-1", "grafos", "algoritmos", "árboles"),
-        course("redes-1", "redes"),
-    )
-
-    // Busca el texto en el título (el id) y exige todas las etiquetas, sin distinguir mayúsculas.
-    private fun catalogOf(vararg courses: CourseSummary): (CourseQuery, Int) -> SearchOutcome = { (text, tags), page ->
-        val wanted = tags.map(String::lowercase)
-        val matches = courses.filter { course ->
-            course.title.contains(text.trim(), ignoreCase = true) &&
-                wanted.all { tag -> course.tags.any { it.lowercase() == tag } }
-        }
-        val items = matches.chunked(PAGE_SIZE).getOrElse(page) { emptyList() }
-        SearchOutcome.Found(CoursePage(items = items, page = page, size = PAGE_SIZE, total = matches.size))
-    }
-
-    private fun course(id: String, vararg tags: String) = CourseSummary(
-        id = id,
-        version = 1,
-        author = Author(id = "autor", name = "Autor de prueba"),
-        publishedAt = "2026-10-03T08:35:00Z",
-        title = id,
-        description = "",
-        language = "es",
-        tags = tags.toList(),
-        moduleCount = 1,
-    )
-
-    private companion object {
-        const val PAGE_SIZE = 20
     }
 }
