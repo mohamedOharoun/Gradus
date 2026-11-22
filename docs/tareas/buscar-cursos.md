@@ -1108,7 +1108,24 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   para el revisor en el 8a). `./gradlew :sharedLogic:testAndroidHostTest` y `:app:compileDebugKotlin`
   pasan.
 
+- 2026-11-22: **tarea 8b-1 hecha** (los textos; el 8b se hace en dos sub-pasos). `showCoursesText(count:
+  DraftCount)` y `NO_COURSES_MATCH_TEXT` en `FilterTexts.kt`, con 7 tests nuevos en `FilterTextsTest`
+  (17), primero en rojo (no compilaba). `SHOW_COURSES_TEXT` se queda como texto sin número.
+  `./gradlew :app:testDebugUnitTest` pasa. Falta el 8b-2: botón, cableado, previews y `FilterSheetTest`.
+- 2026-11-22: **tarea 8b-2 hecha** (pendiente de la prueba a mano en el emulador). `FilterSheet` y
+  `FilterSheetContent` reciben `count: DraftCount` (sin valor por defecto); el botón usa
+  `showCoursesText(count)` y está desactivado con `Known(0)`. `ScreenSearch` lo calcula con
+  `it.count(text, search)`, así que `MainNavGraph` no cambia. `FilterSheetTest`: 10 tests nuevos (38, 0
+  fallos en el emulador Pixel 9a): cada texto del botón, desactivado con 0 y pulsarlo no avisa,
+  con número avisa a `onApplyFilters`, y con 0 siguen funcionando «Restablecer», las etiquetas y ✕;
+  primero en rojo (no compilaba). Previews nuevas en claro y oscuro: contando y con 0 resultados;
+  las demás de la hoja pasan a «Mostrar 8 cursos». `:app:testDebugUnitTest`, `:app:assembleDebug` y
+  `:app:connectedDebugAndroidTest` (`FilterSheetTest`) pasan. Hasta el 8c, tras elegir una etiqueta
+  el botón dice «Mostrar cursos» sin número (nadie pide todavía el recuento).
+- 2026-11-22: **tarea 8b hecha.** Probada a mano en el emulador con el servidor (usuario) y revisada.
+  La nota para el revisor del 8a quedó cerrada en la revisión del 8a («se mantiene»).
+
 ## Siguiente paso
 
-Tarea 8: revisar el 8a (incluida la nota sobre `draftCount()`); después 8b en este mismo chat con
-Sonnet (necesita el emulador); 8c en otro con Opus. Cada paso se revisa antes del siguiente.
+Tarea 8c (ViewModel: recuento, cancelaciones y aplicar reutilizando) en otro chat con Opus.
+Después, la tarea 9 (repaso final), con la que se cierra la fase 1.
