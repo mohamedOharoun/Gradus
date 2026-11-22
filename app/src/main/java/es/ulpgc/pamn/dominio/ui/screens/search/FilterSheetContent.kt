@@ -39,17 +39,20 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
+import es.ulpgc.pamn.dominio.course.search.DraftCount
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.components.SelectableTagChip
 
 // Lo que hay dentro de la hoja de filtros (Figma «4 · Buscar con filtros», solo la sección
-// Etiquetas): cabecera, etiquetas y «Mostrar cursos». Sin estado y sin ventana, para poder verla
-// en una preview. `onApply` y `onClose` llegan aparte de `actions` porque FilterSheet los envuelve
-// con la animación de cierre; el resto se avisa directamente con `actions`.
+// Etiquetas): cabecera, etiquetas y «Mostrar N cursos». Sin estado y sin ventana, para poder verla
+// en una preview. `count` (lo que se sabe del recuento del borrador) llega ya calculado. `onApply` y
+// `onClose` llegan aparte de `actions` porque FilterSheet los envuelve con la animación de cierre; el
+// resto se avisa directamente con `actions`.
 @Composable
 fun FilterSheetContent(
     state: FilterSheetState,
+    count: DraftCount,
     actions: SearchActions,
     onApply: () -> Unit,
     onClose: () -> Unit,
@@ -61,7 +64,14 @@ fun FilterSheetContent(
         Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())) {
             TagsSection(state, actions)
         }
-        PrimaryButton(text = SHOW_COURSES_TEXT, onClick = onApply, modifier = Modifier.padding(top = 16.dp, bottom = 16.dp))
+        // Sin cursos que mostrar no se puede pulsar (decisión C); con «Contando» sí, para no
+        // bloquear al usuario. Sin `liveRegion`: TalkBack no anuncia el número al cambiar (decisión G).
+        PrimaryButton(
+            text = showCoursesText(count),
+            onClick = onApply,
+            enabled = count != DraftCount.Known(0),
+            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
+        )
     }
 }
 

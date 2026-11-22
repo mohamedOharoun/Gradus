@@ -27,7 +27,8 @@ private val ScreenMargin = 20.dp
 
 // Pestaña Buscar (Figma «3 · Buscar»), sin estado: pinta lo que recibe y avisa con `actions`.
 // `text` es lo que hay en la caja (se está tecleando); `search`, la consulta aplicada y sus resultados;
-// `filters`, la hoja de filtros (`null` = cerrada). Las previews están en search/ScreenSearchPreviews.kt.
+// `filters`, la hoja de filtros (`null` = cerrada), cuyo botón dice cuántos cursos daría el borrador
+// (`count`, calculado aquí con `text` y `search` para que la hoja no tenga estado). Las previews están en search/ScreenSearchPreviews.kt.
 @Composable
 fun ScreenSearch(
     text: String,
@@ -56,6 +57,6 @@ fun ScreenSearch(
             SearchResultsContent(search = search, actions = actions, modifier = margin.weight(1f).fillMaxWidth())
         }
         // La hoja es una ventana aparte que se dibuja encima: da igual en qué sitio del árbol se ponga.
-        filters?.let { FilterSheet(state = it, actions = actions) }
+        filters?.let { FilterSheet(state = it, count = it.count(text, search), actions = actions) }
     }
 }

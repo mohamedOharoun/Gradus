@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.ui.screens.search
 
+import es.ulpgc.pamn.dominio.course.search.DraftCount
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -16,6 +17,43 @@ class FilterTextsTest {
     @Test
     fun `with no tags to choose the sheet says so`() {
         assertEquals("No hay etiquetas que elegir", NO_TAGS_TEXT)
+    }
+
+    // --- showCoursesText (tarea 8b: el botón de la hoja) ---
+
+    @Test
+    fun `the button shows the number of courses the draft would give`() {
+        assertEquals("Mostrar 8 cursos", showCoursesText(DraftCount.Known(8)))
+    }
+
+    @Test
+    fun `one course is singular`() {
+        assertEquals("Mostrar 1 curso", showCoursesText(DraftCount.Known(1)))
+    }
+
+    @Test
+    fun `two courses are already plural`() {
+        assertEquals("Mostrar 2 cursos", showCoursesText(DraftCount.Known(2)))
+    }
+
+    @Test
+    fun `a big number keeps all its digits`() {
+        assertEquals("Mostrar 120 cursos", showCoursesText(DraftCount.Known(120)))
+    }
+
+    @Test
+    fun `with no courses the button says that none match`() {
+        assertEquals("Ningún curso coincide", showCoursesText(DraftCount.Known(0)))
+    }
+
+    @Test
+    fun `while counting the button has no number`() {
+        assertEquals("Mostrar cursos", showCoursesText(DraftCount.Counting))
+    }
+
+    @Test
+    fun `when the count failed the button has no number either`() {
+        assertEquals("Mostrar cursos", showCoursesText(DraftCount.Unknown))
     }
 
     // --- filtersButtonDescription (lo que lee TalkBack) ---

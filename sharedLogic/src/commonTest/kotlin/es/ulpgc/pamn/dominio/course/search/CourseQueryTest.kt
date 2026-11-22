@@ -113,6 +113,88 @@ class CourseQueryTest {
         assertEquals(1, query.activeFilters.size)
     }
 
+    // ── Pedir lo mismo (tarea 8a: la comparación pasa de FilterSheetState a CourseQuery) ──
+
+    @Test
+    fun `two queries with the same text and tags ask the same`() {
+        val a = CourseQuery(text = "red", tags = listOf("grafos"))
+        val b = CourseQuery(text = "red", tags = listOf("grafos"))
+
+        assertTrue(a.asksTheSameAs(b))
+    }
+
+    @Test
+    fun `the empty queries ask the same`() {
+        assertTrue(CourseQuery.EMPTY.asksTheSameAs(CourseQuery()))
+    }
+
+    // El adaptador HTTP recorta el texto: «red » y «red» piden lo mismo.
+    @Test
+    fun `text that only differs by surrounding spaces asks the same on either side`() {
+        val plain = CourseQuery(text = "red")
+        val spaced = CourseQuery(text = "  red ")
+
+        assertTrue(plain.asksTheSameAs(spaced))
+        assertTrue(spaced.asksTheSameAs(plain))
+    }
+
+    @Test
+    fun `a blank text asks the same as no text`() {
+        assertTrue(CourseQuery(text = "   ").asksTheSameAs(CourseQuery.EMPTY))
+    }
+
+    @Test
+    fun `spaces inside the text do make a different query`() {
+        assertFalse(CourseQuery(text = "red neuronal").asksTheSameAs(CourseQuery(text = "redneuronal")))
+    }
+
+    @Test
+    fun `a different text asks something else`() {
+        assertFalse(CourseQuery(text = "red").asksTheSameAs(CourseQuery(text = "redes")))
+    }
+
+    // El curso debe tener todas las etiquetas, así que el orden no cambia lo que se pide.
+    @Test
+    fun `the same tags in another order ask the same`() {
+        val a = CourseQuery(tags = listOf("grafos", "árboles"))
+        val b = CourseQuery(tags = listOf("árboles", "grafos"))
+
+        assertTrue(a.asksTheSameAs(b))
+    }
+
+    @Test
+    fun `the same tags with other case or extra spaces ask the same`() {
+        val a = CourseQuery(tags = listOf("teoría de grafos"))
+        val b = CourseQuery(tags = listOf("  Teoría   de GRAFOS "))
+
+        assertTrue(a.asksTheSameAs(b))
+    }
+
+    @Test
+    fun `different tags with the same count ask something else`() {
+        val a = CourseQuery(tags = listOf("grafos"))
+        val b = CourseQuery(tags = listOf("árboles"))
+
+        assertFalse(a.asksTheSameAs(b))
+    }
+
+    @Test
+    fun `one tag more or less asks something else`() {
+        val one = CourseQuery(tags = listOf("grafos"))
+        val two = CourseQuery(tags = listOf("grafos", "árboles"))
+
+        assertFalse(one.asksTheSameAs(two))
+        assertFalse(two.asksTheSameAs(one))
+    }
+
+    @Test
+    fun `asking the same does not depend on what the other query is compared to`() {
+        val a = CourseQuery(text = "red ", tags = listOf("grafos", "Árboles"))
+        val b = CourseQuery(text = "red", tags = listOf("árboles", "grafos"))
+
+        assertEquals(a.asksTheSameAs(b), b.asksTheSameAs(a))
+    }
+
     // ── Inmutabilidad ──
 
     @Test

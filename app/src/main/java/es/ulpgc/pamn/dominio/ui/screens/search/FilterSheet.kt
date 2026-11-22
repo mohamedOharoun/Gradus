@@ -11,6 +11,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import es.ulpgc.pamn.dominio.course.search.DraftCount
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -21,12 +22,13 @@ import kotlinx.coroutines.launch
 // Se abre entera (`skipPartiallyExpanded`, decisión I). Hay dos formas de cerrarla:
 // - Deslizar hacia abajo, tocar fuera o «atrás»: `onCloseFilters` (descarta el borrador). Material
 //   ya anima el cierre y llama a `onDismissRequest` cuando termina.
-// - «Mostrar cursos» y ✕: primero se esconde la hoja con animación y, al acabar, se avisa
+// - «Mostrar N cursos» y ✕: primero se esconde la hoja con animación y, al acabar, se avisa
 //   (`hideThen`). Si se avisara antes, quien la quita del árbol la haría desaparecer de golpe.
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterSheet(
     state: FilterSheetState,
+    count: DraftCount,
     actions: SearchActions,
     modifier: Modifier = Modifier,
 ) {
@@ -60,6 +62,7 @@ fun FilterSheet(
     ) {
         FilterSheetContent(
             state = state,
+            count = count,
             actions = actions,
             onApply = { hideThen(actions.onApplyFilters) },
             onClose = { hideThen(actions.onCloseFilters) },

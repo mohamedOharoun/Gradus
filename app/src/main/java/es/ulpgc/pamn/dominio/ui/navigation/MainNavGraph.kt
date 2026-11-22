@@ -36,8 +36,8 @@ import es.ulpgc.pamn.dominio.ui.screens.course.ScreenCourse
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
-import es.ulpgc.pamn.dominio.ui.screens.search.SearchActions
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchViewModel
+import es.ulpgc.pamn.dominio.ui.screens.search.actions
 import kotlinx.coroutines.launch
 
 // Grafo anidado de las pantallas con sesión (docs/tareas/barra-navegacion.md).
@@ -76,13 +76,8 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             ScreenSearch(
                 text = searchViewModel.text,
                 search = searchViewModel.search,
-                // La hoja de filtros la conecta la tarea 7d (el ViewModel guardará su estado).
-                filters = null,
-                actions = SearchActions(
-                    onTextChange = searchViewModel::onTextChange,
-                    onSearch = searchViewModel::onSearch,
-                    onLoadMore = searchViewModel::onLoadMore,
-                    onRetry = searchViewModel::onRetry,
+                filters = searchViewModel.filters,
+                actions = searchViewModel.actions(
                     // Solo con la pantalla activa: dos toques rápidos no abren el curso dos veces.
                     onCourseClick = LocalLifecycleOwner.current.onlyWhenResumed { id: String ->
                         navController.navigate(Route.Course(id))

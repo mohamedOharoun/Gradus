@@ -26,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
+import es.ulpgc.pamn.dominio.course.search.DraftCount
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
 import es.ulpgc.pamn.dominio.course.search.TagSuggestions
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
@@ -50,8 +51,12 @@ class FilterSheetTest {
         selected: List<String> = emptyList(),
     ) = FilterSheetState(draft = CourseQuery(tags = selected), suggestions = TagSuggestions(shown, hidden))
 
-    private fun show(state: FilterSheetState, actions: SearchActions = SearchActions()) =
-        composeRule.setContent { GradusTheme { FilterSheet(state = state, actions = actions) } }
+    // Sin `count`, el botón dice «Mostrar cursos» (sin número), como los tests de antes del 8b.
+    private fun show(
+        state: FilterSheetState,
+        actions: SearchActions = SearchActions(),
+        count: DraftCount = DraftCount.Counting,
+    ) = composeRule.setContent { GradusTheme { FilterSheet(state = state, count = count, actions = actions) } }
 
     private val heading = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
 
@@ -219,6 +224,103 @@ class FilterSheetTest {
         show(state(selected = listOf("grafos")))
 
         composeRule.onNodeWithText("Restablecer").assertHeightIsAtLeast(48.dp)
+    }
+
+    // --- El botón «Mostrar N cursos» (tarea 8b) ---
+    // Los textos exactos se prueban en FilterTextsTest; aquí, que el botón los enseña y cuándo se puede pulsar.
+
+    @Test
+    fun the_button_shows_the_number_of_courses_of_the_draft() {
+        show(state(), count = DraftCount.Known(8))
+
+        composeRule.onNodeWithText("Mostrar 8 cursos").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun the_button_is_singular_with_one_course() {
+        show(state(), count = DraftCount.Known(1))
+
+        composeRule.onNodeWithText("Mostrar 1 curso").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun the_button_has_no_number_while_counting_and_can_be_tapped() {
+        show(state(), count = DraftCount.Counting)
+
+        composeRule.onNodeWithText("Mostrar cursos").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun the_button_has_no_number_when_the_count_is_unknown_and_can_be_tapped() {
+        show(state(), count = DraftCount.Unknown)
+
+        composeRule.onNodeWithText("Mostrar cursos").assertIsDisplayed().assertIsEnabled()
+    }
+
+    @Test
+    fun with_no_courses_the_button_says_none_match_and_is_disabled() {
+        show(state(), count = DraftCount.Known(0))
+
+        composeRule.onNodeWithText("Ningún curso coincide").assertIsDisplayed().assertIsNotEnabled()
+        composeRule.onNodeWithText("Mostrar cursos").assertDoesNotExist()
+    }
+
+    @Test
+    fun tapping_the_disabled_button_reports_nothing() {
+        var applied = 0
+        var closed = 0
+        show(state(), SearchActions(onApplyFilters = { applied++ }, onCloseFilters = { closed++ }), DraftCount.Known(0))
+
+        composeRule.onNodeWithText("Ningún curso coincide").performClick()
+        composeRule.waitForIdle()
+
+        assertEquals(0, applied)
+        assertEquals(0, closed)
+    }
+
+    @Test
+    fun the_button_with_a_number_reports_onApplyFilters() {
+        var applied = 0
+        var closed = 0
+        show(state(), SearchActions(onApplyFilters = { applied++ }, onCloseFilters = { closed++ }), DraftCount.Known(8))
+
+        composeRule.onNodeWithText("Mostrar 8 cursos").performClick()
+        waitUntil { applied == 1 }
+
+        assertEquals(1, applied)
+        assertEquals(0, closed)
+    }
+
+    // Decisión C: con 0 resultados se puede seguir cambiando el borrador y cerrar la hoja.
+    @Test
+    fun with_no_courses_reset_still_works() {
+        var resets = 0
+        show(state(selected = listOf("grafos")), SearchActions(onResetFilters = { resets++ }), DraftCount.Known(0))
+
+        composeRule.onNodeWithText("Restablecer").assertIsEnabled().performClick()
+
+        assertEquals(1, resets)
+    }
+
+    @Test
+    fun with_no_courses_the_tags_can_still_be_toggled() {
+        val toggled = mutableListOf<String>()
+        show(state(), SearchActions(onToggleTag = { toggled += it }), DraftCount.Known(0))
+
+        composeRule.onNodeWithText("algoritmos").performClick()
+
+        assertEquals(listOf("algoritmos"), toggled)
+    }
+
+    @Test
+    fun with_no_courses_the_close_button_still_reports_onCloseFilters() {
+        var closed = 0
+        show(state(), SearchActions(onCloseFilters = { closed++ }), DraftCount.Known(0))
+
+        composeRule.onNodeWithContentDescription("Cerrar filtros").performClick()
+        waitUntil { closed == 1 }
+
+        assertEquals(1, closed)
     }
 
     // --- Cerrar: ✕, «Mostrar cursos», «atrás» y deslizar ---

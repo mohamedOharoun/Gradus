@@ -5,6 +5,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
+import es.ulpgc.pamn.dominio.course.search.DraftCount
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
 import es.ulpgc.pamn.dominio.course.search.SearchProblem
 import es.ulpgc.pamn.dominio.course.search.SearchRequest
@@ -75,11 +76,12 @@ private val sevenTags = listOf("grafos", "algoritmos", "árboles", "kotlin", "an
 private fun sheetOf(shown: List<String>, hidden: List<String>, selected: List<String> = emptyList()) =
     FilterSheetState(draft = CourseQuery(tags = selected), suggestions = TagSuggestions(shown, hidden))
 
+// Por defecto, como el Figma: «Mostrar 8 cursos».
 @Composable
-private fun SheetPreview(state: FilterSheetState) {
+private fun SheetPreview(state: FilterSheetState, count: DraftCount = DraftCount.Known(8)) {
     GradusTheme {
         Surface(color = MaterialTheme.colorScheme.surface) {
-            FilterSheetContent(state = state, actions = SearchActions(), onApply = {}, onClose = {})
+            FilterSheetContent(state = state, count = count, actions = SearchActions(), onApply = {}, onClose = {})
         }
     }
 }
@@ -101,3 +103,18 @@ private fun SheetWithoutShowAllPreview() = SheetPreview(sheetOf(shown = sevenTag
 @LightDarkPreviews
 @Composable
 private fun SheetWithoutTagsPreview() = SheetPreview(sheetOf(shown = emptyList(), hidden = emptyList()))
+
+// El botón según el recuento del borrador (tarea 8b): contando (sin número) y sin resultados (desactivado).
+@LightDarkPreviews
+@Composable
+private fun SheetCountingPreview() = SheetPreview(
+    sheetOf(shown = sevenTags, hidden = listOf("redes", "sql", "testing"), selected = listOf("grafos", "kotlin")),
+    count = DraftCount.Counting,
+)
+
+@LightDarkPreviews
+@Composable
+private fun SheetWithNoCoursesPreview() = SheetPreview(
+    sheetOf(shown = sevenTags, hidden = listOf("redes", "sql", "testing"), selected = listOf("grafos", "kotlin")),
+    count = DraftCount.Known(0),
+)
