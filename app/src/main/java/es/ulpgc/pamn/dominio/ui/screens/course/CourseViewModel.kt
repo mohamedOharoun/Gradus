@@ -47,6 +47,16 @@ enum class CourseProblem(val canRetry: Boolean) {
     SERVER_FAILURE(canRetry = true),
 }
 
+// Por qué no se ha podido descargar el curso. La usan el camino y la ficha del curso, que
+// descargan lo mismo. Solo para fallos: un curso encontrado no es un problema.
+fun CourseOutcome.problem(): CourseProblem = when (this) {
+    is CourseOutcome.Found -> error("Un curso encontrado no es un problema")
+    CourseOutcome.NotFound -> CourseProblem.NOT_FOUND
+    CourseOutcome.Unreachable -> CourseProblem.UNREACHABLE
+    CourseOutcome.UnsupportedFormat -> CourseProblem.UNSUPPORTED_FORMAT
+    CourseOutcome.ServerFailure -> CourseProblem.SERVER_FAILURE
+}
+
 // El aviso que sale abajo (Snackbar) al tocar un módulo bloqueado.
 sealed interface CourseNotice {
     data class Locked(val module: Module, val missing: List<Module>) : CourseNotice
@@ -100,10 +110,7 @@ class CourseViewModel(
         loading = viewModelScope.launch {
             when (val outcome = gateway.course(courseId)) {
                 is CourseOutcome.Found -> showWithProgress(outcome.course)
-                CourseOutcome.NotFound -> state = CourseScreenState.Problem(CourseProblem.NOT_FOUND)
-                CourseOutcome.Unreachable -> state = CourseScreenState.Problem(CourseProblem.UNREACHABLE)
-                CourseOutcome.UnsupportedFormat -> state = CourseScreenState.Problem(CourseProblem.UNSUPPORTED_FORMAT)
-                CourseOutcome.ServerFailure -> state = CourseScreenState.Problem(CourseProblem.SERVER_FAILURE)
+                else -> state = CourseScreenState.Problem(outcome.problem())
             }
         }
     }

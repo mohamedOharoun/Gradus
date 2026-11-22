@@ -38,8 +38,16 @@ internal data class CoursePageDto(
 
 // «Versión con contenido» (GET /api/courses/{id}). El contenido se guarda sin leer (JsonObject)
 // porque antes hay que mirar su formatVersion: un formato futuro puede tener otra forma.
+// `version`, `author` y `publishedAt` son opcionales aquí: el backend siempre los manda, pero sin
+// ellos el curso se puede estudiar igual (solo la ficha se queda sin esa línea).
 @Serializable
-internal data class CourseVersionDto(val id: String, val content: JsonObject)
+internal data class CourseVersionDto(
+    val id: String,
+    val content: JsonObject,
+    val version: Int? = null,
+    val author: AuthorDto? = null,
+    val publishedAt: String? = null,
+)
 
 // ── Contenido del curso (course-v1.schema.json) ──
 

@@ -4,6 +4,7 @@ import es.ulpgc.pamn.dominio.course.Author
 import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.course.Mastery
+import es.ulpgc.pamn.dominio.course.Publication
 import es.ulpgc.pamn.dominio.course.Step
 import es.ulpgc.pamn.dominio.course.exercise.MatchPair
 import es.ulpgc.pamn.dominio.course.exercise.Matching
@@ -33,6 +34,37 @@ class CourseDtoMappersTest {
         assertEquals("es", example.language)
         assertEquals(listOf("grafos", "algoritmos", "estructuras de datos"), example.tags)
         assertEquals(Mastery(questions = 4, minCorrect = 3), example.defaultMastery)
+    }
+
+    // ── Datos de la publicación (para la ficha del curso) ──
+
+    @Test
+    fun `the course keeps who published it, which version and when`() {
+        assertEquals(
+            Publication(
+                author = Author("5c1d0000-0000-4000-8000-000000000002", "Ana"),
+                version = 2,
+                publishedAt = "2026-11-18T08:35:00Z",
+            ),
+            example.publication,
+        )
+    }
+
+    // El backend de hoy siempre los manda; si faltaran, el curso se lee igual, sin esos datos.
+    @Test
+    fun `a response without author or date gives a course without publication`() {
+        assertNull(decodeOk(courseWith()).publication)
+    }
+
+    @Test
+    fun `a response with an author but no date gives a course without publication`() {
+        val body = courseWith().replace(""""version": 1,""", """"version": 1, "author": {"id": "u1", "name": "Ana"},""")
+        assertNull(decodeOk(body).publication)
+    }
+
+    @Test
+    fun `a course written by hand has no publication`() {
+        assertNull(Course("c", "Curso", emptyList()).publication)
     }
 
     @Test

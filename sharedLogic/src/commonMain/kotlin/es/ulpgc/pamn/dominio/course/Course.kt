@@ -42,6 +42,13 @@ data class Module(
     val exercises: List<Question> get() = steps.filterIsInstance<Step.Exercise>().map { it.question }
 }
 
+// Quién publicó el curso, qué versión es y cuándo (los metadatos de GET /api/courses/{id}). Se
+// enseñan en la ficha del curso. `publishedAt` va como llega («2026-11-18T08:35:00Z»): para el
+// mes y el año, PublishedMonth.parse.
+data class Publication(val author: Author, val version: Int, val publishedAt: String)
+
+// `publication`: null en los cursos escritos en el código (ejemplo, tests) y si el servidor no
+// mandara esos datos.
 data class Course(
     val id: String,
     val title: String,
@@ -50,6 +57,7 @@ data class Course(
     val language: String = "es",
     val tags: List<String> = emptyList(),
     val defaultMastery: Mastery = Mastery(questions = 4, minCorrect = 3),
+    val publication: Publication? = null,
 ) {
     private val byId: Map<String, Module> = modules.associateBy { it.id }
 

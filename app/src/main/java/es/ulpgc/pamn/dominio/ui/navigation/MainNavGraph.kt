@@ -150,6 +150,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                 ),
             )
         }
+        courseDetailDestination(navController)
     }
 }
 
