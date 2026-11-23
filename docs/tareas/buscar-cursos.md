@@ -21,22 +21,39 @@ Estado: fase 1 terminada (2026-11-22). Fase 2: tarea 10 (backend) hecha; tarea 1
 Lo que necesita quien coja la tarea (orquestador o revisor). **Se reescribe** al terminar cada sesión;
 no se acumula.
 
-- **Dónde estamos (2026-11-23):** tarea 11, pasos 11a, 11b y 11c hechos, revisados y con commit
-  (último: `f49e5dc`, 11c). Toca el **11d-1** (la hoja, sin estado), con Sonnet.
+- **Dónde estamos (2026-11-23):** tarea 11, pasos 11a, 11b, 11c y 11d-1 hechos, revisados y con commit
+  (último: `64c5dbf`, 11d-1). Toca el **11d-2** (ViewModel y conexión), con **Opus**, y después el
+  **11e** (cierre).
 - **Al empezar:** leer `AGENTS.md`, este Relevo y la tarea 11 (más abajo). El resto del documento y el
   histórico, solo si hacen falta.
 - **Abierto:**
-  - Propuesta sin decidir: juntar 11d-1 y 11d-2 en un solo paso con Opus (la conexión es pequeña). Si no
-    se decide nada, se hacen por separado, como en el plan.
-  - Riesgo H: que el teclado tape el campo «Creador» en la hoja. Se comprueba a mano en el 11d-1.
   - El 11d-2 debe añadir el test que el 11a-2 no pudo hacer: con creador y fecha **aplicados**, quitar
     su chip los quita de la consulta (ya está en la lista del 11d-2).
+  - 11e: decidir **antes** con qué cuenta se prueba en el emulador. Para llegar a Buscar hay que iniciar
+    sesión, y el chat del 11d-1 creó y borró una cuenta en la base de desarrollo sin permiso.
+  - Fuera de la tarea: «Explorar cursos sin cuenta» (bienvenida) no hace nada. Solo apuntado.
   - «Pendiente» (abajo): los tests de `sharedLogic` no compilan para iOS. Tarea aparte, sin fecha.
-- **Qué mirar al revisar el 11d-1:** que `TagsSection`, `ShowAllChip` y `dashedBorder` se muevan sin
-  cambiar lo que hacen (los `FilterSheetTest` de antes siguen pasando); títulos con `heading()`; previews
-  de la hoja en claro y en oscuro; la comprobación del teclado. `CREATOR_FIELD_DESCRIPTION` («Creador»)
-  ya existe y puede servir de título de la sección.
+- **Qué mirar al revisar el 11d-2:** que `onAuthorChange` y `onPublishedChange` pasen por `editDraft`
+  (pausa de 300 ms, cancelar el recuento anterior, `cancelPreview`); que teclear varias letras cuente
+  una sola vez; los tests de la lista, incluido el pendiente del 11a-2; que `MainNavGraph` no cambie.
+  Riesgo de la decisión H ya comprobado en el 11d-1 (el teclado no tapa el campo).
+- **Mensajes a los chats que implementan** (plantilla; se adapta en cada caso):
+  1. Rol y paso: «Eres quien implementa el paso X de la búsqueda de cursos de Gradus».
+  2. Qué leer: `AGENTS.md`, este Relevo y el paso X; **la lista de ficheros que se tocan** y, si hace
+     falta, uno de ejemplo. Nada más salvo que lo necesite.
+  3. **Primero, proponer:** ficheros, forma del código y lista de tests; **esperar el OK** antes de
+     escribir código.
+  4. Tras el OK: tests primero (rojo → verde); los tests nuevos, en un **fichero nuevo y temático** si
+     el que hay es grande; en el emulador, **solo las clases de test del paso**.
+  5. Al terminar: los comandos del paso; «Progreso» con lo necesario y «pendiente de revisión»; sin
+     marcar la casilla; fragmentos clave y decisiones fuera del plan; sin commits.
 - **Acuerdos de proceso:**
+  - Que un paso esté detallado en este documento **no** significa que esté aprobado para implementar:
+    quien implementa propone y espera el OK (`AGENTS.md`).
+  - La batería completa del emulador se lanza al cierre de la tarea (11e), no en cada paso.
+  - Sonnet con esfuerzo medio para lógica pura y componentes; esfuerzo alto para corrutinas,
+    concurrencia o cambios de contrato.
+  - Sin permiso, nada se escribe en la base de desarrollo (cuentas, cursos).
   - La casilla (✅) de cada paso la pone quien revisa; quien implementa deja «pendiente de revisión».
   - Nombres de test sin comas ni paréntesis (no compilan para iOS).
   - Tests de emulador con TalkBack apagado, sin el *Layout Inspector* y sin tocar el emulador.
