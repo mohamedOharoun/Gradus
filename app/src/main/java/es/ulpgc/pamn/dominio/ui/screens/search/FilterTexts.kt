@@ -48,6 +48,13 @@ fun removeFilterDescription(tag: String): String = removeFilter(tag)
 
 // ── Creador y fecha (tarea 11, decisión C) ──
 
+// Los textos fijos del campo «Creador» (11c). Constantes sin lógica: los tests del campo las usan al
+// buscar los nodos. CREATOR_FIELD_DESCRIPTION es lo que lee TalkBack aunque el campo ya tenga texto
+// (la ayuda desaparece al escribir).
+const val CREATOR_HINT = "Nombre del creador"
+const val CREATOR_FIELD_DESCRIPTION = "Creador"
+const val CLEAR_CREATOR_DESCRIPTION = "Borrar creador"
+
 // Lo que se ve en el chip del creador: «por Ana», como «por Ana Ruiz» en la tarjeta.
 fun authorChipLabel(name: String): String = "por $name"
 

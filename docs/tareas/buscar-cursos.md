@@ -1003,7 +1003,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
       `published`, `page`, `size`). `FakeCourseGatewayTest`: «PRUEBA» encuentra todos, «luis» ninguno,
       autor en blanco no filtra y la fecha no cambia los resultados.
 
-    **11c · Componentes** (Sonnet).
+    **11c · Componentes** (Sonnet). ✅ **Hecho (2026-11-23).**
     - `res/drawable/ic_person.xml`; `ui/components/SingleChoiceRow.kt`
       (`SingleChoiceRow(options, selected, label, onSelect, modifier)`, genérico en `T`);
       `ui/screens/search/CreatorField.kt` (`CreatorField(value, onValueChange, modifier)`);
@@ -1533,11 +1533,33 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   `published` con un `when` sin `else`; el orden de la URL, probado entero con `encodedQuery`. Cada punto
   de la lista tiene su test; los añadidos (tildes y espacios de dentro en el autor; mayúsculas, tildes y
   texto + autor en el falso) se mantienen. Ningún nombre de test nuevo lleva comas ni paréntesis.
+- 2026-11-23: **paso 11c hecho, pendiente de revisión** (tests de emulador en verde).
+  - Ficheros: `res/drawable/ic_person.xml` (icono «person» de Material); `ui/components/SingleChoiceRow.kt`
+    (genérico en `T`, `selectableGroup` + `selectable(role = RadioButton)`, opciones con `weight(1f)` e
+    `IntrinsicSize.Min`); `ui/screens/search/CreatorField.kt`; `ClearButton` de `SearchField.kt` pasa a
+    `internal` con `description` («Borrar búsqueda» sigue igual); `FilterTexts.kt` con `CREATOR_HINT`,
+    `CREATOR_FIELD_DESCRIPTION` y `CLEAR_CREATOR_DESCRIPTION`.
+  - Tests nuevos (emulador): `SingleChoiceRowTest` 10 y `CreatorFieldTest` 13. `SearchFieldTest` no se
+    toca. Amplían el criterio: mismo ancho, la selección la decide el que la usa, otro tipo `T`; «Hecho»
+    solo cierra el teclado, el campo sigue su `value`, el icono es decorativo.
+  - `./gradlew :app:testDebugUnitTest :app:lintDebug` pasan, sin avisos nuevos. `:app:connectedDebugAndroidTest`
+    **completo** en el emulador Pixel_9a (151 tests; TalkBack apagado, sin tocar el emulador) pasa:
+    `SingleChoiceRowTest` 10, `CreatorFieldTest` 13 y `SearchFieldTest` 12, sin fallos. **Falta:** mirar
+    las previews en claro y oscuro (no se han visto).
+  - Fuera del plan: bordes de 1 dp (sin elegir) y 2 dp (elegida); formas de 12 dp; `CREATOR_FIELD_DESCRIPTION`
+    como `contentDescription` del campo (el 11d-1 puede reutilizarlo para el título «Creador»).
+- 2026-11-23: **paso 11c revisado.** `:app:testDebugUnitTest` y `:app:lintDebug` pasan sin avisos, y en
+  el emulador Pixel_9a `SingleChoiceRowTest` (10), `CreatorFieldTest` (13) y `SearchFieldTest` (12)
+  pasan sin fallos. **Previews vistas** en claro y en oscuro: `SingleChoiceRowPreview` (cada opción
+  elegida) y `CreatorFieldPreview` (vacío y con texto), como el Figma y con los colores del tema. Cada
+  punto de la lista tiene su test. Se mantienen las decisiones fuera del plan: bordes de 1 y 2 dp, formas
+  de 12 dp y `CREATOR_FIELD_DESCRIPTION` como descripción del campo (TalkBack dice para qué es aunque
+  ya tenga texto).
 
 ## Siguiente paso
 
-Fase 2: la tarea 10 (backend) está hecha. Tarea 11: los pasos 11a y 11b están hechos y revisados.
-Siguiente: el 11c (componentes), en un chat nuevo con Sonnet.
+Fase 2: la tarea 10 (backend) está hecha. Tarea 11: los pasos 11a, 11b y 11c están hechos y
+revisados. Siguiente: el 11d-1 (la hoja, sin estado), en un chat nuevo con Sonnet.
 
 ## Pendiente (fuera de esta tarea)
 

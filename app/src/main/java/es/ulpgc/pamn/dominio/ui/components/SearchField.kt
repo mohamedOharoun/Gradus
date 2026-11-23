@@ -45,7 +45,7 @@ fun SearchField(
         // Decorativa: el campo ya dice para qué sirve, así que TalkBack no la anuncia.
         leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
         trailingIcon = if (value.isEmpty()) null else {
-            { ClearButton(onClick = { onValueChange("") }) }
+            { ClearButton(description = "Borrar búsqueda", onClick = { onValueChange("") }) }
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = {
@@ -60,11 +60,12 @@ fun SearchField(
     )
 }
 
+// La ✕ de los campos de texto. `description` es lo que lee TalkBack («Borrar búsqueda», «Borrar creador»).
 // En esta versión de Material 3 el IconButton mide 40 dp: se fuerza a 48 dp (zona táctil mínima).
 @Composable
-private fun ClearButton(onClick: () -> Unit) {
+internal fun ClearButton(description: String, onClick: () -> Unit) {
     IconButton(onClick = onClick, modifier = Modifier.size(48.dp)) {
-        Icon(painterResource(R.drawable.ic_close), contentDescription = "Borrar búsqueda")
+        Icon(painterResource(R.drawable.ic_close), contentDescription = description)
     }
 }
 
