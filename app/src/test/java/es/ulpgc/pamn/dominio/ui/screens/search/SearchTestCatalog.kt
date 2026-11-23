@@ -58,4 +58,13 @@ object SearchTestCatalog {
         viewModel.onApplyFilters()
         runCurrent()
     }
+
+    // Como applyTags, pero el borrador se edita con cualquier acción del ViewModel (lambda con
+    // receptor): `applyDraft(viewModel) { onAuthorChange("Ana"); onPublishedChange(LAST_YEAR) }`.
+    fun TestScope.applyDraft(viewModel: SearchViewModel, edit: SearchViewModel.() -> Unit) {
+        viewModel.onOpenFilters()
+        viewModel.edit()
+        viewModel.onApplyFilters()
+        runCurrent()
+    }
 }

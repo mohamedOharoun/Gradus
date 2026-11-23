@@ -18,8 +18,8 @@ data class SearchActions(
     val onToggleTag: (String) -> Unit = {},
     val onResetFilters: () -> Unit = {},
     val onShowAllTags: () -> Unit = {},
-    // Creador y fecha de la hoja (tarea 11d-1). Reciben el texto tal como se escribe y la opción
-    // elegida; el ViewModel los conecta con el borrador en el 11d-2.
+    // Creador y fecha de la hoja (tarea 11). Reciben el texto tal como se escribe y la opción
+    // elegida; cambian el borrador, como `onToggleTag`.
     val onAuthorChange: (String) -> Unit = {},
     val onPublishedChange: (PublishedWithin) -> Unit = {},
     val onApplyFilters: () -> Unit = {},

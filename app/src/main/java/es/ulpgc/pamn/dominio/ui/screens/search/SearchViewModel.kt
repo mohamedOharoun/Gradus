@@ -87,6 +87,12 @@ class SearchViewModel(private val gateway: CourseGateway) : ViewModel() {
 
     fun onToggleTag(tag: String) = editDraft { it.toggle(tag) }
 
+    // Creador y fecha (tarea 11d-2): como las etiquetas, pasan por editDraft (cuentan tras la pausa y
+    // cancelan el recuento anterior; con la hoja cerrada no hacen nada). El autor, tal como se escribe.
+    fun onAuthorChange(author: String) = editDraft { it.withAuthor(author) }
+
+    fun onPublishedChange(published: PublishedWithin) = editDraft { it.withPublished(published) }
+
     fun onResetFilters() = editDraft(FilterSheetState::reset)
 
     fun onShowAllTags() = editFilters(FilterSheetState::showAll)
@@ -202,6 +208,8 @@ fun SearchViewModel.actions(onCourseClick: (String) -> Unit): SearchActions = Se
     onToggleTag = this::onToggleTag,
     onResetFilters = this::onResetFilters,
     onShowAllTags = this::onShowAllTags,
+    onAuthorChange = this::onAuthorChange,
+    onPublishedChange = this::onPublishedChange,
     onApplyFilters = this::onApplyFilters,
     onCloseFilters = this::onCloseFilters,
     onRemoveFilter = this::onRemoveFilter,

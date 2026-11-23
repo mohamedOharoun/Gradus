@@ -21,22 +21,34 @@ Estado: fase 1 terminada (2026-11-22). Fase 2: tarea 10 (backend) hecha; tarea 1
 Lo que necesita quien coja la tarea (orquestador o revisor). **Se reescribe** al terminar cada sesión;
 no se acumula.
 
-- **Dónde estamos (2026-11-23):** tarea 11, pasos 11a, 11b, 11c y 11d-1 hechos, revisados y con commit
-  (último: `64c5dbf`, 11d-1). Toca el **11d-2** (ViewModel y conexión), con **Opus**, y después el
-  **11e** (cierre).
+- **Dónde estamos (2026-11-23):** tarea 11, pasos 11a a 11d-2 hechos y revisados. El 11d-2 está
+  pendiente del commit de los usuarios (el último con commit es `64c5dbf`, 11d-1). Toca el **11e**
+  (cierre). Con el 11d-2 la hoja ya funciona entera: el campo «Creador» enseña lo que se escribe y
+  creador y fecha cuentan, se aplican y se quitan.
 - **Al empezar:** leer `AGENTS.md`, este Relevo y la tarea 11 (más abajo). El resto del documento y el
   histórico, solo si hacen falta.
+- **Decidido para el 11e (2026-11-23):**
+  - **Cuenta del emulador:** la usan los usuarios, que tienen una cuenta de prueba propia. La
+    contraseña no se escribe en el repositorio ni se pasa a los chats. Los chats no inician sesión ni
+    tocan el servidor ni la base de desarrollo: la batería de tests no lo necesita.
+  - **La limpieza de tests entra en el 11e** como primer paso. Es un cambio solo de tests y de poco
+    riesgo: mueve a `SearchTestCatalog` dos ayudantes repetidos tal cual y reescribe `applyTags` con
+    `applyDraft`. Se comprueba con el mismo número de tests antes y después.
 - **Abierto:**
-  - El 11d-2 debe añadir el test que el 11a-2 no pudo hacer: con creador y fecha **aplicados**, quitar
-    su chip los quita de la consulta (ya está en la lista del 11d-2).
-  - 11e: decidir **antes** con qué cuenta se prueba en el emulador. Para llegar a Buscar hay que iniciar
-    sesión, y el chat del 11d-1 creó y borró una cuenta en la base de desarrollo sin permiso.
   - Fuera de la tarea: «Explorar cursos sin cuenta» (bienvenida) no hace nada. Solo apuntado.
   - «Pendiente» (abajo): los tests de `sharedLogic` no compilan para iOS. Tarea aparte, sin fecha.
-- **Qué mirar al revisar el 11d-2:** que `onAuthorChange` y `onPublishedChange` pasen por `editDraft`
-  (pausa de 300 ms, cancelar el recuento anterior, `cancelPreview`); que teclear varias letras cuente
-  una sola vez; los tests de la lista, incluido el pendiente del 11a-2; que `MainNavGraph` no cambie.
-  Riesgo de la decisión H ya comprobado en el 11d-1 (el teclado no tapa el campo).
+- **El 11e:** un chat con Sonnet y esfuerzo medio hace la limpieza, lanza la batería completa y
+  actualiza la especificación y la tabla del Figma. No hace falta Opus porque no hay código nuevo.
+  Después, los usuarios hacen la prueba a mano, no a la vez que la batería, porque comparten emulador.
+  Por último, quien revisa marca la tarea 11 y deja el Relevo final.
+- **Qué mirar al revisar el 11e:**
+  - Que pasen todos los comandos: `:sharedLogic:testAndroidHostTest`,
+    `:sharedLogic:compileKotlinIosSimulatorArm64`, `:app:testDebugUnitTest`, `:app:lintDebug` y
+    `:app:connectedDebugAndroidTest` **completo**.
+  - `docs/especificacion.md` §5 Buscar sin «fase 2».
+  - En este documento: la cabecera («Estado»), las filas de Creador y Fecha de la tabla del Figma, la
+    casilla de la tarea 11 y un Relevo final.
+  - Que nadie haya tocado la base de desarrollo sin permiso.
 - **Mensajes a los chats que implementan** (plantilla; se adapta en cada caso):
   1. Rol y paso: «Eres quien implementa el paso X de la búsqueda de cursos de Gradus».
   2. Qué leer: `AGENTS.md`, este Relevo y el paso X; **la lista de ficheros que se tocan** y, si hace
@@ -265,7 +277,7 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
       puede pulsar con solo creador o solo fecha. Los tests que ya había siguen pasando.
     - A mano en el emulador: el teclado no tapa el campo (decisión H).
 
-    **11d-2 · ViewModel y conexión** (Opus).
+    **11d-2 · ViewModel y conexión** (Opus). ✅ **Hecho (2026-11-23).**
     - `SearchViewModel`: `onAuthorChange(author) = editDraft { it.withAuthor(author) }` y
       `onPublishedChange(published) = editDraft { it.withPublished(published) }`; `actions()` los conecta.
       `MainNavGraph` no debería cambiar.
@@ -276,14 +288,19 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
       dos acciones nuevas al ViewModel; y, **con creador y fecha aplicados**, quitar su chip los quita de
       la consulta aplicada y conserva lo demás.
 
-    **11e · Cierre.**
-    - A mano en el emulador, con el servidor (`gradus.sh up`), por los usuarios: «autora» da resultados y
-      «luis», «Ningún curso coincide»; mes y año dan todos (en la base todos son recientes); chips
-      «por …» y «Último año» y quitarlos; «Restablecer»; TalkBack (secciones, botones de opción, chips);
-      modo oscuro; el teclado no tapa el campo.
+    **11e · Cierre** (Sonnet, esfuerzo medio; la prueba a mano, los usuarios).
+    - **Limpieza de tests** (aprobada el 2026-11-23), sin cambiar lo que prueban: `opened()` y
+      `draftCount()` pasan de `SearchViewModelPreviewTest` y `SearchViewModelAuthorPublishedTest` a
+      `SearchTestCatalog`; `applyTags` se escribe con `applyDraft`. Mismo número de tests antes y después.
     - Todos los tests, con `:app:connectedDebugAndroidTest` completo.
-    - Documentos: `docs/especificacion.md` §5 Buscar (sin «fase 2») y este documento (cabecera, tabla del
-      Figma, Relevo).
+    - Documentos: `docs/especificacion.md` §5 Buscar (sin «fase 2») y, en este documento, la tabla del
+      Figma (filas de Creador y Fecha). La cabecera, la casilla de la tarea 11 y el Relevo final los pone
+      quien revisa, después de la prueba a mano.
+    - A mano en el emulador, con el servidor (`gradus.sh up`), por los usuarios y con su cuenta de prueba,
+      **después** de la batería: «autora» da resultados y «luis», «Ningún curso coincide»; mes y año
+      dan todos (en la base todos son recientes); chips «por …» y «Último año» y quitarlos;
+      «Restablecer»; TalkBack (secciones, botones de opción, chips); modo oscuro; el teclado no tapa el
+      campo.
 
 ## Progreso
 
@@ -327,6 +344,22 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
   tocaron. Previews de la hoja con creador y fecha vistas en claro y en oscuro, como el Figma. Se
   mantienen las decisiones de arriba. Aviso: crear (y borrar) una cuenta en la base de desarrollo no
   estaba autorizado; para el 11e, decidir antes con qué cuenta se prueba.
+- 2026-11-23: **11d-2 hecho, pendiente de revisión.** `:app:testDebugUnitTest` y `:app:lintDebug` pasan,
+  sin avisos nuevos. Tests en `SearchViewModelAuthorPublishedTest` (23). Para entenderlo o continuar:
+  - Se comprueba **qué se pide** (`gateway.searches`, `answered`, `search.query`), no el número:
+    `catalogOf` no filtra por autor ni fecha y no se amplió (filtrar es del servidor y de
+    `FakeCourseGateway`, ya probado en el 11b; la fecha necesitaría reloj, decisión G).
+  - Con un autor que solo cambia en mayúsculas o espacios, aplicar no busca y **se queda el autor
+    aplicado** («Ana», no « ana »): `queryToApply` devuelve `null`. Hay test.
+  - Ayudante nuevo `applyDraft(viewModel) { … }` en `SearchTestCatalog` (lambda con receptor).
+  - **Posible limpieza:** `opened()` y `draftCount()` están repetidos (privados) en `PreviewTest` y en el
+    fichero nuevo; podrían ir a `SearchTestCatalog`. También `applyTags` podría escribirse con
+    `applyDraft`. No se tocó por no ser de este paso.
+- 2026-11-23: **11d-2 revisado.** `:app:testDebugUnitTest` (con `SearchViewModelAuthorPublishedTest`
+  ejecutado otra vez: 23, sin fallos) y `:app:lintDebug` pasan. Los dos cambios pasan por `editDraft`;
+  teclear varias letras cuenta una vez; está el test pendiente del 11a-2 (quitar el chip de creador o de
+  fecha con todo aplicado); `MainNavGraph`, `sharedLogic` y la interfaz no cambian. Se aceptan las
+  decisiones de arriba y la limpieza queda como opcional (ver Relevo).
 
 ## Pendiente (fuera de esta tarea)
 
