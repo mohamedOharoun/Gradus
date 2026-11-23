@@ -36,6 +36,7 @@ import es.ulpgc.pamn.dominio.course.search.ActiveFilter
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import es.ulpgc.pamn.dominio.course.search.SearchProblem
 import es.ulpgc.pamn.dominio.course.search.SearchRequest
 import es.ulpgc.pamn.dominio.course.search.SearchStatus
@@ -174,6 +175,47 @@ class ScreenSearchTest {
         composeRule.onNodeWithContentDescription("Filtros").performClick()
 
         assertEquals(1, opened)
+    }
+
+    // --- Chips del creador y de la fecha (tarea 11a-2) ---
+    // Con los tres puede que el último no quepa entero: se desplaza la fila antes de mirarlo o tocarlo.
+
+    private val tagAuthorAndDate = demoSearchState(
+        query = CourseQuery(tags = listOf("grafos"), author = "Ana", published = PublishedWithin.LAST_YEAR),
+    )
+
+    @Test
+    fun with_a_tag_an_author_and_a_date_the_button_reads_three_active() {
+        show(tagAuthorAndDate)
+
+        composeRule.onNodeWithContentDescription("Filtros, 3 activos").assertIsDisplayed()
+        composeRule.onAllNodes(hasContentDescription("Quitar filtro", substring = true)).assertCountEquals(3)
+    }
+
+    @Test
+    fun the_author_and_date_chips_show_their_texts() {
+        show(tagAuthorAndDate)
+
+        composeRule.onNodeWithText("#grafos", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("por Ana", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Último año", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun tapping_each_chip_reports_its_filter() {
+        val removed = mutableListOf<ActiveFilter>()
+        show(tagAuthorAndDate, actions = SearchActions(onRemoveFilter = { removed += it }))
+
+        composeRule.onNodeWithContentDescription("Quitar filtro grafos").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription("Quitar filtro creador Ana").performScrollTo().performClick()
+        composeRule.onNodeWithContentDescription("Quitar filtro último año").performScrollTo().performClick()
+
+        val expected = listOf(
+            ActiveFilter.Tag("grafos"),
+            ActiveFilter.Author("Ana"),
+            ActiveFilter.Published(PublishedWithin.LAST_YEAR),
+        )
+        assertEquals(expected, removed)
     }
 
     @Test

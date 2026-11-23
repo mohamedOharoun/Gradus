@@ -195,6 +195,184 @@ class CourseQueryTest {
         assertEquals(a.asksTheSameAs(b), b.asksTheSameAs(a))
     }
 
+    // ── Creador (tarea 11a-1, decisión B) ──
+
+    @Test
+    fun `the empty query has no author and any publication date`() {
+        assertEquals("", CourseQuery.EMPTY.author)
+        assertFalse(CourseQuery.EMPTY.hasAuthor)
+        assertEquals(PublishedWithin.ANY, CourseQuery.EMPTY.published)
+    }
+
+    // El campo «Creador» lo enseña tal cual; recortarlo es cosa del adaptador HTTP, como el texto.
+    @Test
+    fun `the author is kept exactly as it is typed`() {
+        assertEquals("  ana  ruiz ", CourseQuery.EMPTY.withAuthor("  ana  ruiz ").author)
+    }
+
+    @Test
+    fun `a blank author does not filter`() {
+        assertFalse(CourseQuery.EMPTY.withAuthor("   ").hasAuthor)
+        assertTrue(CourseQuery.EMPTY.withAuthor("Ana").hasAuthor)
+    }
+
+    @Test
+    fun `with author keeps the rest of the query`() {
+        val query = CourseQuery(text = "red", tags = listOf("grafos"), published = PublishedWithin.LAST_MONTH)
+
+        assertEquals(
+            CourseQuery(text = "red", tags = listOf("grafos"), author = "Ana", published = PublishedWithin.LAST_MONTH),
+            query.withAuthor("Ana"),
+        )
+    }
+
+    @Test
+    fun `without author empties it and keeps the rest`() {
+        val query = CourseQuery(text = "red", tags = listOf("grafos"), author = "Ana", published = PublishedWithin.LAST_YEAR)
+
+        assertEquals(
+            CourseQuery(text = "red", tags = listOf("grafos"), published = PublishedWithin.LAST_YEAR),
+            query.withoutAuthor(),
+        )
+    }
+
+    @Test
+    fun `without author when there is none changes nothing`() {
+        val query = CourseQuery(text = "red", tags = listOf("grafos"))
+
+        assertEquals(query, query.withoutAuthor())
+    }
+
+    // ── Fecha de publicación (tarea 11a-1, decisión A) ──
+
+    @Test
+    fun `with published sets the date and keeps the rest`() {
+        val query = CourseQuery(text = "red", tags = listOf("grafos"), author = "Ana")
+
+        assertEquals(
+            CourseQuery(text = "red", tags = listOf("grafos"), author = "Ana", published = PublishedWithin.LAST_MONTH),
+            query.withPublished(PublishedWithin.LAST_MONTH),
+        )
+    }
+
+    // Así se quita el chip de la fecha: «Cualquiera» no filtra.
+    @Test
+    fun `with published any removes the date`() {
+        val query = CourseQuery(text = "red", published = PublishedWithin.LAST_YEAR)
+
+        assertEquals(CourseQuery(text = "red"), query.withPublished(PublishedWithin.ANY))
+    }
+
+    // ── Chips del creador y de la fecha (decisión C) ──
+
+    // El orden es el de las secciones de la hoja: Etiquetas, Creador y Fecha de publicación.
+    @Test
+    fun `active filters are the tags then the author then the date`() {
+        val query = CourseQuery(
+            text = "red",
+            tags = listOf("grafos", "árboles"),
+            author = "Ana",
+            published = PublishedWithin.LAST_YEAR,
+        )
+
+        val expected = listOf(
+            ActiveFilter.Tag("grafos"),
+            ActiveFilter.Tag("árboles"),
+            ActiveFilter.Author("Ana"),
+            ActiveFilter.Published(PublishedWithin.LAST_YEAR),
+        )
+        assertEquals(expected, query.activeFilters)
+    }
+
+    @Test
+    fun `the author chip has its spaces tidied and keeps its capitals`() {
+        val query = CourseQuery.EMPTY.withAuthor("  Ana   Ruiz ")
+
+        assertEquals(listOf<ActiveFilter>(ActiveFilter.Author("Ana Ruiz")), query.activeFilters)
+    }
+
+    @Test
+    fun `a blank author has no chip`() {
+        assertTrue(CourseQuery(author = "   ").activeFilters.isEmpty())
+    }
+
+    @Test
+    fun `any publication date has no chip`() {
+        assertTrue(CourseQuery(published = PublishedWithin.ANY).activeFilters.isEmpty())
+    }
+
+    @Test
+    fun `last month and last year have their own chip`() {
+        assertEquals(
+            listOf<ActiveFilter>(ActiveFilter.Published(PublishedWithin.LAST_MONTH)),
+            CourseQuery(published = PublishedWithin.LAST_MONTH).activeFilters,
+        )
+        assertEquals(
+            listOf<ActiveFilter>(ActiveFilter.Published(PublishedWithin.LAST_YEAR)),
+            CourseQuery(published = PublishedWithin.LAST_YEAR).activeFilters,
+        )
+    }
+
+    // «Restablecer» (decisión D).
+    @Test
+    fun `without filters also empties the author and the date and keeps the text`() {
+        val query = CourseQuery(
+            text = "red",
+            tags = listOf("grafos"),
+            author = "Ana",
+            published = PublishedWithin.LAST_MONTH,
+        )
+
+        assertEquals(CourseQuery(text = "red"), query.withoutFilters())
+    }
+
+    // ── Pedir lo mismo con creador y fecha ──
+    // El autor se compara como lo normaliza el backend: sin mayúsculas ni espacios de sobra.
+
+    @Test
+    fun `the same author with other case or extra spaces asks the same`() {
+        val plain = CourseQuery(author = "Ana Ruiz")
+        val messy = CourseQuery(author = "  ana   RUIZ ")
+
+        assertTrue(plain.asksTheSameAs(messy))
+        assertTrue(messy.asksTheSameAs(plain))
+    }
+
+    @Test
+    fun `a blank author asks the same as no author`() {
+        assertTrue(CourseQuery(author = "   ").asksTheSameAs(CourseQuery.EMPTY))
+    }
+
+    @Test
+    fun `a different author asks something else`() {
+        assertFalse(CourseQuery(author = "Ana").asksTheSameAs(CourseQuery(author = "Luis")))
+        assertFalse(CourseQuery(author = "Ana").asksTheSameAs(CourseQuery.EMPTY))
+        assertFalse(CourseQuery.EMPTY.asksTheSameAs(CourseQuery(author = "Ana")))
+    }
+
+    // El backend no quita tildes en el autor («angel» no encuentra a «Ángel»): no piden lo mismo.
+    @Test
+    fun `an author with other accents asks something else`() {
+        assertFalse(CourseQuery(author = "Ángel").asksTheSameAs(CourseQuery(author = "angel")))
+    }
+
+    @Test
+    fun `the same publication date asks the same`() {
+        val a = CourseQuery(text = "red", published = PublishedWithin.LAST_YEAR)
+        val b = CourseQuery(text = "red", published = PublishedWithin.LAST_YEAR)
+
+        assertTrue(a.asksTheSameAs(b))
+    }
+
+    @Test
+    fun `a different publication date asks something else`() {
+        val month = CourseQuery(published = PublishedWithin.LAST_MONTH)
+
+        assertFalse(month.asksTheSameAs(CourseQuery(published = PublishedWithin.LAST_YEAR)))
+        assertFalse(month.asksTheSameAs(CourseQuery.EMPTY))
+        assertFalse(CourseQuery.EMPTY.asksTheSameAs(month))
+    }
+
     // ── Inmutabilidad ──
 
     @Test

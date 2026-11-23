@@ -38,15 +38,20 @@ fun FilterBar(
     ) {
         FiltersButton(count = activeFilters.size, onClick = actions.onOpenFilters)
         activeFilters.forEach { filter ->
-            // `when` sobre una interfaz `sealed`: el compilador obliga a tratar todos los casos, así que
-            // al añadir un filtro de creador o fecha (fase 2) este código no compilará hasta cubrirlo.
-            when (filter) {
-                is ActiveFilter.Tag -> RemovableFilterChip(
-                    label = tagChipLabel(filter.name),
-                    removeDescription = removeFilterDescription(filter.name),
-                    onRemove = { actions.onRemoveFilter(filter) },
-                )
+            // `when` sobre una interfaz `sealed`: el compilador obliga a tratar todos los casos (etiqueta,
+            // creador y fecha), así que si se añade otro filtro este código no compilará hasta cubrirlo.
+            // Cada rama da lo que se ve y lo que lee TalkBack; el chip es el mismo para todos.
+            val (label, removeDescription) = when (filter) {
+                is ActiveFilter.Tag -> tagChipLabel(filter.name) to removeFilterDescription(filter.name)
+                is ActiveFilter.Author -> authorChipLabel(filter.name) to removeAuthorFilterDescription(filter.name)
+                is ActiveFilter.Published ->
+                    publishedLabel(filter.within) to removePublishedFilterDescription(filter.within)
             }
+            RemovableFilterChip(
+                label = label,
+                removeDescription = removeDescription,
+                onRemove = { actions.onRemoveFilter(filter) },
+            )
         }
     }
 }

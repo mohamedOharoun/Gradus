@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.ui.screens.search
 
 import es.ulpgc.pamn.dominio.course.search.DraftCount
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 
 // Los textos de los filtros de Buscar, como funciones puras: sin Compose, para probarlas en el
 // ordenador (FilterTextsTest) igual que SearchTexts.
@@ -43,4 +44,27 @@ fun filtersButtonDescription(count: Int): String = when {
 fun tagChipLabel(tag: String): String = "#$tag"
 
 // Lo que lee TalkBack en el chip quitable. Sin «#»: se lee «Quitar filtro grafos», no «almohadilla».
-fun removeFilterDescription(tag: String): String = "Quitar filtro $tag"
+fun removeFilterDescription(tag: String): String = removeFilter(tag)
+
+// ── Creador y fecha (tarea 11, decisión C) ──
+
+// Lo que se ve en el chip del creador: «por Ana», como «por Ana Ruiz» en la tarjeta.
+fun authorChipLabel(name: String): String = "por $name"
+
+// Lo que lee TalkBack en el chip del creador: dice de qué filtro se trata, no solo el nombre.
+fun removeAuthorFilterDescription(name: String): String = removeFilter("creador $name")
+
+// Los botones de «Fecha de publicación» y el chip de la fecha. Sin `else`: si se añade otra fecha, el
+// compilador avisa aquí.
+fun publishedLabel(within: PublishedWithin): String = when (within) {
+    PublishedWithin.ANY -> "Cualquiera"
+    PublishedWithin.LAST_MONTH -> "Último mes"
+    PublishedWithin.LAST_YEAR -> "Último año"
+}
+
+// Lo que lee TalkBack en el chip de la fecha: la fecha en minúsculas, dentro de la frase
+// («Quitar filtro último año»).
+fun removePublishedFilterDescription(within: PublishedWithin): String =
+    removeFilter(publishedLabel(within).lowercase())
+
+private fun removeFilter(what: String): String = "Quitar filtro $what"

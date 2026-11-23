@@ -1,7 +1,7 @@
 package es.ulpgc.pamn.dominio.course
 
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
-import es.ulpgc.pamn.dominio.course.search.tagKey
+import es.ulpgc.pamn.dominio.course.search.searchKey
 
 // Gateway falso, sin red: para previews, tests de los ViewModel y probar la app sin backend.
 // Por defecto busca y devuelve los cursos que recibe; también se le puede decir qué responder.
@@ -48,8 +48,8 @@ private fun Course.matchesText(query: CourseQuery): Boolean {
 
 // Las etiquetas se comparan con la misma regla que CourseQuery (sin copiarla).
 private fun Course.hasAllTagsOf(query: CourseQuery): Boolean {
-    val own = tags.map { it.tagKey() }.toSet()
-    return query.tags.all { it.tagKey() in own }
+    val own = tags.map { it.searchKey() }.toSet()
+    return query.tags.all { it.searchKey() in own }
 }
 
 private fun Course.toFakeSummary() = CourseSummary(

@@ -11,6 +11,7 @@ import es.ulpgc.pamn.dominio.course.CourseGateway
 import es.ulpgc.pamn.dominio.course.search.ActiveFilter
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -114,10 +115,13 @@ class SearchViewModel(private val gateway: CourseGateway) : ViewModel() {
     }
 
     // Chip de la fila (decisión B): quita el filtro y busca al momento, con el texto de la caja.
+    // El creador se quita entero y la fecha vuelve a «Cualquiera» (tarea 11a-2).
     fun onRemoveFilter(filter: ActiveFilter) {
         typing?.cancel()
         val query = when (filter) {
             is ActiveFilter.Tag -> search.query.withoutTag(filter.name)
+            is ActiveFilter.Author -> search.query.withoutAuthor()
+            is ActiveFilter.Published -> search.query.withPublished(PublishedWithin.ANY)
         }
         moveTo(search.search(query.withText(text)))
     }

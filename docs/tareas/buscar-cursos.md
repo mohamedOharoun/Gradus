@@ -934,7 +934,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     `:app:connectedDebugAndroidTest` (con TalkBack apagado, sin el *Layout Inspector* y sin tocar el
     emulador) si cambia la app. Sin avisos nuevos; previews en claro y en oscuro.
 
-    **11a · Modelo y chips** (Sonnet). Dos subpasos en el mismo chat, **una sola revisión y un solo
+    **11a · Modelo y chips** (Sonnet). ✅ **Hecho (2026-11-23).** Dos subpasos en el mismo chat, **una sola revisión y un solo
     commit**: tras el 11a-1 la app no compila justo en los dos `when` sobre `ActiveFilter`, y eso es lo
     esperado (la interfaz sellada obliga a cubrir los casos nuevos).
 
@@ -1039,7 +1039,8 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
       pausa con el autor; teclear varias letras seguidas cuenta **una vez**, con el texto final; elegir
       fecha cuenta con ella; volver a lo aplicado no cuenta; aplicar pide autor y fecha (o reutiliza el
       recuento); cerrar descarta el borrador; «Restablecer» vacía autor y fecha; `actions()` lleva las
-      dos acciones nuevas al ViewModel.
+      dos acciones nuevas al ViewModel; y, **con creador y fecha aplicados**, quitar su chip los quita de
+      la consulta aplicada y conserva lo demás (lo que el 11a-2 no pudo probar, ver su revisión).
 
     **11e · Cierre.**
     - A mano en el emulador, con el servidor (`gradus.sh up`), por el usuario: «autora» da resultados y
@@ -1457,8 +1458,69 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   `tagKey` a `searchKey` (B) y mover `TagsSection`, `ShowAllChip` y `dashedBorder` a
   `FilterSheetSections.kt` (I). Pasos 11a (11a-1 y 11a-2, un solo commit), 11b, 11c, 11d (11d-1 y
   11d-2) y 11e. `ApiErrorCode` ya tenía `INVALID_PARAMETER`: fuera de la tarea.
+- 2026-11-23: **paso 11a hecho (11a-1 y 11a-2), pendiente de revisión.**
+  - **11a-1 (`sharedLogic`, test primero).** `PublishedWithin` (nuevo); `CourseQuery` con `author` y
+    `published`, `hasAuthor`, `withAuthor`, `withoutAuthor` y `withPublished`; `activeFilters` =
+    etiquetas → `Author` (espacios ordenados) → `Published` (nunca `ANY`), con `buildList`;
+    `withoutFilters` vacía los tres y conserva el texto; `asksTheSameAs` compara además el autor con
+    `searchKey` y la fecha. `ActiveFilter.Author` y `ActiveFilter.Published`. `FilterSheetState`:
+    `withAuthor`, `withPublished` y `canReset = draft.activeFilters.isNotEmpty()`. Comentarios de «la
+    fase 2» al día. Renombre `tagKey` → `searchKey` (decisión B) también en **`TagSuggestions.kt`**,
+    que no estaba en la lista y lo usaba seis veces (aprobado en el chat).
+  - Tests nuevos: `CourseQueryTest` 20 (48 en total) y `FilterSheetStateTest` 14 (102). Contra los
+    esqueletos, 26 de 34 en rojo. Los 8 que pasaban son de «no hay nada» (`EMPTY` sin autor y con
+    `ANY`; `withoutAuthor` sin autor; sin chip con autor en blanco; sin chip con `ANY`; `canReset`
+    falso con autor en blanco o `ANY`) o de «piden lo mismo» (autor con otras mayúsculas; autor en
+    blanco = sin autor; misma fecha), que el esqueleto cumplía al ignorar autor y fecha. Tres de
+    `FilterSheetStateTest` que pasaban sin motivo ganaron la comprobación de que el borrador cambia y
+    pasaron a rojo. Además del criterio: un autor con otras tildes pide otra cosa (el backend no las
+    quita); `withPublished(ANY)` quita la fecha; `previewQuery` lleva autor y fecha; `queryToApply`
+    lleva el autor tal como se escribe; `withAuthor` y `withPublished` no tocan sugerencias, «Ver
+    todas» ni recuento.
+  - Tras el 11a-1, `:app:compileDebugKotlin` falló solo en los dos `when` (`FilterBar.kt:43` y
+    `SearchViewModel.kt:119`: «Add the 'is Author', 'is Published' branches»), como se esperaba.
+  - **11a-2 (`app`).** `FilterTexts.kt`: `authorChipLabel`, `publishedLabel` (`when` sin `else`),
+    `removeAuthorFilterDescription` y `removePublishedFilterDescription` (la fecha en minúsculas); las
+    tres lecturas «Quitar filtro …» comparten una función privada `removeFilter`. `FilterBar.kt`: el
+    `when` da el texto y la lectura de cada chip y hay un solo `RemovableFilterChip`.
+    `onRemoveFilter`: `Author` → `withoutAuthor()`; `Published` → `withPublished(ANY)`.
+  - Tests nuevos: `FilterTextsTest` 7 (24 en total; «Cualquiera» no tiene chip, pero su lectura se
+    prueba), `SearchViewModelFiltersTest` 6 (32) y `ScreenSearchTest` 3 (47: «Filtros, 3 activos» y
+    tres chips; «#grafos», «por Ana» y «Último año»; tocar cada chip avisa con su `ActiveFilter`).
+  - **Para el revisor:** los tests del ViewModel aplican etiquetas y texto, no creador ni fecha: no hay
+    forma de aplicarlos hasta el 11d-2 (decidido en el chat). Prueban que quitar esos chips busca al
+    momento con el texto de la caja, conserva las etiquetas y cancela la espera, pero **no** que el
+    creador o la fecha desaparezcan de la consulta aplicada (eso lo prueban `withoutAuthor` y
+    `withPublished(ANY)` en `CourseQueryTest`). **El 11d-2 debería añadir ese test** con creador y
+    fecha aplicados.
+  - Nota (fuera de la tarea, sin tocar): dos nombres de test de `FilterSheetStateTest` llevan coma
+    (`count is unknown when what is applied failed, there is no total to show` y `cancelPreview keeps a
+    failed preview, so it is not retried on its own`). En JVM compilan, pero el IDE los marca como
+    error (la coma no vale en nombres para iOS). Los tests nuevos no llevan comas.
+  - `./gradlew :sharedLogic:testAndroidHostTest :sharedLogic:compileKotlinIosSimulatorArm64` (569
+    tests), `:app:testDebugUnitTest` y `:app:connectedDebugAndroidTest` **completo** en el emulador
+    Pixel_9a (139 tests; TalkBack apagado, sin el *Layout Inspector* y sin tocarlo) pasan, sin avisos
+    nuevos. Previews sin cambios (`FiltersAppliedPreview` no se toca, decidido en el chat).
+- 2026-11-23: **paso 11a revisado.** `:sharedLogic:testAndroidHostTest`,
+  `:sharedLogic:compileKotlinIosSimulatorArm64` y `:app:testDebugUnitTest` pasan sin avisos; los de
+  emulador se aceptan por el informe (no había emulador conectado al revisar).
+  - Código como el plan (A–D). Se mantienen: el renombre también en `TagSuggestions.kt` (faltaba en la
+    lista del plan); un solo `RemovableFilterChip` en `FilterBar`, con el `when` dando texto y lectura;
+    `removeFilter` privado común; `withoutFilters()` como `CourseQuery(text = text)`; y los tests
+    añadidos (tildes en el autor, `withPublished(ANY)`, la lectura de «Cualquiera»…).
+  - La nota para el revisor se acepta: con lo que hay hoy, el ViewModel no puede aplicar creador ni
+    fecha. El test que falta pasa a la lista del **11d-2**.
+  - Fuera de la tarea, añadido a «Pendiente»: los nombres de test con coma no compilan para iOS.
 
 ## Siguiente paso
 
-Fase 2: la tarea 10 (backend) está hecha y la 11 (app), detallada. Siguiente: el paso 11a (11a-1 y
-11a-2) en un chat nuevo con Sonnet.
+Fase 2: la tarea 10 (backend) está hecha. Tarea 11: el paso 11a está hecho y revisado. Siguiente:
+el paso 11b (red), en un chat nuevo con Sonnet.
+
+## Pendiente (fuera de esta tarea)
+
+- **Los tests de `sharedLogic` no compilan para iOS** (`:sharedLogic:compileTestKotlinIosSimulatorArm64`):
+  34 nombres de test con `,` o `()` en varios ficheros (por ejemplo `RegisterProblemTest`,
+  `CourseModelTest` y dos de `FilterSheetStateTest`). Kotlin/Native no los admite; en JVM sí. Ningún
+  test nuevo de la tarea 11 los lleva. Arreglo propuesto: una tarea pequeña que los renombre (sin
+  cambiar lo que prueban) y añada ese comando a las comprobaciones.

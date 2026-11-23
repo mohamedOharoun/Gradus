@@ -4,6 +4,7 @@ import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.course.FakeCourseGateway
 import es.ulpgc.pamn.dominio.course.search.ActiveFilter
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.applyTags
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.catalog
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.catalogOf
@@ -11,6 +12,7 @@ import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.course
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.currentTime
 import kotlinx.coroutines.test.resetMain
@@ -368,5 +370,83 @@ class SearchViewModelFiltersTest {
         runCurrent()
         assertEquals(emptyList<ActiveFilter>(), viewModel.search.query.activeFilters)
         assertEquals(4, viewModel.search.results.size)
+    }
+
+    // --- Quitar el chip del creador o de la fecha (tarea 11a-2) ---
+    // Hoy el ViewModel aún no puede aplicar un creador ni una fecha (onAuthorChange y onPublishedChange
+    // llegan en el 11d-2), así que estos tests aplican etiquetas y texto. Que el chip quite de verdad el
+    // creador o la fecha lo prueban `withoutAuthor` y `withPublished(ANY)` en CourseQueryTest.
+
+    private val authorChip = ActiveFilter.Author("Ana")
+    private val dateChip = ActiveFilter.Published(PublishedWithin.LAST_YEAR)
+
+    @Test
+    fun `removing the author chip searches at once with the text in the box`() = runTest {
+        removingSearchesAtOnceWithTheText(authorChip)
+    }
+
+    @Test
+    fun `removing the date chip searches at once with the text in the box`() = runTest {
+        removingSearchesAtOnceWithTheText(dateChip)
+    }
+
+    @Test
+    fun `removing the author chip keeps the tags`() = runTest {
+        removingKeepsTheTags(authorChip)
+    }
+
+    @Test
+    fun `removing the date chip keeps the tags`() = runTest {
+        removingKeepsTheTags(dateChip)
+    }
+
+    @Test
+    fun `removing the author chip cancels the pending typing wait`() = runTest {
+        removingCancelsTheTypingWait(authorChip)
+    }
+
+    @Test
+    fun `removing the date chip cancels the pending typing wait`() = runTest {
+        removingCancelsTheTypingWait(dateChip)
+    }
+
+    private fun TestScope.removingSearchesAtOnceWithTheText(chip: ActiveFilter) {
+        val gateway = FakeCourseGateway(searchAnswer = catalog())
+        val viewModel = SearchViewModel(gateway)
+        runCurrent()
+        applyTags(viewModel, "redes")
+        viewModel.onTextChange("grafos")
+        val before = currentTime
+        viewModel.onRemoveFilter(chip)
+        runCurrent()
+        assertEquals(CourseQuery(text = "grafos", tags = listOf("redes")) to 0, gateway.searches.last())
+        assertEquals(before, currentTime)
+    }
+
+    private fun TestScope.removingKeepsTheTags(chip: ActiveFilter) {
+        val viewModel = SearchViewModel(FakeCourseGateway(searchAnswer = catalog()))
+        runCurrent()
+        applyTags(viewModel, "grafos", "algoritmos")
+        viewModel.onRemoveFilter(chip)
+        runCurrent()
+        assertEquals(CourseQuery(tags = listOf("grafos", "algoritmos")), viewModel.search.query)
+        assertEquals(listOf("grafos-1", "arboles-1"), viewModel.search.results.map(CourseSummary::id))
+    }
+
+    // La búsqueda tecleada ya va incluida: tras la pausa no se busca otra vez.
+    private fun TestScope.removingCancelsTheTypingWait(chip: ActiveFilter) {
+        val gateway = FakeCourseGateway(searchAnswer = catalog())
+        val viewModel = SearchViewModel(gateway)
+        runCurrent()
+        applyTags(viewModel, "redes")
+        viewModel.onTextChange("grafos")
+        viewModel.onRemoveFilter(chip)
+        advanceUntilIdle()
+        val expected = listOf(
+            CourseQuery.EMPTY to 0,
+            CourseQuery(tags = listOf("redes")) to 0,
+            CourseQuery(text = "grafos", tags = listOf("redes")) to 0,
+        )
+        assertEquals(expected, gateway.searches)
     }
 }
