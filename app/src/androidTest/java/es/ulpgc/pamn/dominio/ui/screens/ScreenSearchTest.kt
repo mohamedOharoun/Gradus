@@ -197,7 +197,7 @@ class ScreenSearchTest {
         show(tagAuthorAndDate)
 
         composeRule.onNodeWithText("#grafos", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("por Ana", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Creador: Ana", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Último año", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
     }
 

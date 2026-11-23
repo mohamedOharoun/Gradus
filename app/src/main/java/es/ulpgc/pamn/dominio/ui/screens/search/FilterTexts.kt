@@ -59,8 +59,9 @@ const val CLEAR_CREATOR_DESCRIPTION = "Borrar creador"
 // no tiene etiqueta en el campo y el título hace de ella.
 const val PUBLISHED_SECTION_TITLE = "Fecha de publicación"
 
-// Lo que se ve en el chip del creador: «por Ana», como «por Ana Ruiz» en la tarjeta.
-fun authorChipLabel(name: String): String = "por $name"
+// Lo que se ve en el chip del creador: «Creador: Ana», con la palabra del título de la sección.
+// (Antes era «por Ana», como la tarjeta, pero en la prueba a mano no quedaba claro.)
+fun authorChipLabel(name: String): String = "$CREATOR_FIELD_DESCRIPTION: $name"
 
 // Lo que lee TalkBack en el chip del creador: dice de qué filtro se trata, no solo el nombre.
 fun removeAuthorFilterDescription(name: String): String = removeFilter("creador $name")

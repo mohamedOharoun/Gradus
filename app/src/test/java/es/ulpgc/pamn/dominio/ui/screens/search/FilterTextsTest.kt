@@ -108,13 +108,13 @@ class FilterTextsTest {
     // --- Creador (tarea 11a-2) ---
 
     @Test
-    fun `the author chip says por and the name like the course card`() {
-        assertEquals("por Ana", authorChipLabel("Ana"))
+    fun `the author chip starts with Creador like the sheet section`() {
+        assertEquals("Creador: Ana", authorChipLabel("Ana"))
     }
 
     @Test
     fun `the author chip keeps capitals accents and inner spaces`() {
-        assertEquals("por Ángel Ruiz", authorChipLabel("Ángel Ruiz"))
+        assertEquals("Creador: Ángel Ruiz", authorChipLabel("Ángel Ruiz"))
     }
 
     @Test

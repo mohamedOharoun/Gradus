@@ -14,41 +14,36 @@ los commits). Es una foto del 2026-11-21: si no coincide con el Figma, manda el 
 (tareas 1–9, con las decisiones con letra de cada tarea que citan los comentarios del código) y el de la
 fase 2 hasta el paso 11c. Solo hace falta abrirlo para entender una decisión antigua.
 
-Estado: fase 1 terminada (2026-11-22). Fase 2: tarea 10 (backend) hecha; tarea 11 (app) en curso.
+Estado: **terminada** (2026-11-23). Fase 1 (tareas 1–9) el 2026-11-22; fase 2 (tarea 10, backend, y
+tarea 11, app) el 2026-11-23. Queda «Pendiente» (al final), que es de otra tarea.
 
 ## Relevo
 
 Lo que necesita quien coja la tarea (orquestador o revisor). **Se reescribe** al terminar cada sesión;
 no se acumula.
 
-- **Dónde estamos (2026-11-23):** tarea 11, pasos 11a a 11d-2 hechos y revisados. El 11d-2 está
-  pendiente del commit de los usuarios (el último con commit es `64c5dbf`, 11d-1). Toca el **11e**
-  (cierre). Con el 11d-2 la hoja ya funciona entera: el campo «Creador» enseña lo que se escribe y
-  creador y fecha cuentan, se aplican y se quitan.
-- **Al empezar:** leer `AGENTS.md`, este Relevo y la tarea 11 (más abajo). El resto del documento y el
-  histórico, solo si hacen falta.
-- **Decidido para el 11e (2026-11-23):**
-  - **Cuenta del emulador:** la usan los usuarios, que tienen una cuenta de prueba propia. La
-    contraseña no se escribe en el repositorio ni se pasa a los chats. Los chats no inician sesión ni
-    tocan el servidor ni la base de desarrollo: la batería de tests no lo necesita.
-  - **La limpieza de tests entra en el 11e** como primer paso. Es un cambio solo de tests y de poco
-    riesgo: mueve a `SearchTestCatalog` dos ayudantes repetidos tal cual y reescribe `applyTags` con
-    `applyDraft`. Se comprueba con el mismo número de tests antes y después.
-- **Abierto:**
-  - Fuera de la tarea: «Explorar cursos sin cuenta» (bienvenida) no hace nada. Solo apuntado.
+- **Dónde estamos (2026-11-23):** la búsqueda de cursos está **terminada**: las tareas 1–11, hechas,
+  revisadas y probadas a mano por los usuarios. Esta tarea no tiene más pasos. Si se vuelve a ella
+  (un fallo o una mejora), se abre un paso nuevo aquí o una tarea nueva en `docs/tareas/`.
+- **Al empezar:** leer `AGENTS.md` y este Relevo. El resto del documento y el histórico, solo si
+  hacen falta.
+- **Último cambio de la tarea:** tras la prueba a mano, el chip del creador dice `Creador: Ana` y no
+  `por Ana` (decisión C). El texto sale de `authorChipLabel` en `FilterTexts.kt`, que reutiliza
+  `CREATOR_FIELD_DESCRIPTION`.
+- **Abierto (fuera de esta tarea):**
+  - «Explorar cursos sin cuenta» (bienvenida) no hace nada. Solo apuntado: sería una tarea nueva
+    (Buscar sin sesión).
   - «Pendiente» (abajo): los tests de `sharedLogic` no compilan para iOS. Tarea aparte, sin fecha.
-- **El 11e:** un chat con Sonnet y esfuerzo medio hace la limpieza, lanza la batería completa y
-  actualiza la especificación y la tabla del Figma. No hace falta Opus porque no hay código nuevo.
-  Después, los usuarios hacen la prueba a mano, no a la vez que la batería, porque comparten emulador.
-  Por último, quien revisa marca la tarea 11 y deja el Relevo final.
-- **Qué mirar al revisar el 11e:**
-  - Que pasen todos los comandos: `:sharedLogic:testAndroidHostTest`,
-    `:sharedLogic:compileKotlinIosSimulatorArm64`, `:app:testDebugUnitTest`, `:app:lintDebug` y
-    `:app:connectedDebugAndroidTest` **completo**.
-  - `docs/especificacion.md` §5 Buscar sin «fase 2».
-  - En este documento: la cabecera («Estado»), las filas de Creador y Fecha de la tabla del Figma, la
-    casilla de la tarea 11 y un Relevo final.
-  - Que nadie haya tocado la base de desarrollo sin permiso.
+  - Fuera de alcance, por si se retoma: valoraciones («★», «Mejor valorados», «Ordenar por»),
+    «Inscrito» (con Mis cursos y Room), idioma e historial.
+- **Lo que sirve para otras tareas:**
+  - **La cuenta del emulador:** la prueba a mano la hacen los usuarios con su cuenta de prueba. La
+    contraseña no se escribe en el repositorio ni se pasa a los chats.
+  - **Las comprobaciones:** con `--rerun` cuando haga falta que los tests se ejecuten de verdad (sin
+    él, Gradle puede saltarlos como `UP-TO-DATE`). `--rerun` solo afecta al comando que va justo
+    antes.
+  - **La plantilla y los acuerdos de abajo** sirven tal cual para la próxima funcionalidad: se
+    copian a su documento de tarea cambiando el nombre.
 - **Mensajes a los chats que implementan** (plantilla; se adapta en cada caso):
   1. Rol y paso: «Eres quien implementa el paso X de la búsqueda de cursos de Gradus».
   2. Qué leer: `AGENTS.md`, este Relevo y el paso X; **la lista de ficheros que se tocan** y, si hace
@@ -62,7 +57,8 @@ no se acumula.
 - **Acuerdos de proceso:**
   - Que un paso esté detallado en este documento **no** significa que esté aprobado para implementar:
     quien implementa propone y espera el OK (`AGENTS.md`).
-  - La batería completa del emulador se lanza al cierre de la tarea (11e), no en cada paso.
+  - La batería completa del emulador se lanza al cierre de la tarea (aquí fue el 11e), no en cada
+    paso.
   - Sonnet con esfuerzo medio para lógica pura y componentes; esfuerzo alto para corrutinas,
     concurrencia o cambios de contrato.
   - Sin permiso, nada se escribe en la base de desarrollo (cuentas, cursos).
@@ -215,7 +211,7 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
     mayúsculas y sin quitar tildes; `published=month|year` cuenta desde la misma hora de hace un mes o un
     año, en UTC; un `published` no válido da 400 `INVALID_PARAMETER`.
 
-11. **App: creador y fecha** (decisiones A–I aprobadas el 2026-11-23). Contrato:
+11. ✅ **Hecha (2026-11-23).** **App: creador y fecha** (decisiones A–I aprobadas el 2026-11-23). Contrato:
     `backend/docs/api-cursos.md` (`author` y `published=month|year`). Diseño: «4 · Buscar con filtros»
     (secciones Creador y Fecha de publicación). `ApiErrorCode` ya tiene `INVALID_PARAMETER`: no hay nada
     que hacer ahí.
@@ -231,8 +227,10 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
       se compara sin mayúsculas ni espacios de sobra (como lo normaliza el backend), con la misma regla
       que las etiquetas: `tagKey` se renombró a `searchKey`.
     - **C. Chips de la fila:** en el orden etiquetas → creador → fecha (el de las secciones de la hoja).
-      Se ven `#grafos`, `por Ana` (como «por Ana Ruiz» de la tarjeta) y `Último año`. TalkBack lee
-      «Quitar filtro creador Ana» y «Quitar filtro último año». Cada uno suma 1 en «Filtros n».
+      Se ven `#grafos`, `Creador: Ana` (la palabra del título de la sección) y `Último año`. TalkBack
+      lee «Quitar filtro creador Ana» y «Quitar filtro último año». Cada uno suma 1 en «Filtros n».
+      *Cambiado el 2026-11-23 tras la prueba a mano:* antes era `por Ana`, como «por Ana Ruiz» de la
+      tarjeta, pero en el chip «por» no se entendía.
     - **D. «Restablecer»** vacía etiquetas, creador y fecha y conserva el texto (decisión 7). Se puede
       pulsar si el borrador tiene cualquier filtro.
     - **E. Campo «Creador» (`CreatorField`):** icono de persona decorativo, texto de ayuda «Nombre del
@@ -288,7 +286,7 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
       dos acciones nuevas al ViewModel; y, **con creador y fecha aplicados**, quitar su chip los quita de
       la consulta aplicada y conserva lo demás.
 
-    **11e · Cierre** (Sonnet, esfuerzo medio; la prueba a mano, los usuarios).
+    **11e · Cierre** (Sonnet, esfuerzo medio; la prueba a mano, los usuarios). ✅ **Hecho (2026-11-23).**
     - **Limpieza de tests** (aprobada el 2026-11-23), sin cambiar lo que prueban: `opened()` y
       `draftCount()` pasan de `SearchViewModelPreviewTest` y `SearchViewModelAuthorPublishedTest` a
       `SearchTestCatalog`; `applyTags` se escribe con `applyDraft`. Mismo número de tests antes y después.
@@ -298,7 +296,7 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
       quien revisa, después de la prueba a mano.
     - A mano en el emulador, con el servidor (`gradus.sh up`), por los usuarios y con su cuenta de prueba,
       **después** de la batería: «autora» da resultados y «luis», «Ningún curso coincide»; mes y año
-      dan todos (en la base todos son recientes); chips «por …» y «Último año» y quitarlos;
+      dan todos (en la base todos son recientes); chips «Creador: …» y «Último año» y quitarlos;
       «Restablecer»; TalkBack (secciones, botones de opción, chips); modo oscuro; el teclado no tapa el
       campo.
 
@@ -371,6 +369,11 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
     `--rerun` porque salían `UP-TO-DATE` (el módulo no cambió).
   - Especificación §5 y filas Creador y Fecha de la tabla del Figma, al día. Ni sesión ni servidor ni
     base de desarrollo.
+- 2026-11-23: **11e revisado.** Informe del emulador comprobado (185, sin fallos). Prueba a mano de los
+  usuarios con su cuenta: todo bien salvo el chip del creador, que con «por Ana» no se entendía.
+  Cambiado a «Creador: Ana» (decisión C); lo hizo el orquestador, con el OK de los usuarios.
+  `:app:testDebugUnitTest` y `:app:lintDebug` pasan y, en el emulador, `ScreenSearchTest` (47) también.
+  **Tarea 11 y búsqueda de cursos terminadas.**
 
 ## Pendiente (fuera de esta tarea)
 
