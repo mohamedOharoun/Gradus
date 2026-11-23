@@ -3,6 +3,7 @@ package es.ulpgc.pamn.dominio.course.http
 import es.ulpgc.pamn.dominio.account.http.gradusHttpClient
 import es.ulpgc.pamn.dominio.account.http.json
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 // «*» y no `...course.search`: ese nombre es también el subpaquete `course.search`, y no se puede
 // importar la extensión `search(text)` por su nombre.
 import es.ulpgc.pamn.dominio.course.*
@@ -24,6 +25,13 @@ class HttpCourseGatewayTest {
 
     private fun gatewayAnswering(handler: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData) =
         HttpCourseGateway(gradusHttpClient(MockEngine(handler)), baseUrl = "http://test")
+
+    // Hace una búsqueda y devuelve la petición que llegó al servidor.
+    private suspend fun sentBySearching(query: CourseQuery, page: Int = 0): HttpRequestData {
+        var sent: HttpRequestData? = null
+        gatewayAnswering { sent = it; json(HttpStatusCode.OK, EMPTY_PAGE) }.search(query, page)
+        return sent!!
+    }
 
     // ── Búsqueda: la petición ──
 
@@ -71,6 +79,61 @@ class HttpCourseGatewayTest {
         assertEquals("recorridos", sent?.url?.parameters?.get("q"))
         assertEquals(listOf("grafos"), sent?.url?.parameters?.getAll("tag"))
         assertEquals("1", sent?.url?.parameters?.get("page"))
+    }
+
+    // ── Búsqueda: creador y fecha ──
+
+    @Test
+    fun `the author is sent trimmed`() = runTest {
+        val sent = sentBySearching(CourseQuery(author = "  Ana Ruiz "))
+        assertEquals("Ana Ruiz", sent.url.parameters["author"])
+    }
+
+    @Test
+    fun `a blank author is not sent`() = runTest {
+        val sent = sentBySearching(CourseQuery(author = "   "))
+        assertTrue("author" !in sent.url.parameters.names())
+    }
+
+    @Test
+    fun `the author keeps its accents`() = runTest {
+        val sent = sentBySearching(CourseQuery(author = "Ángel"))
+        assertEquals("Ángel", sent.url.parameters["author"])
+    }
+
+    // Solo se recorta: ordenar los espacios de dentro lo hace el backend.
+    @Test
+    fun `the author keeps its inner spaces as typed`() = runTest {
+        val sent = sentBySearching(CourseQuery(author = "Ana   Ruiz"))
+        assertEquals("Ana   Ruiz", sent.url.parameters["author"])
+    }
+
+    @Test
+    fun `last month is sent as published month`() = runTest {
+        val sent = sentBySearching(CourseQuery(published = PublishedWithin.LAST_MONTH))
+        assertEquals("month", sent.url.parameters["published"])
+    }
+
+    @Test
+    fun `last year is sent as published year`() = runTest {
+        val sent = sentBySearching(CourseQuery(published = PublishedWithin.LAST_YEAR))
+        assertEquals("year", sent.url.parameters["published"])
+    }
+
+    // «Cualquier fecha» = no enviar el parámetro (backend/docs/api-cursos.md).
+    @Test
+    fun `any date does not send published`() = runTest {
+        val sent = sentBySearching(CourseQuery(published = PublishedWithin.ANY))
+        assertTrue("published" !in sent.url.parameters.names())
+    }
+
+    // El orden de la URL: q, tag (uno por etiqueta), author, published, page y size.
+    @Test
+    fun `every parameter is sent in order`() = runTest {
+        val query = CourseQuery(text = " redes ", author = " Ana ", published = PublishedWithin.LAST_YEAR)
+            .toggleTag("grafos").toggleTag("arboles")
+        val sent = sentBySearching(query, page = 3)
+        assertEquals("q=redes&tag=grafos&tag=arboles&author=Ana&published=year&page=3&size=20", sent.url.encodedQuery)
     }
 
     // ── Búsqueda: las respuestas ──

@@ -5,6 +5,7 @@ import es.ulpgc.pamn.dominio.course.CourseGateway
 import es.ulpgc.pamn.dominio.course.CourseOutcome
 import es.ulpgc.pamn.dominio.course.SearchOutcome
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
@@ -51,10 +52,18 @@ internal class HttpCourseGateway(
             }
         }
 
-    // Mapper: CourseQuery → parámetros de la URL (q recortado solo si hay texto; un tag por etiqueta).
+    // Mapper: CourseQuery → parámetros de la URL, en este orden: q (recortado, solo si hay texto), un tag
+    // por etiqueta, author (recortado, solo si hay creador) y published (month o year; con ANY, nada).
     private fun URLBuilder.appendSearch(query: CourseQuery) {
         if (query.hasText) parameters.append("q", query.text.trim())
         query.tags.forEach { parameters.append("tag", it) }
+        if (query.hasAuthor) parameters.append("author", query.author.trim())
+        // Sin else: si el enum gana un valor, esto deja de compilar hasta decidir qué se manda.
+        when (query.published) {
+            PublishedWithin.ANY -> Unit
+            PublishedWithin.LAST_MONTH -> parameters.append("published", "month")
+            PublishedWithin.LAST_YEAR -> parameters.append("published", "year")
+        }
     }
 
     private companion object {

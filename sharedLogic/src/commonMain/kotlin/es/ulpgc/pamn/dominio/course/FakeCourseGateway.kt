@@ -32,9 +32,14 @@ class FakeCourseGateway(
 
 private const val FAKE_PAGE_SIZE = 20
 
+// Todos los cursos del gateway falso son de este autor.
+private const val FAKE_AUTHOR_NAME = "Autor de prueba"
+
+// Filtra por texto, etiquetas y creador. La fecha (`query.published`) se ignora (decisión G): sin reloj
+// en commonMain, filtrarla exigiría kotlinx-datetime, una dependencia nueva.
 private fun searchIn(courses: List<Course>, query: CourseQuery, page: Int): SearchOutcome {
     val matches = courses
-        .filter { it.matchesText(query) && it.hasAllTagsOf(query) }
+        .filter { it.matchesText(query) && it.hasAllTagsOf(query) && matchesAuthor(query) }
         .map { it.toFakeSummary() }
     val items = matches.drop(page * FAKE_PAGE_SIZE).take(FAKE_PAGE_SIZE)
     return SearchOutcome.Found(CoursePage(items = items, page = page, size = FAKE_PAGE_SIZE, total = matches.size))
@@ -52,10 +57,15 @@ private fun Course.hasAllTagsOf(query: CourseQuery): Boolean {
     return query.tags.all { it.searchKey() in own }
 }
 
+// El creador es una subcadena del nombre, con la misma regla que CourseQuery (sin mayúsculas ni espacios
+// de sobra, sin quitar tildes). En blanco no filtra.
+private fun matchesAuthor(query: CourseQuery): Boolean =
+    !query.hasAuthor || FAKE_AUTHOR_NAME.searchKey().contains(query.author.searchKey())
+
 private fun Course.toFakeSummary() = CourseSummary(
     id = id,
     version = 1,
-    author = Author(id = "fake-author", name = "Autor de prueba"),
+    author = Author(id = "fake-author", name = FAKE_AUTHOR_NAME),
     publishedAt = "2026-01-01T00:00:00Z",
     title = title,
     description = description,

@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.course
 
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -66,6 +67,55 @@ class FakeCourseGatewayTest {
     fun `tags are compared ignoring case and extra spaces`() = runTest {
         val tagged = FakeCourseGateway(listOf(Course("a", "A", emptyList(), tags = listOf("Grafos"))))
         assertEquals(listOf("a"), found(tagged.search(CourseQuery().toggleTag("  grafos "))).map { it.id })
+    }
+
+    // ── Creador y fecha ──
+
+    @Test
+    fun `an author that is part of the name finds every course`() = runTest {
+        assertEquals(listOf("g", "t"), found(gateway.search(CourseQuery(author = "PRUEBA"))).map { it.id })
+    }
+
+    @Test
+    fun `an author that is not in the name finds nothing`() = runTest {
+        assertTrue(found(gateway.search(CourseQuery(author = "luis"))).isEmpty())
+    }
+
+    @Test
+    fun `a blank author does not filter`() = runTest {
+        assertEquals(listOf("g", "t"), found(gateway.search(CourseQuery(author = "   "))).map { it.id })
+    }
+
+    @Test
+    fun `the author is compared ignoring case and extra spaces`() = runTest {
+        assertEquals(listOf("g", "t"), found(gateway.search(CourseQuery(author = " autor   DE prueba "))).map { it.id })
+        assertTrue(found(gateway.search(CourseQuery(author = "autor  de  luis"))).isEmpty())
+    }
+
+    // Como el backend: no quita tildes.
+    @Test
+    fun `the author is compared without removing accents`() = runTest {
+        assertEquals(listOf("g", "t"), found(gateway.search(CourseQuery(author = "prueba"))).map { it.id })
+        assertTrue(found(gateway.search(CourseQuery(author = "pruébá"))).isEmpty())
+    }
+
+    @Test
+    fun `the author and the text must both match`() = runTest {
+        assertEquals(listOf("t"), found(gateway.search(CourseQuery(text = "árboles", author = "prueba"))).map { it.id })
+        assertTrue(found(gateway.search(CourseQuery(text = "árboles", author = "luis"))).isEmpty())
+    }
+
+    // Sin reloj en commonMain no se puede filtrar por fecha (haría falta kotlinx-datetime): se ignora.
+    @Test
+    fun `the published date is ignored`() = runTest {
+        PublishedWithin.entries.forEach { within ->
+            assertEquals(listOf("g", "t"), found(gateway.search(CourseQuery(published = within))).map { it.id })
+        }
+    }
+
+    @Test
+    fun `every result has the fixed test author`() = runTest {
+        assertEquals(listOf("Autor de prueba"), found(gateway.search("")).map { it.author.name }.distinct())
     }
 
     @Test

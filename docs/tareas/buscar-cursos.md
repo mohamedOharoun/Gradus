@@ -992,7 +992,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
     - `ScreenSearchTest` (emulador): con etiqueta, creador y fecha aplicados se ven «#grafos», «por
       Ana» y «Último año» y «Filtros, 3 activos»; tocar cada chip avisa con su `ActiveFilter`.
 
-    **11b · Red** (Sonnet, test primero).
+    **11b · Red** (Sonnet, test primero). ✅ **Hecho (2026-11-23).**
     - `HttpCourseGateway.appendSearch`: tras las etiquetas, `author` (recortado) si `hasAuthor`, y
       `published` con un `when` sin `else` (`ANY` no manda nada; `LAST_MONTH` → `month`; `LAST_YEAR` →
       `year`).
@@ -1511,11 +1511,33 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   - La nota para el revisor se acepta: con lo que hay hoy, el ViewModel no puede aplicar creador ni
     fecha. El test que falta pasa a la lista del **11d-2**.
   - Fuera de la tarea, añadido a «Pendiente»: los nombres de test con coma no compilan para iOS.
+- 2026-11-23: **paso 11b hecho, pendiente de revisión.**
+  - `HttpCourseGateway.appendSearch`: tras las etiquetas, `author` (recortado) si `hasAuthor` y
+    `published` con un `when` sin `else` (`ANY` no manda nada; `LAST_MONTH` → `month`; `LAST_YEAR` →
+    `year`). Las palabras de la API solo están en este fichero.
+  - `FakeCourseGateway`: constante privada `FAKE_AUTHOR_NAME` («Autor de prueba») usada en
+    `toFakeSummary`; `matchesAuthor` compara con `searchKey` (subcadena; en blanco no filtra). La fecha
+    se ignora, con comentario (decisión G).
+  - Tests nuevos: `HttpCourseGatewayTest` 8 (27 en total) y `FakeCourseGatewayTest` 8 (16). Contra el
+    código de antes (que ignoraba autor y fecha, sin esqueleto aparte), 10 de 16 en rojo. Los 6 que ya
+    pasaban son de «no hay nada» o de «se ignora»: autor en blanco no se manda; `ANY` no manda
+    `published`; «PRUEBA» encuentra todos; autor en blanco no filtra; la fecha se ignora; el autor fijo.
+  - Además del criterio (decididos en el chat): `HttpCourseGatewayTest`: el autor conserva tildes y
+    espacios de dentro (solo se recorta). `FakeCourseGatewayTest`: autor sin distinguir mayúsculas ni
+    espacios de sobra, sin quitar tildes, y combinado con el texto.
+  - El orden de los parámetros se prueba comparando `url.encodedQuery` entera.
+  - `./gradlew :sharedLogic:testAndroidHostTest :sharedLogic:compileKotlinIosSimulatorArm64
+    :app:testDebugUnitTest` pasan, sin avisos nuevos.
+- 2026-11-23: **paso 11b revisado.** Los mismos tres comandos pasan, sin avisos. El mapper hace lo
+  que dicen `api-cursos.md` y las decisiones A, B y G: `author` recortado y solo si hay creador;
+  `published` con un `when` sin `else`; el orden de la URL, probado entero con `encodedQuery`. Cada punto
+  de la lista tiene su test; los añadidos (tildes y espacios de dentro en el autor; mayúsculas, tildes y
+  texto + autor en el falso) se mantienen. Ningún nombre de test nuevo lleva comas ni paréntesis.
 
 ## Siguiente paso
 
-Fase 2: la tarea 10 (backend) está hecha. Tarea 11: el paso 11a está hecho y revisado. Siguiente:
-el paso 11b (red), en un chat nuevo con Sonnet.
+Fase 2: la tarea 10 (backend) está hecha. Tarea 11: los pasos 11a y 11b están hechos y revisados.
+Siguiente: el 11c (componentes), en un chat nuevo con Sonnet.
 
 ## Pendiente (fuera de esta tarea)
 
