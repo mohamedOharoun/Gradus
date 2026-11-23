@@ -9,6 +9,8 @@ import es.ulpgc.pamn.dominio.course.search.PublishedWithin.LAST_MONTH
 import es.ulpgc.pamn.dominio.course.search.PublishedWithin.LAST_YEAR
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.applyDraft
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.catalog
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.draftCount
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.opened
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchViewModel.Companion.TYPING_PAUSE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -340,14 +342,6 @@ class SearchViewModelAuthorPublishedTest {
 
     // --- Ayudantes ---
 
-    // Buscar con el catálogo cargado y la hoja abierta (como en SearchViewModelPreviewTest).
-    private fun TestScope.opened(gateway: CourseGateway): SearchViewModel {
-        val viewModel = SearchViewModel(gateway)
-        advanceUntilIdle()
-        viewModel.onOpenFilters()
-        return viewModel
-    }
-
     // Texto, una etiqueta, creador y fecha, todo aplicado.
     private fun TestScope.withEverythingApplied(gateway: CourseGateway): SearchViewModel {
         val viewModel = SearchViewModel(gateway)
@@ -365,9 +359,6 @@ class SearchViewModelAuthorPublishedTest {
         )
         return viewModel
     }
-
-    // Lo que dice el botón, calculado como en ScreenSearch.
-    private fun SearchViewModel.draftCount(): DraftCount = filters!!.count(text, search)
 
     private companion object {
         val LATENCY = 100.milliseconds

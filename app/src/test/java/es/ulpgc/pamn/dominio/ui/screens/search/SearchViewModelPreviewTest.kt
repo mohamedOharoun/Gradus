@@ -1,6 +1,5 @@
 package es.ulpgc.pamn.dominio.ui.screens.search
 
-import es.ulpgc.pamn.dominio.course.CourseGateway
 import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.course.FakeCourseGateway
 import es.ulpgc.pamn.dominio.course.SearchOutcome
@@ -9,11 +8,12 @@ import es.ulpgc.pamn.dominio.course.search.DraftCount
 import es.ulpgc.pamn.dominio.course.search.SearchStatus
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.applyTags
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.catalog
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.draftCount
+import es.ulpgc.pamn.dominio.ui.screens.search.SearchTestCatalog.opened
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchViewModel.Companion.TYPING_PAUSE
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
-import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -386,17 +386,6 @@ class SearchViewModelPreviewTest {
     }
 
     // --- Ayudantes ---
-
-    // Buscar con el catálogo cargado y la hoja abierta. Extensión de TestScope para usar runCurrent.
-    private fun TestScope.opened(gateway: CourseGateway): SearchViewModel {
-        val viewModel = SearchViewModel(gateway)
-        advanceUntilIdle()
-        viewModel.onOpenFilters()
-        return viewModel
-    }
-
-    // Lo que dice el botón, calculado como en ScreenSearch.
-    private fun SearchViewModel.draftCount(): DraftCount = filters!!.count(text, search)
 
     // El catálogo entero responde; cualquier búsqueda con etiquetas falla (para el recuento).
     private fun failingWithTags(): (CourseQuery, Int) -> SearchOutcome {

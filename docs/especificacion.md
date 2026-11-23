@@ -72,8 +72,8 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
 - **Inicio:** saludo, repasos de hoy, curso en progreso y cursos inscritos con su porcentaje.
 - **Buscar:**
   - Búsqueda por título o descripción mientras se escribe, con el número de resultados.
-  - Filtros en una hoja inferior: etiquetas (varias). En la fase 2, también creador y fecha de
-    publicación (cualquiera, último mes, último año).
+  - Filtros en una hoja inferior: etiquetas (varias), creador y fecha de publicación
+    (cualquiera, último mes, último año).
   - Orden fijo: los más recientes primero. «Mejor valorados» llegará cuando haya valoraciones;
     no hay orden por relevancia.
   - Los filtros activos se ven como chips que se pueden quitar.

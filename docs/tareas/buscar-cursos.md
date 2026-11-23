@@ -97,8 +97,8 @@ no se acumula.
 | «oct 2026» | `publishedAt` | Fase 1 |
 | Etiquetas (varias) | `tag` repetible; el curso debe tenerlas **todas** | Fase 1 |
 | «Ver todas» (lista de etiquetas) | no hay ruta de etiquetas | Decisión 3 |
-| Creador | `author` (subcadena del nombre) | Fase 2: backend hecho (tarea 10), app en la 11 |
-| Fecha de publicación (cualquiera, último mes, último año) | `published=month\|year` | Fase 2: backend hecho (tarea 10), app en la 11 |
+| Creador | `author` (subcadena del nombre) | Fase 2: backend (tarea 10) y app (tarea 11) |
+| Fecha de publicación (cualquiera, último mes, último año) | `published=month\|year` | Fase 2: backend (tarea 10) y app (tarea 11) |
 | Ordenar: más recientes | orden fijo: más recientes | Sin control mientras sea la única opción |
 | Ordenar: mejor valorados · ★ 4,7 (32) | **no hay valoraciones** | Fuera de alcance |
 | «Relevancia» (hoja y encima de la lista) | — | **Errata del Figma** (decisión 10) |
@@ -360,6 +360,17 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
   teclear varias letras cuenta una vez; está el test pendiente del 11a-2 (quitar el chip de creador o de
   fecha con todo aplicado); `MainNavGraph`, `sharedLogic` y la interfaz no cambian. Se aceptan las
   decisiones de arriba y la limpieza queda como opcional (ver Relevo).
+- 2026-11-23: **11e (batería, limpieza y documentos) hecho, pendiente de revisión.** Falta la prueba a
+  mano de los usuarios.
+  - Limpieza: los tests de `ui/screens/search/` dan 149 antes y después, con las mismas cifras por
+    clase y sin fallos (`--tests '…search.*' --rerun`, informes XML de cada ejecución). `applyTags` es
+    ahora un atajo de `applyDraft`.
+  - Batería: `:sharedLogic:testAndroidHostTest` (585), `:sharedLogic:compileKotlinIosSimulatorArm64`,
+    `:app:testDebugUnitTest` (174) y `:app:lintDebug` pasan; `:app:connectedDebugAndroidTest` completo
+    (Pixel 9a, API 37): 185 tests en 10 clases, sin fallos. Los dos de `sharedLogic` se repitieron con
+    `--rerun` porque salían `UP-TO-DATE` (el módulo no cambió).
+  - Especificación §5 y filas Creador y Fecha de la tabla del Figma, al día. Ni sesión ni servidor ni
+    base de desarrollo.
 
 ## Pendiente (fuera de esta tarea)
 
