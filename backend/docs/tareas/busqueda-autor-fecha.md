@@ -123,7 +123,8 @@ convierte con `Timestamps.toColumn`. Como `SqlParameter` es sellado, el compilad
 Cada paso: **tests primero** (en rojo, después en verde), `mvn test` (o `./gradus.sh test`) en verde y sin
 avisos de compilación nuevos, y una entrada en «Progreso» con la fecha y el número de tests. Al terminar,
 se espera la revisión antes del paso siguiente. Cada comportamiento descrito aquí o en un comentario lleva
-su propio test, aunque ya funcione (la lista de tests es la mínima).
+su propio test, aunque ya funcione (la lista de tests es la mínima). **La casilla `[x]` la marca quien
+revisa, no quien implementa:** quien implementa deja «pendiente de revisión» en «Progreso».
 
 - [x] **10a · Dominio.** `domain/course/PublishedWithin` (nuevo) y `CourseSearch` (decisiones C, D y E);
   `InMemoryCourseRepository` pasa a llamar a `matches(summary)`. Tests en `PublishedWithinTest` (nuevo) y
@@ -168,7 +169,7 @@ su propio test, aunque ya funcione (la lista de tests es la mínima).
 
   *Acepta si:* esos tests pasan, los que ya había siguen pasando y `App` compila con el `Clock`.
 
-- [ ] **10c · SQL.** `SqlParameter.Timestamp`, las dos condiciones en `CourseSearchSql` (decisiones D y F)
+- [x] **10c · SQL.** `SqlParameter.Timestamp`, las dos condiciones en `CourseSearchSql` (decisiones D y F)
   y el caso nuevo en `JdbcCourseRepository.bind`. Tests en `CourseSearchSqlTest`.
   - Tests:
     - Autor → `lower(u.name) LIKE ? ESCAPE '\'` con el patrón escapado («ana_r» → `%ana\_r%`).
@@ -237,6 +238,37 @@ su propio test, aunque ya funcione (la lista de tests es la mínima).
   cumple: `published` en blanco se mira antes de `fromParameter`. El reloj solo se lee si hay ventana.
   `AdjustableClock.withZone` lanza una excepción (los casos de uso solo leen `instant()`): se mantiene.
   El controlador no tiene test automático (§8: los endpoints se prueban con Yaak); lo cubre el 10d.
+- 2026-11-23: **10c hecho, pendiente de revisión.** `SqlParameter.Timestamp(Instant)` (no admite nulo),
+  `CourseSearchSql` añade `lower(u.name) LIKE ? ESCAPE '\'` y `v.published_at >= ?` (en ese orden, tras el
+  idioma) y `JdbcCourseRepository.bind` vincula el `Timestamp` con `Timestamps.toColumn`. Tests: 579 en verde
+  (+6 en `CourseSearchSqlTest`, de 5 a 11), sin avisos (`mvn clean test`). Escritos primero y vistos en rojo
+  (5 fallos) contra un esqueleto que compilaba; el de `Timestamp` nulo ya pasaba, porque el esqueleto era el
+  propio record. Pruebas a mano en `gradus-pg-scratch` (PostgreSQL 18.7, migraciones 001–004, 7 usuarios y
+  12 cursos insertados con SQL y fechas exactas), comparando en `jshell` `JdbcCourseRepository.search` con
+  `CourseSearch.matches` sobre todo el catálogo; 11 comprobaciones en OK (SQL = Specification = lo esperado):
+  - *Locale:* `lower('ÁNGEL ÑÚÑEZ')` = `ángel ñúñez`. En PostgreSQL 16+ ya no existe `current_setting('lc_ctype')`:
+    se leyó `pg_database` (`datlocprovider` `c` = libc, `datctype` `en_US.utf8`, UTF8). La base de desarrollo
+    (solo lectura) tiene lo mismo y su `lower` de `ÁÑ` da `áñ`. Decisión D confirmada, sin `COLLATE`.
+  - Autor: «ángel» y «ÁNGEL NÚÑEZ» encuentran a «Ángel Núñez»; «angel», a nadie; «100% a» encuentra a
+    «100% Ana» y «a%r» a nadie (como comodín encontraría a «Ana Ruiz»); «ana_r» encuentra a «Ana_R» y no a
+    «AnaXR»; «ana ruiz» encuentra a «Ana Ruiz» y no a «Ana␣␣Ruiz» (límite D).
+  - Fecha: desde 2026-10-22T10:00Z entra el curso publicado justo a esa hora y no el de un microsegundo antes;
+    desde un microsegundo antes, entran los dos.
+  - Autor «ana» + etiqueta «grafos» + fecha: solo el curso que cumple las tres.
+  - Paginación con filtro de fecha (páginas de 3, cinco cursos a la misma hora): las páginas 0–4 dan los 10
+    resultados en el orden de la Specification, sin repetir ni saltar, con total 10 en todas.
+  Contenedor desechable borrado.
+- 2026-11-23: **10c revisado.** `mvn clean test`: 579 en verde, sin avisos.
+  - El paso marcó su casilla antes de la revisión (prematuro). Se deja marcada ahora que está revisado, y
+    se añade la regla en «Tareas»: la casilla la marca quien revisa.
+  - Código como el plan (decisiones D y F). Los tres tests añadidos (el patrón del autor ya llega
+    normalizado, el instante llega truncado y un `Timestamp` nulo se rechaza) documentan comentarios del
+    código: se mantienen. `bind` no tiene test automático (§8); lo cubren las pruebas a mano.
+  - Error del plan, bien resuelto: `current_setting('lc_ctype')` ya no existe desde PostgreSQL 16 (`lc_ctype`
+    dejó de ser una variable del servidor); leer `pg_database` es lo correcto.
+  - Las pruebas a mano no se pueden repetir (el contenedor está borrado): se aceptan por el informe, que
+    cubre todos los puntos del paso. El 10d las vuelve a comprobar de punta a punta contra la base de
+    desarrollo.
 
 ## Pendiente para más adelante
 
@@ -245,4 +277,5 @@ su propio test, aunque ya funcione (la lista de tests es la mínima).
 
 ## Siguiente paso
 
-Paso 10c (SQL y pruebas a mano en `gradus-pg-scratch`), en un chat nuevo con Sonnet.
+Paso 10d (`api-cursos.md`, §4.5 de la especificación y peticiones de Yaak), en un chat nuevo con Sonnet.
+Necesita permiso para arrancar el servidor contra la base de desarrollo.

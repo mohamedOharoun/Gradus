@@ -171,6 +171,7 @@ public final class JdbcCourseRepository implements CourseRepository {
                 case SqlParameter.Text text -> statement.setString(position, text.value());
                 case SqlParameter.TextArray array ->
                         statement.setArray(position, connection.createArrayOf("text", array.values().toArray()));
+                case SqlParameter.Timestamp timestamp -> statement.setObject(position, toColumn(timestamp.value()));
             }
             position++;
         }

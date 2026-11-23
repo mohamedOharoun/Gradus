@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.backend.infrastructure.persistence;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
@@ -20,6 +21,13 @@ sealed interface SqlParameter {
     record TextArray(List<String> values) implements SqlParameter {
         public TextArray {
             values = List.copyOf(values);
+        }
+    }
+
+    /** Un {@code TIMESTAMPTZ}: se vincula con {@link Timestamps#toColumn}, en UTC. */
+    record Timestamp(Instant value) implements SqlParameter {
+        public Timestamp {
+            Objects.requireNonNull(value, "value");
         }
     }
 }
