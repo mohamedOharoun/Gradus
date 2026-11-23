@@ -187,7 +187,7 @@ revisa, no quien implementa:** quien implementa deja «pendiente de revisión» 
 
   *Acepta si:* los tests pasan y las pruebas a mano salen como dice la Specification.
 
-- [ ] **10d · Documentos y Yaak.**
+- [x] **10d · Documentos y Yaak.**
   - `api-cursos.md`: la ruta (`GET /api/courses?q=&tag=&language=&author=&published=&page=&size=`), dos
     puntos nuevos en «Búsqueda» y `published` en la fila de `INVALID_PARAMETER`.
   - `especificacion-cursos-v1.md` §4.5: `author` y `published` (decisión G).
@@ -269,6 +269,46 @@ revisa, no quien implementa:** quien implementa deja «pendiente de revisión» 
   - Las pruebas a mano no se pueden repetir (el contenedor está borrado): se aceptan por el informe, que
     cubre todos los puntos del paso. El 10d las vuelve a comprobar de punta a punta contra la base de
     desarrollo.
+- 2026-11-23: **10d hecho, pendiente de revisión.** Sin cambios en el código Java. `mvn test`: 579 en verde.
+  - `api-cursos.md`: la ruta con `author` y `published`, tres puntos nuevos en «Búsqueda» (`author`,
+    `published` y qué pasa con los ausentes o en blanco) y `published` en la fila de `INVALID_PARAMETER`, con el
+    orden de los errores.
+  - §4.5 de la especificación: la ruta, `author` y `published` marcados «*añadido en
+    `busqueda-autor-fecha.md`*», con su SQL, el límite de la decisión D, el reloj y el truncado de la decisión C
+    y el mensaje de error; además, la combinación con Y en orden y el orden de los errores (`page`, `size`,
+    `published`).
+  - Yaak, «Cursos · Consulta» (`fl_jjUAUPZHxR`, de 14 a 20 peticiones): creadas con la CLI 0.7.1 ya con su
+    `sortPriority` (15–20) y confirmadas desde la app, que escribe los YAML en `backend/yaak/workspace`.
+  - Servidor arrancado con `./gradus.sh up` contra la base de desarrollo (sin migraciones pendientes: 001–004
+    ya aplicadas; 6 cursos, todos de «Autora Cursos» publicados el 2026-11-20). Solo lecturas. Peticiones
+    enviadas una a una con `yaak send`; como referencia, «Buscar sin filtros» (2) da 200 con total 6:
+    - 15 · Buscar por autor en mayúsculas (`author=AUTORA`, `rq_Jn2DAsE9vD`): **200**, total 6 (todos los de la
+      autora).
+    - 16 · Buscar publicados en el último mes (`published=month`, `rq_YkrFLbqCZf`): **200**, total 6.
+    - 17 · Buscar publicados en el último año (`published=year`, `rq_yYsEik9kD7`): **200**, total 6.
+    - 18 · Buscar por autor, etiqueta y último año (`author=autora&tag=grafos&published=year`,
+      `rq_9Yo2aPSwRN`): **200**, total 2 (los dos «Introducción a los grafos»; los cuatro «Curso de prueba
+      compacto» no tienen esa etiqueta).
+    - 19 · Buscar con published no válido (`published=week`, `rq_bAXGe6R8zL`): **400**, un error
+      `INVALID_PARAMETER` en `published` con «Debe ser «month» o «year».».
+    - 20 · Buscar con page, size y published no válidos (`page=-1&size=abc&published=week`, `rq_Cxkgea4uch`):
+      **400**, tres errores `INVALID_PARAMETER`, en el orden `page`, `size`, `published`.
+  - Con una sola autora en la base, la petición 15 no muestra ninguna exclusión. Por eso se hicieron lecturas
+    extra con `curl`, que no se guardan en Yaak: `author=Luis` → 200, total 0; `author=␣␣AUTORA␣␣␣cursos␣`
+    → total 6 (normaliza espacios); `author=autor%` → total 0 (`%` literal); `published=␣year␣` → total 6;
+    `published=Month` → 400 en `published`; `author=␣&published=` → total 6 (en blanco = sin filtro).
+  - Como estaba previsto, `month` y `year` incluyen todos los cursos: las exclusiones por fecha están probadas
+    en JUnit (10a, 10b) y a mano en el 10c.
+  - Servidor parado al terminar (puerto 7070 libre); el contenedor `gradus-postgres` sigue arrancado, como
+    estaba.
+- 2026-11-23: **10d revisado y, con él, la tarea completada en el backend.** Sin cambios en Java (los 579
+  tests siguen como en el 10c). La casilla la dejó sin marcar, como dice la regla.
+  - `api-cursos.md` y §4.5 dicen lo mismo que el código: lo que filtra y lo que no, el límite de la
+    decisión D, la ventana de la C, el mensaje y el orden de los errores de la B.
+  - Yaak: las seis peticiones nuevas tienen el formato de las 14 anteriores (`${[ baseUrl ]}`, descripción y
+    `sortPriority` 15–20 sin repetir) y están en `backend/yaak/workspace`.
+  - Las lecturas extra con `curl` muestran lo que Yaak no puede con una sola autora en la base (un autor
+    que no existe, espacios, `%` literal, en blanco): se aceptan como prueba de este paso.
 
 ## Pendiente para más adelante
 
@@ -277,5 +317,6 @@ revisa, no quien implementa:** quien implementa deja «pendiente de revisión» 
 
 ## Siguiente paso
 
-Paso 10d (`api-cursos.md`, §4.5 de la especificación y peticiones de Yaak), en un chat nuevo con Sonnet.
-Necesita permiso para arrancar el servidor contra la base de desarrollo.
+Tarea completada en el backend. Sigue la tarea 11 de `docs/tareas/buscar-cursos.md` (la app: filtros
+«Creador» y «Fecha de publicación» e `INVALID_PARAMETER` en `ApiErrorCode`), que se detalla allí antes de
+empezarla.

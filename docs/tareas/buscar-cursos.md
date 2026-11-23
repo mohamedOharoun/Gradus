@@ -882,7 +882,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
 
 ### Parte C · Fase 2 (después de la fase 1)
 
-10. **Backend**: `author` y `published` en `GET /api/courses` (JUnit, `mvn test`) y
+10. ✅ **Hecha (2026-11-23).** **Backend**: `author` y `published` en `GET /api/courses` (JUnit, `mvn test`) y
     `api-cursos.md` al día. Documento propio en `backend/docs/tareas/`.
     - Decidido (2026-11-21): el nombre del autor se compara **sin distinguir mayúsculas y
       minúsculas** (`u.name` no está normalizado como `search_text`).
@@ -1289,8 +1289,13 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   `published=month|year`; un `published` no válido da 400; ventana de calendario en UTC; pasos
   10a–10d). Resuelta en `docs/especificacion.md` §10 la pregunta de las etiquetas: libres, y
   normalizadas solo para comparar.
+- 2026-11-23: **tarea 10 hecha** (pasos 10a–10d revisados; 579 tests del backend en verde).
+  `GET /api/courses` acepta `author` (subcadena del nombre, sin distinguir mayúsculas ni quitar tildes)
+  y `published=month|year` (desde la misma hora de hace un mes o un año, en UTC); un `published` no
+  válido da 400 `INVALID_PARAMETER`. `api-cursos.md` y Yaak («Cursos · Consulta», 15–20) al día.
 
 ## Siguiente paso
 
-Fase 2: la tarea 10 sigue su documento, `backend/docs/tareas/busqueda-autor-fecha.md`, empezando
-por el paso 10a (dominio) en un chat nuevo. Después, la 11 (app).
+Fase 2: la tarea 10 (backend) está hecha. Sigue la 11 (app), que se detalla en este documento antes
+de empezarla: `CourseQuery` con creador y fecha, sus `ActiveFilter`, las secciones de la hoja e
+`INVALID_PARAMETER` en `ApiErrorCode`.
