@@ -55,6 +55,10 @@ const val CREATOR_HINT = "Nombre del creador"
 const val CREATOR_FIELD_DESCRIPTION = "Creador"
 const val CLEAR_CREATOR_DESCRIPTION = "Borrar creador"
 
+// Los títulos de sección de la hoja (11d-1). El de «Creador» es CREATOR_FIELD_DESCRIPTION: el Figma
+// no tiene etiqueta en el campo y el título hace de ella.
+const val PUBLISHED_SECTION_TITLE = "Fecha de publicación"
+
 // Lo que se ve en el chip del creador: «por Ana», como «por Ana Ruiz» en la tarjeta.
 fun authorChipLabel(name: String): String = "por $name"
 

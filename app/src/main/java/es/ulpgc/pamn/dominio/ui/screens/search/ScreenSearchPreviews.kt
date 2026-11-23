@@ -7,6 +7,7 @@ import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.course.search.DraftCount
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import es.ulpgc.pamn.dominio.course.search.SearchProblem
 import es.ulpgc.pamn.dominio.course.search.SearchRequest
 import es.ulpgc.pamn.dominio.course.search.SearchStatus
@@ -73,8 +74,16 @@ private fun FiltersAppliedPreview() =
 // Figma «4 · Buscar con filtros»: 7 etiquetas y «Ver todas», con «grafos» marcada.
 private val sevenTags = listOf("grafos", "algoritmos", "árboles", "kotlin", "android", "matemáticas", "bases de datos")
 
-private fun sheetOf(shown: List<String>, hidden: List<String>, selected: List<String> = emptyList()) =
-    FilterSheetState(draft = CourseQuery(tags = selected), suggestions = TagSuggestions(shown, hidden))
+private fun sheetOf(
+    shown: List<String>,
+    hidden: List<String>,
+    selected: List<String> = emptyList(),
+    author: String = "",
+    published: PublishedWithin = PublishedWithin.ANY,
+) = FilterSheetState(
+    draft = CourseQuery(tags = selected, author = author, published = published),
+    suggestions = TagSuggestions(shown, hidden),
+)
 
 // Por defecto, como el Figma: «Mostrar 8 cursos».
 @Composable
@@ -90,6 +99,16 @@ private fun SheetPreview(state: FilterSheetState, count: DraftCount = DraftCount
 @Composable
 private fun SheetWithShowAllPreview() =
     SheetPreview(sheetOf(shown = sevenTags, hidden = listOf("redes", "sql", "testing"), selected = listOf("grafos")))
+
+// Como el Figma, con creador y fecha elegidos (11d-1): «Restablecer» activo y «Último año» marcado.
+@LightDarkPreviews
+@Composable
+private fun SheetWithAuthorAndPublishedPreview() = SheetPreview(
+    sheetOf(
+        shown = sevenTags, hidden = listOf("redes", "sql", "testing"), selected = listOf("grafos"),
+        author = "Ana", published = PublishedWithin.LAST_YEAR,
+    ),
+)
 
 @LightDarkPreviews
 @Composable

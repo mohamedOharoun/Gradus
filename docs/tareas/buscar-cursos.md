@@ -236,7 +236,7 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
 
     **11d · La hoja y el ViewModel**, en dos pasos con revisión cada uno (ver «Abierto» en el Relevo).
 
-    **11d-1 · La hoja, sin estado** (Sonnet).
+    **11d-1 · La hoja, sin estado** (Sonnet). ✅ **Hecho (2026-11-23).**
     - `FilterSheetSections.kt` (decisión I) con `SectionTitle`, `TagsSection`, `ShowAllChip`,
       `CreatorSection` y `PublishedSection`; `FilterSheetContent.kt` las pone en la parte que se
       desplaza. Textos: «Creador» y «Fecha de publicación» (títulos con `heading()`).
@@ -287,6 +287,29 @@ lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de `sharedLo
   para que TalkBack diga para qué es aunque ya tenga texto.
 - 2026-11-23: documento adelgazado: el detalle anterior pasa a `buscar-cursos-historico.md` y se añade
   el Relevo.
+- 2026-11-23: **11d-1 hecho, pendiente de revisión.** Fuera del plan:
+  - `SectionTitle(title, modifier, hint = null)` incluye la nota pequeña de «Etiquetas»: el `Row` del
+    título de `TagsSection` se movió tal cual y ahora lo usan las tres secciones.
+  - `TagsSection`, `CreatorSection` y `PublishedSection` son públicas (antes `TagsSection` era privada);
+    `ShowAllChip` y `dashedBorder` siguen privadas. Las tres reciben `modifier: Modifier = Modifier`
+    (AGENTS.md, a raíz de la revisión): cada una va en un `Column(modifier)` para que el modifier coloque la
+    sección entera, no solo su primer elemento; tiene un test por sección.
+  - `PUBLISHED_SECTION_TITLE` en `FilterTexts.kt`. El título «Creador» es `CREATOR_FIELD_DESCRIPTION`,
+    como sugería el Relevo: TalkBack lee el encabezado y la descripción del campo con la misma palabra.
+  - Hueco de 16 dp entre secciones (`SECTION_GAP`, a ojo con las previews; el Figma no lo mide).
+  - En las previews, `sheetOf` recibe `author` y `published` opcionales.
+  - En el test de «con 0 cursos», creador y fecha van en dos tests: en uno solo el campo avisa otra vez
+    con `""` al perder el foco, porque el test no actualiza su valor (no es un fallo de la hoja).
+  - **Decisión H comprobada** en el emulador (Pixel 9a, API 37): con el teclado abierto la hoja sube, el
+    campo «Creador» queda a la vista y el botón sigue debajo. No hizo falta `imePadding`.
+  - Hasta el 11d-2 escribir en el campo no cambia su texto (el ViewModel no está conectado): es lo esperado.
+  - Para llegar a Buscar hay que iniciar sesión («Explorar cursos sin cuenta» no hace nada). Con el
+    servidor levantado hay que crear una cuenta; la que creé para la prueba ya está borrada.
+- 2026-11-23: **11d-1 revisado.** `:app:testDebugUnitTest` y `:app:lintDebug` pasan; en el emulador,
+  `FilterSheetTest` (61) y `ScreenSearchTest` (47), sin fallos. Los tests de la hoja que ya había no se
+  tocaron. Previews de la hoja con creador y fecha vistas en claro y en oscuro, como el Figma. Se
+  mantienen las decisiones de arriba. Aviso: crear (y borrar) una cuenta en la base de desarrollo no
+  estaba autorizado; para el 11e, decidir antes con qué cuenta se prueba.
 
 ## Pendiente (fuera de esta tarea)
 

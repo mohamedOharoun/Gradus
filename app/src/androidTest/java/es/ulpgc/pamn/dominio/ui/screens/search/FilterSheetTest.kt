@@ -1,6 +1,10 @@
 package es.ulpgc.pamn.dominio.ui.screens.search
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
@@ -11,14 +15,21 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getBoundsInRoot
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.unit.Dp
@@ -28,9 +39,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import es.ulpgc.pamn.dominio.course.search.DraftCount
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import es.ulpgc.pamn.dominio.course.search.TagSuggestions
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -476,5 +489,235 @@ class FilterSheetTest {
 
         assertEquals(1, closed)
         assertEquals(0, applied)
+    }
+
+    // --- Creador y fecha de publicación (tarea 11d-1) ---
+    // El borrador con creador y fecha; las pruebas de los componentes sueltos están en CreatorFieldTest y
+    // SingleChoiceRowTest, y aquí solo lo que pone la hoja: títulos, orden, qué se ve y a quién se avisa.
+
+    private fun stateWith(
+        author: String = "",
+        published: PublishedWithin = PublishedWithin.ANY,
+        selected: List<String> = emptyList(),
+    ) = FilterSheetState(
+        draft = CourseQuery(tags = selected, author = author, published = published),
+        suggestions = TagSuggestions(listOf("grafos", "algoritmos", "árboles"), emptyList()),
+    )
+
+    private fun creatorField() = composeRule.onNode(hasSetTextAction())
+
+    private fun centerY(text: String): Dp {
+        val bounds = composeRule.onNodeWithText(text).getBoundsInRoot()
+        return (bounds.top + bounds.bottom) / 2
+    }
+
+    @Test
+    fun the_creator_and_published_titles_are_headings() {
+        show(stateWith())
+
+        composeRule.onNodeWithText("Creador").assertIsDisplayed().assert(heading)
+        composeRule.onNodeWithText("Fecha de publicación").assertIsDisplayed().assert(heading)
+    }
+
+    @Test
+    fun the_tags_title_is_still_a_heading() {
+        show(stateWith())
+
+        composeRule.onNodeWithText("Etiquetas").assert(heading)
+    }
+
+    @Test
+    fun the_sections_go_in_order_tags_then_creator_then_published() {
+        show(stateWith())
+
+        assertTrue(centerY("Etiquetas") < centerY("Creador"))
+        assertTrue(centerY("Creador") < centerY("Fecha de publicación"))
+    }
+
+    @Test
+    fun the_published_choices_are_the_three_of_the_design() {
+        show(stateWith())
+
+        listOf("Cualquiera", "Último mes", "Último año").forEach { composeRule.onNodeWithText(it).assertIsDisplayed() }
+    }
+
+    @Test
+    fun the_creator_field_shows_the_author_of_the_draft() {
+        show(stateWith(author = "Ana Ruiz"))
+
+        creatorField().assertTextEquals("Ana Ruiz")
+    }
+
+    @Test
+    fun the_creator_field_shows_its_hint_without_an_author() {
+        show(stateWith(author = ""))
+
+        composeRule.onNodeWithText("Nombre del creador").assertIsDisplayed()
+    }
+
+    @Test
+    fun typing_in_the_creator_field_reports_it_to_onAuthorChange() {
+        val received = mutableListOf<String>()
+        show(stateWith(), SearchActions(onAuthorChange = { received += it }))
+
+        creatorField().performTextInput("Ana")
+
+        assertEquals(listOf("Ana"), received)
+    }
+
+    @Test
+    fun the_clear_button_of_the_creator_field_reports_an_empty_author() {
+        val received = mutableListOf<String>()
+        show(stateWith(author = "Ana"), SearchActions(onAuthorChange = { received += it }))
+
+        composeRule.onNodeWithContentDescription("Borrar creador").performClick()
+
+        assertEquals(listOf(""), received)
+    }
+
+    @Test
+    fun the_published_of_the_draft_is_the_one_selected() {
+        show(stateWith(published = PublishedWithin.LAST_YEAR))
+
+        composeRule.onNodeWithText("Último año").assertIsSelected()
+        composeRule.onNodeWithText("Último mes").assertIsNotSelected()
+        composeRule.onNodeWithText("Cualquiera").assertIsNotSelected()
+    }
+
+    @Test
+    fun without_a_published_choice_any_is_the_one_selected() {
+        show(stateWith())
+
+        composeRule.onNodeWithText("Cualquiera").assertIsSelected()
+        composeRule.onNodeWithText("Último mes").assertIsNotSelected()
+        composeRule.onNodeWithText("Último año").assertIsNotSelected()
+    }
+
+    @Test
+    fun tapping_last_month_reports_it_to_onPublishedChange() {
+        val received = mutableListOf<PublishedWithin>()
+        show(stateWith(), SearchActions(onPublishedChange = { received += it }))
+
+        composeRule.onNodeWithText("Último mes").performClick()
+
+        assertEquals(listOf(PublishedWithin.LAST_MONTH), received)
+    }
+
+    @Test
+    fun tapping_the_other_choices_reports_them_too() {
+        val received = mutableListOf<PublishedWithin>()
+        show(stateWith(published = PublishedWithin.LAST_MONTH), SearchActions(onPublishedChange = { received += it }))
+
+        composeRule.onNodeWithText("Cualquiera").performClick()
+        composeRule.onNodeWithText("Último año").performClick()
+
+        assertEquals(listOf(PublishedWithin.ANY, PublishedWithin.LAST_YEAR), received)
+    }
+
+    @Test
+    fun reset_is_enabled_with_only_an_author() {
+        var resets = 0
+        show(stateWith(author = "Ana"), SearchActions(onResetFilters = { resets++ }))
+
+        composeRule.onNodeWithText("Restablecer").assertIsEnabled().performClick()
+
+        assertEquals(1, resets)
+    }
+
+    @Test
+    fun reset_is_enabled_with_only_a_published_choice() {
+        var resets = 0
+        show(stateWith(published = PublishedWithin.LAST_MONTH), SearchActions(onResetFilters = { resets++ }))
+
+        composeRule.onNodeWithText("Restablecer").assertIsEnabled().performClick()
+
+        assertEquals(1, resets)
+    }
+
+    @Test
+    fun reset_is_disabled_when_the_draft_has_no_tags_no_author_and_any_date() {
+        show(stateWith())
+
+        composeRule.onNodeWithText("Restablecer").assertIsNotEnabled()
+    }
+
+    @Test
+    fun an_author_made_of_spaces_does_not_enable_reset() {
+        // El borrador guarda el creador tal como se escribe, pero en blanco no filtra (decisión B).
+        show(stateWith(author = "   "))
+
+        composeRule.onNodeWithText("Restablecer").assertIsNotEnabled()
+    }
+
+    @Test
+    fun the_new_actions_are_not_reported_just_by_showing_the_sheet() {
+        var calls = 0
+        show(stateWith(author = "Ana", published = PublishedWithin.LAST_YEAR), SearchActions(onAuthorChange = { calls++ }, onPublishedChange = { calls++ }))
+
+        composeRule.onNodeWithText("Creador").assertIsDisplayed()
+        composeRule.waitForIdle()
+        assertEquals(0, calls)
+    }
+
+    // Decisión C: con 0 resultados se puede seguir cambiando el borrador.
+    @Test
+    fun with_no_courses_the_creator_can_still_be_typed() {
+        val authors = mutableListOf<String>()
+        show(stateWith(), SearchActions(onAuthorChange = { authors += it }), DraftCount.Known(0))
+
+        creatorField().performTextInput("Ana")
+
+        assertEquals(listOf("Ana"), authors)
+    }
+
+    @Test
+    fun with_no_courses_the_published_choice_can_still_be_changed() {
+        val published = mutableListOf<PublishedWithin>()
+        show(stateWith(), SearchActions(onPublishedChange = { published += it }), DraftCount.Known(0))
+
+        composeRule.onNodeWithText("Último año").performClick()
+
+        assertEquals(listOf(PublishedWithin.LAST_YEAR), published)
+    }
+
+    @Test
+    fun the_three_sections_scroll_together_while_the_button_stays_in_view() {
+        // Tantas etiquetas largas que la hoja no cabe: el contenido se desplaza y el botón no.
+        val many = (1..60).map { "etiqueta de prueba muy larga $it" }
+        show(
+            FilterSheetState(draft = CourseQuery(), suggestions = TagSuggestions(many, emptyList())),
+            count = DraftCount.Known(8),
+        )
+        composeRule.onNodeWithText("Mostrar 8 cursos").assertIsDisplayed()
+        composeRule.onNodeWithText("Último año").assertIsNotDisplayed()
+
+        composeRule.onNodeWithText("Último año").performScrollTo().assertIsDisplayed()
+
+        composeRule.onNodeWithText("Mostrar 8 cursos").assertIsDisplayed()
+    }
+
+    // Las secciones aceptan un `modifier` (AGENTS.md) y lo aplican a la sección entera, no solo a un elemento.
+    private fun showSection(section: @Composable (Modifier) -> Unit) =
+        composeRule.setContent { GradusTheme { section(Modifier.width(200.dp).testTag("section")) } }
+
+    @Test
+    fun the_tags_section_applies_the_modifier_it_receives() {
+        showSection { TagsSection(stateWith(), SearchActions(), it) }
+
+        composeRule.onNodeWithTag("section").assertWidthIsEqualTo(200.dp)
+    }
+
+    @Test
+    fun the_creator_section_applies_the_modifier_it_receives() {
+        showSection { CreatorSection(stateWith(), SearchActions(), it) }
+
+        composeRule.onNodeWithTag("section").assertWidthIsEqualTo(200.dp)
+    }
+
+    @Test
+    fun the_published_section_applies_the_modifier_it_receives() {
+        showSection { PublishedSection(stateWith(), SearchActions(), it) }
+
+        composeRule.onNodeWithTag("section").assertWidthIsEqualTo(200.dp)
     }
 }
