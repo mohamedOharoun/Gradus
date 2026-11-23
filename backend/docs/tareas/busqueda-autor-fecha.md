@@ -149,7 +149,7 @@ su propio test, aunque ya funcione (la lista de tests es la mínima).
 
   *Acepta si:* los tests de `PublishedWithin` y `CourseSearch` cubren la lista anterior y `mvn test` pasa.
 
-- [ ] **10b · Caso de uso y web** (cambia el contrato de la API). `SearchCoursesQuery` gana `author` y
+- [x] **10b · Caso de uso y web** (cambia el contrato de la API). `SearchCoursesQuery` gana `author` y
   `published` (orden de los componentes: `text`, `tags`, `language`, `author`, `published`, `page`,
   `size`); `SearchCourses` recibe el `Clock`; `CourseCatalogController.search` lee los dos parámetros y
   los pasa tal como llegan; `App` le pasa el `clock`. Tests en `SearchCoursesTest`.
@@ -223,6 +223,20 @@ su propio test, aunque ya funcione (la lista de tests es la mínima).
   - Para el 10b: `fromParameter` da vacío tanto para un valor en blanco como para uno inválido, así que
     el caso de uso debe mirar primero si `published` falta o está en blanco (sin filtro) y solo después
     tratar el vacío como 400 (decisión B).
+- 2026-11-22: **10b hecho, pendiente de revisión.** `SearchCoursesQuery` con `author` y `published`;
+  `SearchCourses` recibe el `Clock` y lo lee en cada búsqueda; `Result.combine` anidado (página y tamaño →
+  `PageRequest`; después, con `published`); `CourseCatalogController.search` lee los dos parámetros y `App`
+  pasa el `clock`. Tests: 573 en verde (+14 en `SearchCoursesTest`, de 8 a 22), sin avisos (`mvn clean
+  test`). Tests escritos primero y vistos en rojo (13 fallos) contra esqueletos que compilaban; el de
+  «`published` ausente o en blanco» ya pasaba con el esqueleto, como era de esperar. Reloj de test
+  `AdjustableClock` (nuevo, en los tests de `application/course`).
+- 2026-11-22: **10b revisado.** `mvn clean test`: 573 en verde, sin avisos. Cada punto de la lista tiene su
+  test; además, constructor sin repositorio o sin reloj, `author` nunca inválido (en blanco = cualquiera),
+  espacios alrededor de `published`, `Month`/`YEAR`/`1`/`any` también dan 400, ambos límites (mes y año)
+  incluidos y un microsegundo antes fuera, y autor + etiqueta + fecha a la vez. El aviso del 10a se
+  cumple: `published` en blanco se mira antes de `fromParameter`. El reloj solo se lee si hay ventana.
+  `AdjustableClock.withZone` lanza una excepción (los casos de uso solo leen `instant()`): se mantiene.
+  El controlador no tiene test automático (§8: los endpoints se prueban con Yaak); lo cubre el 10d.
 
 ## Pendiente para más adelante
 
@@ -231,4 +245,4 @@ su propio test, aunque ya funcione (la lista de tests es la mínima).
 
 ## Siguiente paso
 
-Paso 10b (caso de uso y web), en un chat nuevo con Opus.
+Paso 10c (SQL y pruebas a mano en `gradus-pg-scratch`), en un chat nuevo con Sonnet.
