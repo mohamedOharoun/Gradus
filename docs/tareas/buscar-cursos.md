@@ -888,7 +888,167 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
       minúsculas** (`u.name` no está normalizado como `search_text`).
     - Detallada (2026-11-22) en `backend/docs/tareas/busqueda-autor-fecha.md`: decisiones A–G y
       pasos 10a (dominio), 10b (caso de uso y web), 10c (SQL) y 10d (documentos y Yaak).
-11. **App**: `CourseQuery` con creador y fecha; secciones Creador y Fecha de publicación en la hoja.
+11. **App: creador y fecha** (decisiones A–I aprobadas el 2026-11-23). Contrato:
+    `backend/docs/api-cursos.md` (`author` y `published=month|year`). Diseño: «4 · Buscar con filtros»
+    (secciones Creador y Fecha de publicación). **La casilla de cada paso la marca quien revisa**; quien
+    implementa deja «pendiente de revisión» en «Progreso». `ApiErrorCode` ya tiene `INVALID_PARAMETER`:
+    no hay nada que hacer ahí.
+
+    **Decisiones de la tarea 11 (aprobadas el 2026-11-23)**
+
+    - **A. La fecha es un enum con «Cualquiera»:** `enum class PublishedWithin { ANY, LAST_MONTH,
+      LAST_YEAR }` en `sharedLogic/.../course/search/`, con `ANY` por defecto (sin `null`). Cada valor es
+      uno de los tres botones del Figma. Las palabras `month` y `year` de la API solo están en el
+      adaptador HTTP.
+    - **B. El autor es texto, como el de la búsqueda:** `author: String = ""`, guardado tal como se
+      escribe (el campo lo enseña así); en blanco no filtra; se manda recortado. Para «pedir lo mismo»
+      se compara sin mayúsculas ni espacios de sobra (como lo normaliza el backend), con la misma regla
+      que las etiquetas: **`tagKey` se renombra a `searchKey`** (en `CourseQuery.kt`,
+      `FilterSheetState.kt` y `FakeCourseGateway.kt`).
+    - **C. Chips de la fila:** en el orden etiquetas → creador → fecha (el de las secciones de la hoja).
+      Se ven `#grafos`, `por Ana` (como «por Ana Ruiz» de la tarjeta) y `Último año`. TalkBack lee
+      «Quitar filtro creador Ana» y «Quitar filtro último año». Cada uno suma 1 en «Filtros n».
+    - **D. «Restablecer»** vacía etiquetas, creador y fecha y conserva el texto (decisión 7). Se puede
+      pulsar si el borrador tiene cualquier filtro.
+    - **E. Campo «Creador» (`CreatorField`):** icono de persona decorativo (`ic_person.xml` nuevo, el
+      icono «person» de Material, como los demás), texto de ayuda «Nombre del creador» y ✕ para borrar
+      (reutiliza `ClearButton` de `SearchField`, que pasa a `internal` y recibe su descripción). Tecla
+      «Hecho»: cierra el teclado y **no aplica** (solo aplica «Mostrar N cursos», decisión 7). Al
+      teclear se cuenta tras 300 ms, con el mismo `editDraft` de las etiquetas.
+    - **F. Fecha con un componente reutilizable `SingleChoiceRow<T>`** (`ui/components/`): opciones del
+      mismo ancho en una fila, una elegida; TalkBack las lee como botones de opción. Servirá también
+      para «Ordenar por» cuando haya valoraciones. No es el `SegmentedButton` de Material, que los pega:
+      en el Figma van separados.
+    - **G. `FakeCourseGateway`** filtra por autor (con su autor fijo, «Autor de prueba») e **ignora la
+      fecha**: sin reloj en `commonMain` haría falta `kotlinx-datetime`, una dependencia nueva. Un test
+      lo documenta.
+    - **H. La hoja con teclado (riesgo):** las tres secciones van en la parte que se desplaza y el botón
+      se queda abajo. Hay que comprobar en el emulador que el teclado no tapa el campo; si lo tapa, se
+      arregla en ese paso y, si no es inmediato, se para y se pregunta.
+    - **I. Ficheros de la hoja:** `FilterSheetSections.kt` (nuevo) con las tres secciones y un
+      `SectionTitle` común. **`TagsSection`, `ShowAllChip` y `dashedBorder` se mueven** ahí desde
+      `FilterSheetContent.kt`, sin cambiar lo que hacen.
+
+    Comprobación de cada paso: `./gradlew :sharedLogic:testAndroidHostTest
+    :sharedLogic:compileKotlinIosSimulatorArm64` si cambia `sharedLogic`; `:app:testDebugUnitTest` y
+    `:app:connectedDebugAndroidTest` (con TalkBack apagado, sin el *Layout Inspector* y sin tocar el
+    emulador) si cambia la app. Sin avisos nuevos; previews en claro y en oscuro.
+
+    **11a · Modelo y chips** (Sonnet). Dos subpasos en el mismo chat, **una sola revisión y un solo
+    commit**: tras el 11a-1 la app no compila justo en los dos `when` sobre `ActiveFilter`, y eso es lo
+    esperado (la interfaz sellada obliga a cubrir los casos nuevos).
+
+    **11a-1 · `sharedLogic` (test primero).**
+    - Ficheros: `course/search/PublishedWithin.kt` (nuevo), `CourseQuery.kt`, `ActiveFilter.kt`,
+      `FilterSheetState.kt` y el renombre de B en `FakeCourseGateway.kt`. Tests en `CourseQueryTest` y
+      `FilterSheetStateTest`.
+    - Forma:
+      ```kotlin
+      enum class PublishedWithin { ANY, LAST_MONTH, LAST_YEAR }
+
+      data class CourseQuery(
+          val text: String = "",
+          val tags: List<String> = emptyList(),
+          val author: String = "",
+          val published: PublishedWithin = PublishedWithin.ANY,
+      ) {
+          val hasAuthor: Boolean                       // author.isNotBlank()
+          fun withAuthor(author: String): CourseQuery
+          fun withoutAuthor(): CourseQuery
+          fun withPublished(published: PublishedWithin): CourseQuery
+          // + lo que ya había
+      }
+
+      sealed interface ActiveFilter {
+          data class Tag(val name: String) : ActiveFilter
+          data class Author(val name: String) : ActiveFilter
+          data class Published(val within: PublishedWithin) : ActiveFilter
+      }
+      // FilterSheetState: withAuthor(author), withPublished(published); canReset = draft.activeFilters.isNotEmpty()
+      ```
+    - Reglas:
+      - `activeFilters` = etiquetas + `Author(autor con los espacios ordenados)` si `hasAuthor` +
+        `Published(...)` si no es `ANY`.
+      - `withoutFilters` vacía etiquetas, autor y fecha, y conserva el texto.
+      - `asksTheSameAs` compara además el autor con `searchKey` y la fecha.
+      - Se actualizan los comentarios que hablan de «la fase 2» en `ActiveFilter` y `CourseQuery`.
+    - Tests mínimos: `EMPTY` sin autor y con `ANY`; el autor se guarda tal cual y en blanco no filtra;
+      `withoutAuthor`; `withPublished`; orden de los chips y autor con los espacios ordenados; sin chip
+      para autor en blanco ni para `ANY`; `withoutFilters` vacía los tres y conserva el texto;
+      `asksTheSameAs` con el autor en otras mayúsculas o con espacios de sobra (lo mismo), con otro autor
+      y con otra fecha (distinto); `FilterSheetState`: `withAuthor` y `withPublished` cambian el borrador,
+      `canReset` con solo autor y con solo fecha, `reset` vacía los tres, `previewNeeded` tras cambiar el
+      autor o la fecha, y `queryToApply` lleva autor y fecha.
+
+    **11a-2 · `app`: los dos `when`.**
+    - `FilterTexts.kt`: `authorChipLabel(name)` → «por Ana»; `publishedLabel(within)` → «Cualquiera»,
+      «Último mes», «Último año»; `removeAuthorFilterDescription(name)` → «Quitar filtro creador
+      Ana»; `removePublishedFilterDescription(within)` → «Quitar filtro último año». Tests en
+      `FilterTextsTest`.
+    - `FilterBar.kt`: las dos ramas con `RemovableFilterChip` (y su comentario al día).
+    - `SearchViewModel.onRemoveFilter`: `Author` → `withoutAuthor()`; `Published` →
+      `withPublished(ANY)`. Tests en `SearchViewModelFiltersTest`: quitar el creador o la fecha busca al
+      momento con el texto de la caja, conserva los demás filtros y cancela la espera al teclear.
+    - `ScreenSearchTest` (emulador): con etiqueta, creador y fecha aplicados se ven «#grafos», «por
+      Ana» y «Último año» y «Filtros, 3 activos»; tocar cada chip avisa con su `ActiveFilter`.
+
+    **11b · Red** (Sonnet, test primero).
+    - `HttpCourseGateway.appendSearch`: tras las etiquetas, `author` (recortado) si `hasAuthor`, y
+      `published` con un `when` sin `else` (`ANY` no manda nada; `LAST_MONTH` → `month`; `LAST_YEAR` →
+      `year`).
+    - `FakeCourseGateway`: el autor fijo «Autor de prueba» en una constante, comparado con `searchKey`
+      (subcadena); la fecha se ignora, con un comentario (decisión G).
+    - Tests: `HttpCourseGatewayTest`: `author` recortado y solo si no está en blanco; `month` y `year`;
+      `ANY` no manda `published`; todos los parámetros juntos y en orden (`q`, `tag`…, `author`,
+      `published`, `page`, `size`). `FakeCourseGatewayTest`: «PRUEBA» encuentra todos, «luis» ninguno,
+      autor en blanco no filtra y la fecha no cambia los resultados.
+
+    **11c · Componentes** (Sonnet).
+    - `res/drawable/ic_person.xml`; `ui/components/SingleChoiceRow.kt`
+      (`SingleChoiceRow(options, selected, label, onSelect, modifier)`, genérico en `T`);
+      `ui/screens/search/CreatorField.kt` (`CreatorField(value, onValueChange, modifier)`);
+      `ClearButton` de `SearchField.kt` pasa a `internal` con su descripción («Borrar búsqueda» sigue
+      igual; el del creador, «Borrar creador»). Textos como constantes en `FilterTexts.kt`.
+    - Estilo desde el tema: elegida, relleno `primaryContainer` y borde `primary`; sin elegir, `surface`
+      y borde `outline`. 48 dp de alto como mínimo.
+    - Previews en claro y en oscuro: cada opción elegida; el campo vacío y con texto.
+    - Tests de emulador: `SingleChoiceRowTest` (se ven todas; la elegida está seleccionada; tocar una
+      avisa con ella, también la ya elegida; rol de botón de opción; 48 dp). `CreatorFieldTest` (texto
+      de ayuda; sin ✕ vacío; con texto, la ✕ lo borra; escribir avisa; TalkBack sabe para qué es el
+      campo también cuando ya tiene texto). `SearchFieldTest` sigue pasando.
+
+    **11d · La hoja y el ViewModel**, en dos pasos con revisión cada uno.
+
+    **11d-1 · La hoja, sin estado** (Sonnet).
+    - `FilterSheetSections.kt` (decisión I) con `SectionTitle`, `TagsSection`, `ShowAllChip`,
+      `CreatorSection` y `PublishedSection`; `FilterSheetContent.kt` las pone en la parte que se
+      desplaza. Textos: «Creador» y «Fecha de publicación» (títulos con `heading()`).
+    - `SearchActions`: `onAuthorChange: (String) -> Unit = {}` y
+      `onPublishedChange: (PublishedWithin) -> Unit = {}`.
+    - Previews en claro y en oscuro: la hoja con creador y fecha elegidos.
+    - `FilterSheetTest`: los títulos de sección; escribir avisa a `onAuthorChange`; elegir «Último mes»
+      avisa a `onPublishedChange(LAST_MONTH)`; la fecha del borrador sale seleccionada; «Restablecer» se
+      puede pulsar con solo creador o solo fecha. Los tests que ya había siguen pasando.
+    - A mano en el emulador: el teclado no tapa el campo (decisión H).
+
+    **11d-2 · ViewModel y conexión** (Opus).
+    - `SearchViewModel`: `onAuthorChange(author) = editDraft { it.withAuthor(author) }` y
+      `onPublishedChange(published) = editDraft { it.withPublished(published) }`; `actions()` los conecta.
+      `MainNavGraph` no debería cambiar.
+    - Tests: con la hoja cerrada no hacen nada; cambiar el autor no busca al momento y cuenta tras la
+      pausa con el autor; teclear varias letras seguidas cuenta **una vez**, con el texto final; elegir
+      fecha cuenta con ella; volver a lo aplicado no cuenta; aplicar pide autor y fecha (o reutiliza el
+      recuento); cerrar descarta el borrador; «Restablecer» vacía autor y fecha; `actions()` lleva las
+      dos acciones nuevas al ViewModel.
+
+    **11e · Cierre.**
+    - A mano en el emulador, con el servidor (`gradus.sh up`), por el usuario: «autora» da resultados y
+      «luis», «Ningún curso coincide»; mes y año dan todos (en la base todos son recientes); chips
+      «por …» y «Último año» y quitarlos; «Restablecer»; TalkBack (secciones, botones de opción, chips);
+      modo oscuro; el teclado no tapa el campo.
+    - Todos los tests: los cuatro comandos de arriba, con `:app:connectedDebugAndroidTest` completo.
+    - Documentos (Sonnet): `docs/especificacion.md` §5 Buscar (sin «fase 2») y este documento (cabecera,
+      objetivo, tabla del Figma, «Idea de diseño», alcance, fuera de alcance y siguiente paso).
 
 ## Progreso
 
@@ -1293,9 +1453,12 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
   `GET /api/courses` acepta `author` (subcadena del nombre, sin distinguir mayúsculas ni quitar tildes)
   y `published=month|year` (desde la misma hora de hace un mes o un año, en UTC); un `published` no
   válido da 400 `INVALID_PARAMETER`. `api-cursos.md` y Yaak («Cursos · Consulta», 15–20) al día.
+- 2026-11-23: tarea 11 discutida y detallada: decisiones A–I aprobadas, incluidos el renombre de
+  `tagKey` a `searchKey` (B) y mover `TagsSection`, `ShowAllChip` y `dashedBorder` a
+  `FilterSheetSections.kt` (I). Pasos 11a (11a-1 y 11a-2, un solo commit), 11b, 11c, 11d (11d-1 y
+  11d-2) y 11e. `ApiErrorCode` ya tenía `INVALID_PARAMETER`: fuera de la tarea.
 
 ## Siguiente paso
 
-Fase 2: la tarea 10 (backend) está hecha. Sigue la 11 (app), que se detalla en este documento antes
-de empezarla: `CourseQuery` con creador y fecha, sus `ActiveFilter`, las secciones de la hoja e
-`INVALID_PARAMETER` en `ApiErrorCode`.
+Fase 2: la tarea 10 (backend) está hecha y la 11 (app), detallada. Siguiente: el paso 11a (11a-1 y
+11a-2) en un chat nuevo con Sonnet.
