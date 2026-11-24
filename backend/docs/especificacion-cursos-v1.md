@@ -492,16 +492,25 @@ El 401 lo responde `RequireSession`, como en el resto de la API.
 
 ### 4.5 Búsqueda
 
-`GET /api/courses?q=&tag=&language=&page=&size=`
+`GET /api/courses?q=&tag=&language=&author=&published=&page=&size=`
 
 - **`q`**: subcadena en título o descripción.
   - Se normaliza (§3.4) y se busca en `search_text` con `LIKE ? ESCAPE '\'`.
   - **Escapa `%`, `_` y `\` en `q` antes de construir el patrón.** Si no, buscar «100%» se convierte en un comodín.
 - **`tag`**: repetible; deben cumplirse **todas** (Y lógico). Se normalizan y se comprueba `search_tags @> ?`, que es exactamente «contiene todas» para arrays (`connection.createArrayOf("text", …)`).
 - **`language`**: coincidencia exacta.
+- **`author`** *(añadido en `busqueda-autor-fecha.md`)*: subcadena del nombre del autor.
+  - Se normaliza como `q` (§3.4), se escapa igual y se compara con `lower(u.name) LIKE ? ESCAPE '\'`. No quita tildes.
+  - Límite aceptado: el nombre guardado no se normaliza por dentro, así que «Ana␣␣Ruiz» no se encuentra con «ana ruiz».
+- **`published`** *(añadido en `busqueda-autor-fecha.md`)*: `month` o `year`; «cualquier fecha» es no enviarlo.
+  - Desde la misma hora de hace un mes o un año, en el calendario y en UTC (`minusMonths`/`minusYears`: un 31 de marzo, el mes empieza el 28 o 29 de febrero), con el límite incluido: `v.published_at >= ?`.
+  - La hora es la del reloj del servidor en cada búsqueda, y el instante límite se trunca a microsegundos, como guarda PostgreSQL.
+  - Se admiten espacios alrededor, pero solo en minúsculas. Otro valor: 400 `INVALID_PARAMETER` con `field` `published` y el mensaje «Debe ser «month» o «year».».
+- Los filtros ausentes o en blanco no se aplican; los demás se combinan con Y, en el orden texto, etiquetas, idioma, autor y fecha.
 - Solo últimas versiones: `JOIN course_versions v ON v.course_id = c.id AND v.version = c.latest_version`.
 - **Orden: `published_at DESC, course_id`.** El segundo criterio desempata: sin un orden total, dos cursos con la misma fecha podrían repetirse o saltarse entre páginas.
 - **`page`** desde 0; **`size`** 20 por defecto, entre 1 y 100. Fuera de rango: 400 `INVALID_PARAMETER`.
+- Si hay varios parámetros inválidos, se informan todos, en el orden `page`, `size`, `published`.
 - Respuesta: `{ "items": [ …metadatos… ], "page": 0, "size": 20, "total": 37 }`.
 
 ### 4.6 Versiones

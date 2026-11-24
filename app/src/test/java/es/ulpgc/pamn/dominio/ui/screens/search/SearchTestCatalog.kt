@@ -1,18 +1,22 @@
 package es.ulpgc.pamn.dominio.ui.screens.search
 
 import es.ulpgc.pamn.dominio.course.Author
+import es.ulpgc.pamn.dominio.course.CourseGateway
 import es.ulpgc.pamn.dominio.course.CoursePage
 import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.course.SearchOutcome
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
+import es.ulpgc.pamn.dominio.course.search.DraftCount
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 
-// Solo para tests. Un catálogo pequeño con etiquetas, compartido por los tests de la hoja de filtros
-// (SearchViewModelFiltersTest) y del recuento (SearchViewModelPreviewTest). Va en un `object` para
-// que cada test importe lo que usa (`import ….SearchTestCatalog.catalog`): así no se confunde con el
-// `catalog(total)` privado de SearchViewModelTest, que es otro.
+// Solo para tests. Un catálogo pequeño con etiquetas y los ayudantes de la hoja de filtros,
+// compartidos por SearchViewModelFiltersTest, SearchViewModelPreviewTest y
+// SearchViewModelAuthorPublishedTest. Va en un `object` para que cada test importe lo que usa
+// (`import ….SearchTestCatalog.catalog`): así no se confunde con el `catalog(total)` privado de
+// SearchViewModelTest, que es otro.
 @OptIn(ExperimentalCoroutinesApi::class)
 object SearchTestCatalog {
 
@@ -50,12 +54,29 @@ object SearchTestCatalog {
         moduleCount = 1,
     )
 
-    // Abre la hoja, marca las etiquetas, aplica y deja que llegue la respuesta. Es extensión de
-    // TestScope (el `this` de runTest) para poder llamar a runCurrent.
-    fun TestScope.applyTags(viewModel: SearchViewModel, vararg tags: String) {
+    // Buscar con el catálogo cargado y la hoja abierta. Extensión de TestScope (el `this` de runTest)
+    // para poder llamar a advanceUntilIdle.
+    fun TestScope.opened(gateway: CourseGateway): SearchViewModel {
+        val viewModel = SearchViewModel(gateway)
+        advanceUntilIdle()
         viewModel.onOpenFilters()
-        tags.forEach(viewModel::onToggleTag)
+        return viewModel
+    }
+
+    // Lo que dice el botón, calculado como en ScreenSearch.
+    fun SearchViewModel.draftCount(): DraftCount = filters!!.count(text, search)
+
+    // Abre la hoja, edita el borrador con cualquier acción del ViewModel (lambda con receptor), aplica
+    // y deja que llegue la respuesta:
+    // `applyDraft(viewModel) { onAuthorChange("Ana"); onPublishedChange(LAST_YEAR) }`.
+    fun TestScope.applyDraft(viewModel: SearchViewModel, edit: SearchViewModel.() -> Unit) {
+        viewModel.onOpenFilters()
+        viewModel.edit()
         viewModel.onApplyFilters()
         runCurrent()
     }
+
+    // Atajo de applyDraft que solo marca etiquetas.
+    fun TestScope.applyTags(viewModel: SearchViewModel, vararg tags: String) =
+        applyDraft(viewModel) { tags.forEach { onToggleTag(it) } }
 }

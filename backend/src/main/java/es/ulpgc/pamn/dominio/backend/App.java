@@ -82,7 +82,7 @@ public final class App {
                 new PublishCourse(courseInspector, courseRepository, clock, UUID::randomUUID),
                 new PublishCourseVersion(courseInspector, courseReader, courseRepository, clock));
         CourseCatalogController courseCatalog = new CourseCatalogController(
-                new FindCourse(courseRepository), new SearchCourses(courseRepository));
+                new FindCourse(courseRepository), new SearchCourses(courseRepository, clock));
 
         Javalin.create(config -> {
             config.jetty.port = http.port();

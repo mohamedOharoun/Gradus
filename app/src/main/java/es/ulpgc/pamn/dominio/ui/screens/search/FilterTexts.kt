@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.ui.screens.search
 
 import es.ulpgc.pamn.dominio.course.search.DraftCount
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 
 // Los textos de los filtros de Buscar, como funciones puras: sin Compose, para probarlas en el
 // ordenador (FilterTextsTest) igual que SearchTexts.
@@ -43,4 +44,39 @@ fun filtersButtonDescription(count: Int): String = when {
 fun tagChipLabel(tag: String): String = "#$tag"
 
 // Lo que lee TalkBack en el chip quitable. Sin «#»: se lee «Quitar filtro grafos», no «almohadilla».
-fun removeFilterDescription(tag: String): String = "Quitar filtro $tag"
+fun removeFilterDescription(tag: String): String = removeFilter(tag)
+
+// ── Creador y fecha (tarea 11, decisión C) ──
+
+// Los textos fijos del campo «Creador» (11c). Constantes sin lógica: los tests del campo las usan al
+// buscar los nodos. CREATOR_FIELD_DESCRIPTION es lo que lee TalkBack aunque el campo ya tenga texto
+// (la ayuda desaparece al escribir).
+const val CREATOR_HINT = "Nombre del creador"
+const val CREATOR_FIELD_DESCRIPTION = "Creador"
+const val CLEAR_CREATOR_DESCRIPTION = "Borrar creador"
+
+// Los títulos de sección de la hoja (11d-1). El de «Creador» es CREATOR_FIELD_DESCRIPTION: el Figma
+// no tiene etiqueta en el campo y el título hace de ella.
+const val PUBLISHED_SECTION_TITLE = "Fecha de publicación"
+
+// Lo que se ve en el chip del creador: «Creador: Ana», con la palabra del título de la sección.
+// (Antes era «por Ana», como la tarjeta, pero en la prueba a mano no quedaba claro.)
+fun authorChipLabel(name: String): String = "$CREATOR_FIELD_DESCRIPTION: $name"
+
+// Lo que lee TalkBack en el chip del creador: dice de qué filtro se trata, no solo el nombre.
+fun removeAuthorFilterDescription(name: String): String = removeFilter("creador $name")
+
+// Los botones de «Fecha de publicación» y el chip de la fecha. Sin `else`: si se añade otra fecha, el
+// compilador avisa aquí.
+fun publishedLabel(within: PublishedWithin): String = when (within) {
+    PublishedWithin.ANY -> "Cualquiera"
+    PublishedWithin.LAST_MONTH -> "Último mes"
+    PublishedWithin.LAST_YEAR -> "Último año"
+}
+
+// Lo que lee TalkBack en el chip de la fecha: la fecha en minúsculas, dentro de la frase
+// («Quitar filtro último año»).
+fun removePublishedFilterDescription(within: PublishedWithin): String =
+    removeFilter(publishedLabel(within).lowercase())
+
+private fun removeFilter(what: String): String = "Quitar filtro $what"

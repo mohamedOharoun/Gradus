@@ -27,10 +27,14 @@ public final class CourseCatalogController {
         this.searchCourses = Objects.requireNonNull(searchCourses, "searchCourses");
     }
 
-    /** {@code GET /api/courses?q=&tag=&language=&page=&size=}: 200 o 400. {@code tag} puede repetirse. */
+    /**
+     * {@code GET /api/courses?q=&tag=&language=&author=&published=&page=&size=}: 200 o 400. {@code tag}
+     * puede repetirse.
+     */
     public void search(Context ctx) {
         SearchCoursesQuery query = new SearchCoursesQuery(ctx.queryParam("q"), ctx.queryParams("tag"),
-                ctx.queryParam("language"), ctx.queryParam("page"), ctx.queryParam("size"));
+                ctx.queryParam("language"), ctx.queryParam("author"), ctx.queryParam("published"),
+                ctx.queryParam("page"), ctx.queryParam("size"));
         switch (searchCourses.search(query)) {
             case SearchResult.Found found -> ctx.json(CoursePageResponse.from(found.page()));
             case SearchResult.Rejected rejected -> ctx.status(HttpStatus.BAD_REQUEST)

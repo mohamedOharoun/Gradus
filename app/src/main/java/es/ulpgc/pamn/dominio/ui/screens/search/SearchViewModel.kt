@@ -11,6 +11,7 @@ import es.ulpgc.pamn.dominio.course.CourseGateway
 import es.ulpgc.pamn.dominio.course.search.ActiveFilter
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -86,6 +87,12 @@ class SearchViewModel(private val gateway: CourseGateway) : ViewModel() {
 
     fun onToggleTag(tag: String) = editDraft { it.toggle(tag) }
 
+    // Creador y fecha (tarea 11d-2): como las etiquetas, pasan por editDraft (cuentan tras la pausa y
+    // cancelan el recuento anterior; con la hoja cerrada no hacen nada). El autor, tal como se escribe.
+    fun onAuthorChange(author: String) = editDraft { it.withAuthor(author) }
+
+    fun onPublishedChange(published: PublishedWithin) = editDraft { it.withPublished(published) }
+
     fun onResetFilters() = editDraft(FilterSheetState::reset)
 
     fun onShowAllTags() = editFilters(FilterSheetState::showAll)
@@ -114,10 +121,13 @@ class SearchViewModel(private val gateway: CourseGateway) : ViewModel() {
     }
 
     // Chip de la fila (decisión B): quita el filtro y busca al momento, con el texto de la caja.
+    // El creador se quita entero y la fecha vuelve a «Cualquiera» (tarea 11a-2).
     fun onRemoveFilter(filter: ActiveFilter) {
         typing?.cancel()
         val query = when (filter) {
             is ActiveFilter.Tag -> search.query.withoutTag(filter.name)
+            is ActiveFilter.Author -> search.query.withoutAuthor()
+            is ActiveFilter.Published -> search.query.withPublished(PublishedWithin.ANY)
         }
         moveTo(search.search(query.withText(text)))
     }
@@ -198,6 +208,8 @@ fun SearchViewModel.actions(onCourseClick: (String) -> Unit): SearchActions = Se
     onToggleTag = this::onToggleTag,
     onResetFilters = this::onResetFilters,
     onShowAllTags = this::onShowAllTags,
+    onAuthorChange = this::onAuthorChange,
+    onPublishedChange = this::onPublishedChange,
     onApplyFilters = this::onApplyFilters,
     onCloseFilters = this::onCloseFilters,
     onRemoveFilter = this::onRemoveFilter,

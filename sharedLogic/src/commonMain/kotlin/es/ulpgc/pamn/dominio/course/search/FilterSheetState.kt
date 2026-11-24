@@ -22,14 +22,20 @@ data class FilterSheetState(
 
     val canShowAll: Boolean get() = !showingAll && suggestions.hasHidden
 
-    // «Restablecer» solo tiene sentido si hay etiquetas que quitar (el texto no cuenta).
-    val canReset: Boolean get() = draft.tags.isNotEmpty()
+    // «Restablecer» solo tiene sentido si hay algún filtro que quitar: etiquetas, creador o fecha
+    // (decisión D de la tarea 11). El texto no cuenta.
+    val canReset: Boolean get() = draft.activeFilters.isNotEmpty()
 
-    fun isSelected(tag: String): Boolean = draft.tags.any { it.tagKey() == tag.tagKey() }
+    fun isSelected(tag: String): Boolean = draft.tags.any { it.searchKey() == tag.searchKey() }
 
     fun toggle(tag: String): FilterSheetState = copy(draft = draft.toggleTag(tag))
 
-    // Vacía las etiquetas del borrador y conserva el texto; «Ver todas» sigue como estaba.
+    // El creador se guarda tal como se escribe (el campo lo enseña así).
+    fun withAuthor(author: String): FilterSheetState = copy(draft = draft.withAuthor(author))
+
+    fun withPublished(published: PublishedWithin): FilterSheetState = copy(draft = draft.withPublished(published))
+
+    // Vacía etiquetas, creador y fecha del borrador y conserva el texto; «Ver todas» sigue como estaba.
     fun reset(): FilterSheetState = copy(draft = draft.withoutFilters())
 
     fun showAll(): FilterSheetState = if (showingAll) this else copy(showingAll = true)
@@ -37,19 +43,21 @@ data class FilterSheetState(
     // La consulta que hay que lanzar al pulsar «Mostrar N cursos», o `null` si no hay nada nuevo
     // que buscar. El texto es el de la caja, que puede haber cambiado desde que se abrió la hoja.
     //
-    // Dos consultas piden lo mismo si tienen el mismo texto y las mismas etiquetas, **sin importar
-    // el orden** (el curso debe tenerlas todas): quitar una etiqueta y volver a ponerla no repite
-    // la búsqueda. El texto se compara recortado, como hace el adaptador HTTP: «red » y «red»
-    // piden lo mismo. Si algo más cambia, la consulta lleva el texto tal como se teclea.
+    // Dos consultas piden lo mismo si tienen el mismo texto, las mismas etiquetas **sin importar
+    // el orden** (el curso debe tenerlas todas), el mismo creador y la misma fecha: quitar una
+    // etiqueta y volver a ponerla no repite la búsqueda. El texto se compara recortado, como hace el
+    // adaptador HTTP: «red » y «red» piden lo mismo; el creador, sin mayúsculas ni espacios de sobra,
+    // como el backend (`asksTheSameAs`). Si algo más cambia, la consulta lleva el texto y el creador
+    // tal como se teclean.
     fun queryToApply(typedText: String, applied: CourseQuery): CourseQuery? =
         draft.withText(typedText).takeUnless { it.asksTheSameAs(applied) }
 
     // ── Recuento del borrador («Mostrar N cursos») ──
     // Este estado no pide nada ni espera: el ViewModel decide cuándo contar (tras 300 ms) y devuelve
-    // la respuesta con `receivePreview` (o lo cancela con `cancelPreview`). `toggle` y `reset` no
-    // tocan `preview`.
+    // la respuesta con `receivePreview` (o lo cancela con `cancelPreview`). `toggle`, `withAuthor`,
+    // `withPublished` y `reset` no tocan `preview`.
 
-    // Lo que se pediría con el borrador: sus etiquetas y el texto de la caja en este momento.
+    // Lo que se pediría con el borrador: sus filtros y el texto de la caja en este momento.
     fun previewQuery(typedText: String): CourseQuery = draft.withText(typedText)
 
     // ¿hay que pedir un recuento nuevo? No si el borrador pide lo mismo que lo aplicado (ya se sabe

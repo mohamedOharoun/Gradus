@@ -25,14 +25,14 @@ data class TagSuggestions(val shown: List<String>, val hidden: List<String>) {
         // Se calcula al abrir la hoja con las etiquetas *aplicadas*, no las del borrador: si
         // siguiera al borrador, al tocar una etiqueta saltaría al principio bajo el dedo.
         fun from(results: List<CourseSummary>, selected: List<String>, shown: Int = SHOWN): TagSuggestions {
-            val chosen = selected.filter { it.tagKey().isNotEmpty() }.distinctBy(String::tagKey)
-            val chosenKeys = chosen.map(String::tagKey).toSet()
+            val chosen = selected.filter { it.searchKey().isNotEmpty() }.distinctBy(String::searchKey)
+            val chosenKeys = chosen.map(String::searchKey).toSet()
 
             val others = results
                 // Cada curso cuenta una etiqueta una sola vez, aunque la repita.
-                .flatMap { course -> course.tags.filter { it.tagKey().isNotEmpty() }.distinctBy(String::tagKey) }
+                .flatMap { course -> course.tags.filter { it.searchKey().isNotEmpty() }.distinctBy(String::searchKey) }
                 // Una entrada por etiqueta (sin distinguir mayúsculas), con una forma por curso.
-                .groupBy(String::tagKey)
+                .groupBy(String::searchKey)
                 .filterKeys { it !in chosenKeys }
                 // `results` va del curso más reciente al más antiguo: se enseña la forma del primero.
                 .map { (key, forms) -> Candidate(label = forms.first(), key = key, courses = forms.size) }

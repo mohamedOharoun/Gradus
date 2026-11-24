@@ -4,11 +4,7 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
@@ -20,9 +16,6 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
-import es.ulpgc.pamn.dominio.course.CourseGateway
-import es.ulpgc.pamn.dominio.course.SearchOutcome
-import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
@@ -37,7 +30,6 @@ import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchViewModel
 import es.ulpgc.pamn.dominio.ui.screens.search.actions
-import kotlinx.coroutines.launch
 
 // Grafo anidado de las pantallas con sesión (docs/tareas/barra-navegacion.md).
 // Va en su propio fichero para que GradusNavHost solo tenga que llamar a mainGraph(...).
@@ -51,37 +43,23 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None },
     ) {
-        tab<Route.Home>(TopLevelDestination.HOME, navController) { modifier ->
-            // Provisional hasta que exista Buscar (la hace el compañero): abre el curso más reciente del servidor.
-            val scope = rememberCoroutineScope()
-            var notice by remember { mutableStateOf<String?>(null) }
-            ScreenHome(
-                onOpenCourse = {
-                    scope.launch {
-                        notice = null
-                        latestCourseId(AppContainer.courseGateway)
-                            .onSuccess { navController.navigate(Route.Course(it)) }
-                            .onFailure { notice = it.message }
-                    }
-                },
-                notice = notice,
-                modifier = modifier,
-            )
-        }
+        tab<Route.Home>(TopLevelDestination.HOME, navController) { ScreenHome(it) }
         // El ViewModel vive con la entrada de Buscar: al abrir un curso y volver, o al cambiar de
         // pestaña y volver (saveState/restoreState), la búsqueda sigue igual.
         tab<Route.Search>(TopLevelDestination.SEARCH, navController) { modifier ->
             val searchViewModel: SearchViewModel = viewModel(factory = SearchViewModel.factory(AppContainer.courseGateway))
+            // Solo con la pantalla activa: dos toques rápidos no abren el curso dos veces.
+            // Se recuerda para que sea la misma función en cada recomposición: si no, SearchActions
+            // cambiaría con cada tecla y la lista y las tarjetas se volverían a dibujar.
+            val lifecycleOwner = LocalLifecycleOwner.current
+            val openCourse = remember(lifecycleOwner, navController) {
+                lifecycleOwner.onlyWhenResumed { id: String -> navController.navigate(Route.Course(id)) }
+            }
             ScreenSearch(
                 text = searchViewModel.text,
                 search = searchViewModel.search,
                 filters = searchViewModel.filters,
-                actions = searchViewModel.actions(
-                    // Solo con la pantalla activa: dos toques rápidos no abren el curso dos veces.
-                    onCourseClick = LocalLifecycleOwner.current.onlyWhenResumed { id: String ->
-                        navController.navigate(Route.Course(id))
-                    },
-                ),
+                actions = searchViewModel.actions(onCourseClick = openCourse),
                 modifier = modifier,
             )
         }
@@ -181,12 +159,3 @@ private fun NavController.navigateToTab(destination: TopLevelDestination) {
 internal fun <T> LifecycleOwner.onlyWhenResumed(block: (T) -> Unit): (T) -> Unit = { value ->
     if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) block(value)
 }
-
-// Provisional (con el botón de Inicio): el id del curso publicado más reciente, o el motivo para no abrirlo.
-private suspend fun latestCourseId(gateway: CourseGateway): Result<String> =
-    when (val outcome = gateway.search(CourseQuery.EMPTY)) {
-        is SearchOutcome.Found -> outcome.page.items.firstOrNull()?.let { Result.success(it.id) }
-            ?: Result.failure(IllegalStateException("Todavía no hay cursos publicados en el servidor."))
-        SearchOutcome.Unreachable -> Result.failure(IllegalStateException("No se ha podido conectar con el servidor."))
-        SearchOutcome.ServerFailure -> Result.failure(IllegalStateException("El servidor no ha respondido bien."))
-    }

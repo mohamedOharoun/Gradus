@@ -721,6 +721,129 @@ class FilterSheetStateTest {
         assertSame(state, state.cancelPreview())
     }
 
+    // ── Creador y fecha en el borrador (tarea 11a-1) ──
+
+    @Test
+    fun `withAuthor changes the author of the draft and keeps the rest`() {
+        val state = opened(CourseQuery(text = "red", tags = listOf("grafos"))).withAuthor("Ana")
+
+        assertEquals(CourseQuery(text = "red", tags = listOf("grafos"), author = "Ana"), state.draft)
+    }
+
+    @Test
+    fun `withPublished changes the date of the draft and keeps the rest`() {
+        val state = opened(CourseQuery(text = "red", tags = listOf("grafos"))).withPublished(PublishedWithin.LAST_MONTH)
+
+        assertEquals(
+            CourseQuery(text = "red", tags = listOf("grafos"), published = PublishedWithin.LAST_MONTH),
+            state.draft,
+        )
+    }
+
+    // Como `toggle`: solo cambia el borrador.
+    @Test
+    fun `withAuthor and withPublished only change the draft`() {
+        val state = FilterSheetState.open(CourseQuery.EMPTY, manyTags).showAll().toggle("a")
+            .counted("", found(total = 3, "a", "b"))
+
+        val withAuthor = state.withAuthor("Ana")
+        val withDate = state.withPublished(PublishedWithin.LAST_YEAR)
+
+        assertEquals(state.draft.copy(author = "Ana"), withAuthor.draft)
+        assertEquals(state.draft.copy(published = PublishedWithin.LAST_YEAR), withDate.draft)
+        listOf(withAuthor, withDate).forEach { changed ->
+            assertEquals(state.suggestions, changed.suggestions)
+            assertTrue(changed.showingAll)
+            assertEquals(state.preview, changed.preview)
+        }
+    }
+
+    // Decisión D: «Restablecer» se puede pulsar si el borrador tiene cualquier filtro.
+    @Test
+    fun `canReset is true with only an author`() {
+        assertTrue(opened().withAuthor("Ana").canReset)
+        assertTrue(opened(CourseQuery(author = "Ana")).canReset)
+    }
+
+    @Test
+    fun `canReset is true with only a date`() {
+        assertTrue(opened().withPublished(PublishedWithin.LAST_MONTH).canReset)
+        assertTrue(opened(CourseQuery(published = PublishedWithin.LAST_YEAR)).canReset)
+    }
+
+    @Test
+    fun `canReset is false with a blank author or any date`() {
+        assertFalse(opened().withAuthor("   ").canReset)
+        assertFalse(opened().withPublished(PublishedWithin.ANY).canReset)
+    }
+
+    @Test
+    fun `reset empties the tags the author and the date and keeps the text`() {
+        val applied = CourseQuery(text = "red", tags = listOf("grafos"), author = "Ana", published = PublishedWithin.LAST_YEAR)
+        val reset = opened(applied).reset()
+
+        assertEquals(CourseQuery(text = "red"), reset.draft)
+        assertFalse(reset.canReset)
+    }
+
+    @Test
+    fun `previewNeeded is true after changing the author`() {
+        assertTrue(opened().withAuthor("Ana").previewNeeded(typedText = "", applied = CourseQuery.EMPTY))
+    }
+
+    @Test
+    fun `previewNeeded is true after changing the date`() {
+        val state = opened().withPublished(PublishedWithin.LAST_MONTH)
+
+        assertTrue(state.previewNeeded(typedText = "", applied = CourseQuery.EMPTY))
+    }
+
+    @Test
+    fun `previewNeeded is false when the author only changed its capitals or spaces`() {
+        val applied = CourseQuery(author = "Ana Ruiz")
+        val state = opened(applied).withAuthor(" ana  ruiz")
+
+        assertEquals(" ana  ruiz", state.draft.author)  // el borrador sí ha cambiado
+        assertFalse(state.previewNeeded(typedText = "", applied = applied))
+    }
+
+    @Test
+    fun `previewNeeded is false when the date goes back to the applied one`() {
+        val applied = CourseQuery(published = PublishedWithin.LAST_YEAR)
+        val month = opened(applied).withPublished(PublishedWithin.LAST_MONTH)
+
+        assertTrue(month.previewNeeded(typedText = "", applied = applied))
+        assertFalse(month.withPublished(PublishedWithin.LAST_YEAR).previewNeeded(typedText = "", applied = applied))
+    }
+
+    @Test
+    fun `previewQuery carries the author and the date`() {
+        val state = opened().withAuthor("Ana").withPublished(PublishedWithin.LAST_MONTH)
+
+        assertEquals(
+            CourseQuery(text = "red", author = "Ana", published = PublishedWithin.LAST_MONTH),
+            state.previewQuery("red"),
+        )
+    }
+
+    @Test
+    fun `queryToApply carries the author and the date`() {
+        val state = opened(CourseQuery(text = "red")).withAuthor("Ana").withPublished(PublishedWithin.LAST_YEAR)
+
+        assertEquals(
+            CourseQuery(text = "red", author = "Ana", published = PublishedWithin.LAST_YEAR),
+            state.queryToApply(typedText = "red", applied = CourseQuery(text = "red")),
+        )
+    }
+
+    // Como el texto: se manda recortado, pero la consulta lo lleva tal como se escribe.
+    @Test
+    fun `queryToApply keeps the author as it is typed`() {
+        val state = opened().withAuthor(" Ana ")
+
+        assertEquals(" Ana ", state.queryToApply(typedText = "", applied = CourseQuery.EMPTY)?.author)
+    }
+
     // ── Ayudas de los tests de recuento ──
 
     // Una página de tamaño 2: con `total` mayor que 2 quedan más («Cargar más»).

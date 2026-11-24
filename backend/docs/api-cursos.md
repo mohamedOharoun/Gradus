@@ -13,7 +13,7 @@ No se usa `10.0.2.2`: con `targetSdk` 37 (Android 17), la red local exige el per
 | `POST /api/courses/validate` | sí | 200 informe (válido o no) · 401 · 413 |
 | `POST /api/courses` | sí | 201 publicado · 400 · 401 · 413 · 422 |
 | `POST /api/courses/{id}/versions` | sí | 201 · 400 · 401 · 403 · 404 · 409 · 413 · 422 |
-| `GET /api/courses?q=&tag=&language=&page=&size=` | no | 200 página · 400 |
+| `GET /api/courses?q=&tag=&language=&author=&published=&page=&size=` | no | 200 página · 400 |
 | `GET /api/courses/{id}` | no | 200 última versión con contenido · 404 |
 | `GET /api/courses/{id}/versions/{version}` | no | 200 versión con contenido · 404 |
 
@@ -68,6 +68,12 @@ Para comprobar la descarga: el SHA-256 de los bytes de `content`, tal como viene
 - `q`: subcadena en título o descripción. Sin distinguir mayúsculas ni espacios repetidos; `%` y `_` son literales.
 - `tag`: repetible (`?tag=grafos&tag=algoritmos`). El curso debe tener **todas** las etiquetas pedidas.
 - `language`: exacto (`es`, `en`, `es-ES`).
+- `author`: subcadena del nombre del autor. Sin distinguir mayúsculas ni espacios repetidos en lo pedido;
+  **no** quita tildes («angel» no encuentra a «Ángel»); `%` y `_` son literales.
+- `published`: `month` (último mes) o `year` (último año), desde la misma hora de hace un mes o un año, en el
+  calendario y en UTC, con el límite incluido. «Cualquier fecha» = no enviar el parámetro. Otro valor (`week`,
+  `Month`, `any`…): 400 `INVALID_PARAMETER` en `published`.
+- `q`, `tag`, `language`, `author` y `published` ausentes o en blanco no filtran; los presentes se combinan con Y.
 - `page` desde 0 (por defecto 0); `size` entre 1 y 100 (por defecto 20). Si no son válidos: 400
   `INVALID_PARAMETER` en `page` y/o `size`.
 
@@ -78,7 +84,7 @@ Para comprobar la descarga: el SHA-256 de los bytes de `content`, tal como viene
 | `COURSE_NOT_FOUND` | 404 | `id` o `version` | No existe el curso o la versión |
 | `NOT_COURSE_AUTHOR` | 403 | `id` | Publica una versión quien no es el autor |
 | `IDENTICAL_TO_LATEST` | 409 | `body` | El contenido es igual al de la última versión |
-| `INVALID_PARAMETER` | 400 | `page` o `size` | Parámetro de búsqueda no válido |
+| `INVALID_PARAMETER` | 400 | `page`, `size` o `published` | Parámetro de búsqueda no válido (si hay varios, todos, en ese orden) |
 
 Los códigos de los problemas del curso (`errors`/`warnings` del informe) están en §3.3 de la
 especificación; la app no necesita traducirlos.

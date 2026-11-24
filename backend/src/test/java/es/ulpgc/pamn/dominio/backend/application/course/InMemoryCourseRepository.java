@@ -74,7 +74,7 @@ final class InMemoryCourseRepository implements CourseRepository {
     public synchronized Page<CourseSummary> search(CourseSearch search, PageRequest page) {
         List<CourseSummary> matching = versionsByCourse.values().stream()
                 .map(versions -> versions.getLast().summary())
-                .filter(summary -> search.matches(summary.metadata()))
+                .filter(search::matches)
                 .sorted(Comparator.comparing(CourseSummary::publishedAt).reversed()
                         .thenComparing(summary -> summary.id().toString()))
                 .toList();

@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -357,6 +358,23 @@ class SearchViewModelTest {
         val onCourseClick: (String) -> Unit = {}
         val viewModel = SearchViewModel(FakeCourseGateway(searchAnswer = catalog()))
         assertSame(onCourseClick, viewModel.actions(onCourseClick).onCourseClick)
+    }
+
+    // Las referencias `viewModel::onX` al mismo ViewModel son iguales en Kotlin, aunque se creen otra
+    // vez en cada llamada; lo único que puede cambiar es `onCourseClick`. Por eso MainNavGraph solo
+    // tiene que recordar esa función para que SearchActions no cambie al recomponer.
+    @Test
+    fun `actions with the same course click are equal`() = runTest {
+        val onCourseClick: (String) -> Unit = {}
+        val viewModel = SearchViewModel(FakeCourseGateway(searchAnswer = catalog()))
+        assertEquals(viewModel.actions(onCourseClick), viewModel.actions(onCourseClick))
+    }
+
+    // El problema del 9b: una función de click nueva en cada recomposición da otras SearchActions.
+    @Test
+    fun `actions with a new course click are not equal`() = runTest {
+        val viewModel = SearchViewModel(FakeCourseGateway(searchAnswer = catalog()))
+        assertNotEquals(viewModel.actions {}, viewModel.actions {})
     }
 
     @Test

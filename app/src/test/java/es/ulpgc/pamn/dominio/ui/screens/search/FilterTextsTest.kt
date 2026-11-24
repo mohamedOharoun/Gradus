@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.ui.screens.search
 
 import es.ulpgc.pamn.dominio.course.search.DraftCount
+import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -102,5 +103,48 @@ class FilterTextsTest {
     @Test
     fun `removing a filter keeps inner spaces`() {
         assertEquals("Quitar filtro bases de datos", removeFilterDescription("bases de datos"))
+    }
+
+    // --- Creador (tarea 11a-2) ---
+
+    @Test
+    fun `the author chip starts with Creador like the sheet section`() {
+        assertEquals("Creador: Ana", authorChipLabel("Ana"))
+    }
+
+    @Test
+    fun `the author chip keeps capitals accents and inner spaces`() {
+        assertEquals("Creador: Ángel Ruiz", authorChipLabel("Ángel Ruiz"))
+    }
+
+    @Test
+    fun `removing the author filter says that it is the creator`() {
+        assertEquals("Quitar filtro creador Ana", removeAuthorFilterDescription("Ana"))
+    }
+
+    @Test
+    fun `removing the author filter keeps the whole name`() {
+        assertEquals("Quitar filtro creador Ángel Ruiz", removeAuthorFilterDescription("Ángel Ruiz"))
+    }
+
+    // --- Fecha de publicación (tarea 11a-2) ---
+
+    @Test
+    fun `each publication date has its label`() {
+        assertEquals("Cualquiera", publishedLabel(PublishedWithin.ANY))
+        assertEquals("Último mes", publishedLabel(PublishedWithin.LAST_MONTH))
+        assertEquals("Último año", publishedLabel(PublishedWithin.LAST_YEAR))
+    }
+
+    @Test
+    fun `removing the date filter reads the date in lower case`() {
+        assertEquals("Quitar filtro último mes", removePublishedFilterDescription(PublishedWithin.LAST_MONTH))
+        assertEquals("Quitar filtro último año", removePublishedFilterDescription(PublishedWithin.LAST_YEAR))
+    }
+
+    // «Cualquiera» no tiene chip (no filtra), pero la función responde a las tres fechas.
+    @Test
+    fun `removing any date would read cualquiera`() {
+        assertEquals("Quitar filtro cualquiera", removePublishedFilterDescription(PublishedWithin.ANY))
     }
 }
