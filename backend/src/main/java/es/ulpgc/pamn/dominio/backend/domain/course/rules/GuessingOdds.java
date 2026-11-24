@@ -3,6 +3,7 @@ package es.ulpgc.pamn.dominio.backend.domain.course.rules;
 import es.ulpgc.pamn.dominio.backend.domain.course.Exercise;
 import es.ulpgc.pamn.dominio.backend.domain.course.Matching;
 import es.ulpgc.pamn.dominio.backend.domain.course.MultipleChoice;
+import es.ulpgc.pamn.dominio.backend.domain.course.PhotoExercise;
 import es.ulpgc.pamn.dominio.backend.domain.course.SingleChoice;
 
 import java.util.List;
@@ -24,6 +25,9 @@ public final class GuessingOdds {
             case SingleChoice single -> 1.0 / single.options().size();
             case MultipleChoice multiple -> 1.0 / (Math.pow(2, multiple.options().size()) - 1);
             case Matching matching -> 1.0 / factorial(matching.pairs().size());
+            // No se corrige solo: en una prueba de dominio sería un acierto seguro. PHOTO_IN_REVIEW
+            // lo prohíbe en la reserva; con 1 la cota nunca se queda corta si algún día llegase.
+            case PhotoExercise photo -> 1.0;
         };
     }
 

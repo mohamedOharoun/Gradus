@@ -17,22 +17,22 @@ import java.util.Map;
  * no conoce es JSON inválido. Así los tests de publicación tienen contenidos distintos (y SHA-256
  * distintos) para cada versión, sin depender de Jackson.
  */
-final class FakeCourseReader implements CourseReader {
+public final class FakeCourseReader implements CourseReader {
 
     static final CourseReport UNREADABLE =
             new CourseReport(List.of(Issue.at(JsonPointer.root(), CourseIssueCode.INVALID_JSON, "No es JSON.")));
 
     private final Map<String, CourseReadResult> results = new HashMap<>();
 
-    static byte[] utf8(String text) {
+    public static byte[] utf8(String text) {
         return text.getBytes(StandardCharsets.UTF_8);
     }
 
-    FakeCourseReader parsing(String text, CourseDocument course) {
+    public FakeCourseReader parsing(String text, CourseDocument course) {
         return answering(text, new CourseReadResult.Parsed(course, new CourseContent(text)));
     }
 
-    FakeCourseReader answering(String text, CourseReadResult result) {
+    public FakeCourseReader answering(String text, CourseReadResult result) {
         results.put(text, result);
         return this;
     }

@@ -48,6 +48,10 @@ public final class TestCourses {
         return new Matching(id, "Enunciado de " + id, pairs, "Explicación de " + id);
     }
 
+    public static PhotoExercise photo(String id) {
+        return new PhotoExercise(id, "Enunciado de " + id, "Explicación de " + id);
+    }
+
     /** Opciones con ids a, b, c… y textos «Opción A», «Opción B»… */
     public static List<Option> options(int count) {
         return IntStream.range(0, count)

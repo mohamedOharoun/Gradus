@@ -1,0 +1,80 @@
+type: http_request
+model: http_request
+id: rq_0lfUT0fN3s
+createdAt: 2026-11-24T12:00:00.000000000
+updatedAt: 2026-11-24T12:00:00.000000000
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_pUw2uUvgMh
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "formatVersion": 1,
+      "title": "Curso de prueba con foto",
+      "description": "Un módulo mínimo para probar la publicación desde Yaak.",
+      "language": "es",
+      "tags": ["prueba", "yaak"],
+      "defaults": { "mastery": { "questions": 1, "minCorrect": 1 } },
+      "modules": [
+        {
+          "id": "intro",
+          "title": "Introducción",
+          "requires": [],
+          "steps": [
+            { "type": "lesson", "id": "intro-l1", "text": "Un **grafo** tiene vértices y aristas." },
+            {
+              "type": "singleChoice", "id": "intro-f1", "prompt": "¿Qué une dos vértices?",
+              "options": [ { "id": "a", "text": "Una arista" }, { "id": "b", "text": "Un grado" } ],
+              "answer": "a", "explanation": "Las aristas conectan vértices."
+            },
+            {
+              "type": "photo", "id": "intro-foto",
+              "prompt": "Dibuja en papel un grafo con **3 vértices** y **2 aristas** y hazle una foto.",
+              "explanation": "Por ejemplo, A–B y B–C: tres vértices (A, B, C) y dos aristas."
+            }
+          ],
+          "review": [
+            {
+              "type": "singleChoice", "id": "intro-r1", "prompt": "¿De qué está formado un grafo?",
+              "options": [ { "id": "a", "text": "Vértices y aristas" }, { "id": "b", "text": "Filas y columnas" } ],
+              "answer": "a", "explanation": "G = (V, E): vértices y aristas."
+            }
+          ]
+        }
+      ]
+    }
+bodyType: application/json
+description: Como «Publicar curso», con un paso photo en steps (docs/tareas/ejercicio-foto.md). Crea un curso nuevo cada vez.
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_BidRTgEuwC', path='$.token') ]}
+  id: null
+method: POST
+name: Publicar curso con foto (201)
+sortPriority: 16.0
+url: ${[ baseUrl ]}/api/courses
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto
