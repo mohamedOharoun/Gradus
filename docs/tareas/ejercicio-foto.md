@@ -118,6 +118,40 @@ editar o recortar la foto, reintentar en segundo plano (WorkManager), un editor 
    3 MB en esa ruta.
    *Acepta si:* desde Yaak: 201, 400 (no JPEG), 404 (ejercicio que no es `photo`), 413, 401; otra
    cuenta recibe 403 al pedir la foto.
+
+   **Plan por pasos de la tarea 3** (propuesta del 2026-11-24, pendiente de aprobar). Cada paso
+   termina con `mvn test` en verde; los pasos a–c no tocan base de datos ni HTTP.
+
+   - **3a · Dominio** (test primero). `Jpeg` (objeto de valor: no vacío, empieza por `FF D8 FF`
+     —la «firma» de un JPEG—, como mucho `MAX_BYTES`; no se fía del nombre ni del tipo que diga el
+     cliente), `SubmissionStatus` (`PENDING`; los de la revisión llegan en la fase 2) y `Submission`
+     (id, alumno, curso, versión, ejercicio, fecha, estado, tamaño). Inmutables.
+   - **3b · Entregar** (test primero, repositorios en memoria). Puerto `SubmissionRepository` y caso de
+     uso `SubmitPhoto`: el curso y la versión existen, el ejercicio es un `photo` **de los `steps`** de
+     esa versión y la foto es un `Jpeg` válido. Resultado sellado `SubmitPhotoResult` (`Submitted`,
+     `CourseNotFound`, `NotAPhotoExercise`, `InvalidPhoto`), como `RegistrationResult`.
+   - **3c · Consultar** (test primero). `ListMySubmissions` (las del alumno en un curso, de la más
+     reciente a la más antigua, **sin** los bytes de la foto) y `DownloadSubmissionPhoto` (solo su
+     dueño: `Found`, `NotFound`, `Forbidden`).
+   - **3d · Base de datos.** `db/init/005_create_submissions.sql` (tabla `submissions`, `photo BYTEA`,
+     `ON DELETE CASCADE` desde `users`, índice por alumno y curso) y `JdbcSubmissionRepository`
+     (listar sin leer la columna `photo`). Sin test automático del repositorio, como los demás: SQL
+     probado a mano en un PostgreSQL desechable (insertar, listar, descargar, cascada, repetir `005`).
+   - **3e · HTTP.** `SubmissionController` (leer el multipart: `photo` y `version`), las tres rutas en
+     `App.java` con `RequireSession`, respuestas y códigos de error nuevos en `ErrorCode`
+     (`INVALID_PHOTO`; los nombres exactos se deciden en el paso). Comprobar antes cómo se configura
+     multipart en Javalin 7.2.4 (no se supone). Tests de las partes puras (respuestas, lectura de
+     campos).
+   - **3f · Yaak y prueba completa.** Carpeta «Entregas» (subir una foto de verdad, no JPEG, ejercicio
+     que no es `photo`, sin sesión, la foto de otra cuenta → 403, listar), enviadas contra el servidor.
+
+   Cambios que propone este plan sobre las decisiones:
+   - **F · Límite de la foto: 2 MiB** (no 3 MB), el mismo que el de un curso. Así no se toca
+     `maxRequestSize` de `App.java`, que hoy protege todas las rutas. La app reduce la foto a 2000 px
+     (≈ 0,5–1,5 MB), así que sobra.
+   - **M (nueva) · La app envía la versión del curso que estudia.** El servidor comprueba que en *esa*
+     versión el ejercicio existe y es `photo`. Los ids son estables entre versiones (§2.4), así que
+     en la fase 2 el profesor verá juntas las entregas de un ejercicio aunque cambie la versión.
 4. **`sharedLogic`** (test primero). `PhotoTask` (`Question`), el estado del paso (sin foto → con foto
    → entregando → entregada / fallo), el puerto `SubmissionGateway` y su adaptador HTTP (multipart),
    probado con `MockEngine`.
@@ -157,6 +191,56 @@ autor del curso?
     failed`: el JDK no confía en el certificado HTTPS que ve este ordenador). Se resolvió con
     `MAVEN_OPTS=-Djavax.net.ssl.trustStoreType=Windows-ROOT` (usar los certificados de Windows).
 
+- 2026-11-24: **tarea 2 hecha.**
+  - `CourseIssueCode.PHOTO_IN_REVIEW` (error) y `ExerciseRules.photosInReview`: recorre la reserva de
+    cada módulo y da un error por cada `photo`, en su ruta (`/modules/1/review/2`), con un mensaje que
+    nombra el ejercicio y dice que se mueva a `steps`. Añadida a la capa 3 de `CourseValidator`.
+  - Va en la capa 3 y no en la 5 (dominio) a propósito: el validador para tras la primera capa con
+    errores, así que no sale además un `MASTERY_GUESSABLE` (la foto cuenta como acierto seguro).
+  - Tests: `PhotoInReviewTest` (7: curso normal sin el error, error y ruta, mensaje, en `steps` no,
+    varias fotos en orden del documento, el validador lo rechaza, y que sea el único problema),
+    `CourseIssueCodeTest` con el código nuevo y el fixture `PHOTO_IN_REVIEW.json` (lo exige
+    `CourseFixturesTest`: un fixture por código). En rojo antes. **638 tests del backend en verde.**
+  - Pendiente (tarea 3): documentar el código en el catálogo §3.3 de `especificacion-cursos-v1.md`.
+
+- 2026-11-24: **documentos y Yaak del formato** (parte de la tarea 6, adelantada; la tarea 3,
+  entregas, sigue sin empezar).
+  - `backend/docs/especificacion-cursos-v1.md`: `photo` en la tabla de tipos (§2.5) con un ejemplo y
+    qué es su `explanation`; `PHOTO_IN_REVIEW` en el catálogo (§3.3); probabilidad 1 en §3.6; en el
+    contrato con la app (§5), que una foto no se da por corregida y se entrega sin esperar.
+  - Yaak, carpeta «Cursos · Publicación»: «Publicar curso con foto (201)» (`rq_0lfUT0fN3s`, el curso
+    compacto con un paso `photo`) y «Foto en la reserva (422)» (`rq_JmzZqefikj`, un `photo` en
+    `review`). Escritas a mano con el formato de las demás (no hay CLI de Yaak en este ordenador).
+  - Comprobado sin servidor: los dos cuerpos pasados por `JacksonCourseReader` y
+    `CourseValidator.standard()` reales. El primero es válido (sus 3 avisos de dominio son los del
+    curso compacto, que tiene 1 pregunta); el segundo da solo `PHOTO_IN_REVIEW /modules/0/review/0`.
+  - Pendiente: enviarlas de verdad desde Yaak con el servidor reiniciado.
+
+- 2026-11-24: plan de la tarea 3 aprobado, con F (la foto cabe en una petición de 2 MiB) y M (la app
+  envía la versión). **Paso 3a hecho** (paquete `domain/submission`).
+  - `Jpeg`: solo se crea con `Jpeg.check(bytes)`, que devuelve `JpegCheck` (sellado: `Valid`, `Empty`,
+    `NotJpeg`, `TooLarge(size)`). Firma `FF D8 FF`; no mira nombre ni `Content-Type`. El tamaño se
+    mira antes que la firma. `MAX_BYTES = 2 000 000`: deja ~95 KB de margen para el resto del
+    multipart dentro de los 2 MiB de `maxRequestSize` (lo vigila un test). Clase y no record: copia
+    los bytes al entrar y al salir, `equals` por contenido y `toString` sin los bytes.
+  - `SubmissionStatus` (`PENDING`) y `Submission` (sin los bytes de la foto, solo `photoBytes`;
+    versión ≥ 1, ejercicio no vacío, tamaño entre 1 y `MAX_BYTES`), con la factory `pending(…, Jpeg)`.
+  - Tests: `JpegTest` (16) y `SubmissionTest` (6), en rojo antes. **660 tests del backend en verde.**
+
+- 2026-11-24: **paso 3b hecho** (paquete `application/submission`).
+  - Puerto `SubmissionRepository.add(submission, photo)` (las dos cosas juntas).
+  - `SubmitPhotoCommand` (el alumno sale de la sesión; `toString` sin los bytes) y `SubmitPhotoResult`
+    sellado: `Submitted`, `CourseNotFound`, `NotAPhotoExercise`, `InvalidPhoto(reason)` con el
+    `JpegCheck` que falló (no admite uno válido).
+  - `SubmitPhoto`: versión (reutiliza `FindCourse`, que ya trata la versión < 1) → ejercicio `photo`
+    en los `steps` de esa versión (los de `review` no cuentan) → foto. Lo publicado se relee solo con
+    el lector; si no se entiende, `IllegalStateException` (500): es fallo del servidor. La fecha se
+    trunca a microsegundos, como en `RegisterUser`. Cada envío es una entrega nueva (decisión I).
+  - Tests: `SubmitPhotoTest` (15) y `SubmitPhotoValuesTest` (4), con `InMemorySubmissionRepository`
+    (nuevo) e `InMemoryCourseRepository` / `FakeCourseReader`, que pasan a ser públicos para usarlos
+    desde este paquete (solo cambia la visibilidad). En rojo antes. **679 tests del backend en verde.**
+
 ## Siguiente paso
 
-Probar 201 / 422 por HTTP tras reiniciar el servidor; después, tarea 2 (`PHOTO_IN_REVIEW`).
+Paso 3c: `ListMySubmissions` y `DownloadSubmissionPhoto` (test primero, en memoria).
+Pendiente de antes: enviar desde Yaak las peticiones del curso con foto con el servidor reiniciado.
