@@ -6,7 +6,7 @@ Que un usuario se **inscriba** en un curso, estudie (también sin conexión) y s
 Este documento es el **índice común**: decisiones, contrato, reparto en partes y acuerdos. El detalle
 de cada parte vive en su propio documento, para que cada orquestador lea solo lo suyo.
 
-Estado: **definición aprobada; parte A sin empezar** (2026-11-24). Rama: `dev/course-progress-tracking`.
+Estado: **definición aprobada; parte A con las tareas 1 y 2 hechas** (2026-11-24). Rama: `dev/course-progress-tracking`.
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -26,11 +26,12 @@ ficheros que les dé el orquestador. Este índice, solo si el orquestador lo ind
 
 Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumula.
 
-- **Dónde estamos (2026-11-24):** parte A con la tarea 1 hecha (dominio y caso de uso). El contrato
+- **Dónde estamos (2026-11-24):** parte A con las tareas 1 y 2 hechas (dominio, caso de uso, migración
+  `006` y adaptadores JDBC); le queda la 3 (ruta y congelar el contrato). El contrato
   sigue en borrador, pero ya tiene resueltos sus puntos de la tarea 1 (reglas 4 y 6–9). Afecta a B:
   `skipped` lleva un `moduleId` opcional (sin él se omitió la inscripción entera), tiene un orden
   fijo y da los cursos inexistentes con su UUID en minúsculas («Respuesta 200»).
-- **Siguiente:** la parte A sigue con la tarea 2, con un orquestador nuevo. La parte B puede arrancar
+- **Siguiente:** la parte A sigue con la tarea 3, que congela el contrato. La parte B puede arrancar
   en paralelo con otro orquestador cuando queráis: solo depende del contrato.
 - **Dependencias entre partes:**
   - A y B: independientes; las une el contrato. B5 (gateway HTTP) necesita el contrato **congelado**
