@@ -7,7 +7,7 @@ Rama: `dev/course-progress-tracking`. Proyecto: `backend/` (Maven, Java 25, Java
 Docker). Tests con JUnit Jupiter y repositorios en memoria: `./gradus.sh test` (`mvn test`) no necesita
 la base de datos. Commits: `… (progress task N)`.
 
-Estado: **tareas 1 y 2 hechas; toca la tarea 3** (2026-11-24). Lo terminado y sus decisiones:
+Estado: **tareas 1 y 2 hechas; tarea 3 partida en 3a, 3b y 3c; 3a hecha, toca 3b** (2026-11-24). Lo terminado y sus decisiones:
 `progreso-backend-historico.md` (no hace falta leerlo para continuar).
 
 ## Relevo
@@ -17,7 +17,10 @@ sesión; no se acumula.
 
 - **Dónde estamos (2026-11-24):** tareas 1 y 2 hechas y revisadas (668 tests en verde). Hay dominio,
   caso de uso (`SyncProgress`), migración `006` y adaptadores JDBC (`JdbcEnrollmentRepository`,
-  `JdbcCourseExistence`); falta la ruta (tarea 3). El contrato sigue en **borrador**.
+  `JdbcCourseExistence`); falta la ruta (tarea 3). Los tres «(abierto, tarea 3)» del contrato y los
+  permisos de 3b **están decididos** (ver la tarea 3). **3a hecha y revisada** (lector y DTO en
+  `web/progress/`, 765 tests). Faltan 3b (controlador, cableado, Yaak y pruebas reales) y 3c (congelar
+  el contrato, lo hace el orquestador). El contrato sigue en **borrador** hasta 3c.
 - **Al empezar:** leer `AGENTS.md`, el Relevo general y las Decisiones de
   `docs/tareas/seguimiento-progreso.md`, este documento y `backend/docs/api-progreso.md`. **No** hace
   falta el histórico, `backend/docs/especificacion-cursos-v1.md` (606 líneas) ni nada de la app.
@@ -27,20 +30,21 @@ sesión; no se acumula.
     real: además del criterio, conviene mandar lo mismo dos veces, una fecha más antigua y un curso
     inexistente.
   - La `006` aún no está en la base de desarrollo, que ya tiene una `005_create_course_ratings.sql` de
-    otra rama. Aplicarla (`./gradus.sh` la aplica al arrancar el servidor) necesita **permiso de los
-    usuarios**; también cualquier escritura de Yaak (cuentas, cursos, progreso).
+    otra rama. Los usuarios dieron permiso **solo para 3b** y con los límites de «Permisos de 3b» (tarea
+    3): aplicarla con `./gradus.sh`, escribir cuentas y progreso de prueba solo con la API.
   - Cableado en `App.java`: `JdbcEnrollmentRepository` y `JdbcCourseExistence` reciben el `DataSource`;
     `SyncProgress` se crea una sola vez.
   - `findAll` ya devuelve el orden propuesto en el contrato (inscripciones por `enrolled_at, course_id`;
     módulos por `module_id`): la tarea 3 lo confirma al congelar el contrato.
-- **Abierto para la tarea 3:** los tres «(abierto, tarea 3)» del contrato (límites por petición, orden
-  de la respuesta, código de error nuevo).
+- **Resuelto para la tarea 3 (2026-11-24):** sin límites propios (vale el de 2 MiB; el contrato añade
+  413), el orden propuesto, sin códigos de error nuevos. Se vuelcan al contrato en 3c.
 - **Riesgos:** el contrato, que comparte la parte B (no se cambia tras congelarlo).
 - **Qué mirar en la revisión de la tarea 3:** el usuario sale siempre de la sesión, nunca del cuerpo;
   400 solo para la forma del JSON (los problemas de valor van a `skipped`); `moduleId` se omite en
   `skipped` cuando está vacío; fechas ISO-8601 UTC; contrato congelado y avisado en el Relevo general.
-- **Mejora pendiente (fuera de esta parte):** mover `AdjustableClock` (test, `application/course`, hoy
-  `public`) a un paquete de test común.
+- **Mejoras pendientes (fuera de esta parte):** mover `AdjustableClock` (test, `application/course`, hoy
+  `public`) a un paquete de test común; unificar el decodificador UTF-8 de 3a con `Utf8Text`
+  (`infrastructure/course`, privado de paquete) en un paquete común.
 
 ## Objetivo
 
@@ -54,8 +58,11 @@ Para la **tarea 3** (web):
 - `web/RequireSession.java` + `web/AuthenticatedHandler.java` (rutas con sesión; el usuario llega en
   `AuthenticationResult.Authenticated`).
 - `web/course/CoursePublicationController.java` y sus respuestas; `web/ErrorResponse.java`.
+- `infrastructure/course/JacksonCourseReader.java` (lector de bytes con Jackson: modelo para el lector
+  de la petición) y `domain/progress/EnrollmentDraft.java` y `MasteredModuleDraft.java` (lo que el lector
+  debe producir; sus constructores lanzan `NullPointerException` con `null`).
 - `App.java` (*composition root*). Tests de la capa web: solo de los DTO (p. ej.
-  `web/course/CourseResponsesTest.java`); la ruta se prueba con Yaak.
+  `web/course/CourseResponsesTest.java`); la ruta se prueba con Yaak (en 3b, además, con `curl`).
 
 ## Diseño vigente
 
@@ -106,14 +113,104 @@ Para la **tarea 3** (web):
    2b. [x] **Adaptadores JDBC** (Sonnet, esfuerzo medio). `JdbcCourseExistence`,
    `JdbcEnrollmentRepository` y las funciones puras `EnrollmentWriteOrder` y `EnrollmentRows`, con sus
    tests; `NoConnectionDataSource` (ayuda de test) comprueba que la entrada vacía no pide conexión.
-3. [ ] **Ruta `POST /api/progress/sync`.**
-   - DTO de petición y respuesta, controlador con `requireSession.around`, cableado en `App.java`.
-   - Resolver los «(abierto, tarea 3)» del contrato y **congelarlo** (cambiar su estado a «congelado»
-     y avisarlo en el Relevo general).
-   - Aplicar la 006 a la base de desarrollo (`gradus.sh`) **con permiso de los usuarios**.
-   - ✅ Criterio: tests de los DTO (forma del JSON, fechas ISO, orden de la respuesta); con Yaak: 200,
-     400 con cuerpo malformado, 401 sin token; una petición de Yaak nueva guardada en `yaak/`.
-   - Modelo y esfuerzo sugeridos: **Sonnet, esfuerzo alto** (contrato compartido). Revisión: a fondo.
+3. [ ] **Ruta `POST /api/progress/sync`.** Partida en 3a, 3b y 3c (plan aprobado el 2026-11-24).
+   ✅ Criterio de la tarea: tests del lector y del DTO (forma del JSON, fechas ISO, orden de la
+   respuesta); con Yaak: 200, 400 con cuerpo malformado, 401 sin token; una petición de Yaak nueva
+   guardada en `yaak/`; contrato congelado y avisado en el Relevo general.
+
+   Decisiones (2026-11-24, con los usuarios):
+   - **Límites:** ninguno propio; vale el de 2 MiB de Javalin (unos 30 000 módulos; una cuenta muy
+     activa, unos 130 KB). Un máximo propio rechazaría la petición entera y bloquearía la cola
+     (decisión 9). El contrato añade **413** (cuerpo > 2 MiB): lo da Javalin, sin cuerpo definido; la
+     app lo trata como `ServerFailure`. El controlador **no** captura el 413.
+   - **Orden de la respuesta:** el propuesto. Sale tal cual de `findAll`; el DTO no reordena. El de
+     `moduleId` depende de la *collation* de la base de datos: el contrato dice que la app no depende
+     del orden.
+   - **Sin códigos de error nuevos** (`MALFORMED_BODY`, `UNAUTHENTICATED`, `COURSE_NOT_FOUND`, `REQUIRED`).
+   - **Lector propio sobre bytes** (`ProgressRequestReader`; precedente: cursos), no `bodyAsClass`: el
+     400 del contrato es estricto y Jackson por defecto es permisivo (campo ausente → `null`, número →
+     texto); así cada caso de 400 es un test unitario. Reglas: campos desconocidos ignorados
+     (*Tolerant Reader*; incluye `userId`); `mastered` obligatorio; fechas como texto con
+     `Instant.parse` (un test fija el desfase `+01:00`); `courseId` que no es UUID y `moduleId` vacío
+     pasan intactos al dominio (van a `skipped`). Sin dependencias nuevas.
+   - **Al revisar la propuesta de 3a** (2026-11-24, con los usuarios): árbol (`readTree`) comprobado a
+     mano, en una sola pasada `JsonNode → Optional<List<EnrollmentDraft>>` (sin forma intermedia con
+     textos; ninguna excepción sale de su clase). **Clave repetida → 400**, también en un campo
+     ignorado (`STRICT_DUPLICATE_DETECTION`, como en cursos). **Año fuera de 0001–9999 (UTC) → 400**:
+     `Instant.parse` acepta años con signo o de más de 4 cifras y PostgreSQL no los guarda todos (sería
+     un 500); alinea el contrato con RFC 3339. Decodificador UTF-8 propio con `REPORT` (`Utf8Text` es
+     privado de su paquete y no se mueve); un test fija qué pasa con un BOM. Casos de `Malformed` con
+     `@ParameterizedTest`.
+   - **Permisos de 3b** (solo para 3b; fuera de ellos, preguntar):
+     - *D1, migración:* aplicar la 006 a la base de desarrollo con `./gradus.sh up` o `db` (nunca
+       `psql` a mano ni `down -v`). `SELECT filename FROM schema_migrations` antes (debe haber `005` y
+       no `006`) y después. Para deshacer: `DROP TABLE mastered_modules, enrollments;` y
+       `DELETE FROM schema_migrations WHERE filename = '006_create_enrollments.sql';` (solo si lo piden
+       los usuarios).
+     - *D2, datos de prueba:* solo a través de la API: dos cuentas nuevas, `progress-a@example.test` y
+       `progress-b@example.test`, y su progreso, sobre cursos que ya existan (se leen con
+       `GET /api/courses`; si no hay ninguno, parar y preguntar). Sin `UPDATE` ni `DELETE`; `SELECT` de
+       solo lectura para comprobar filas. No se borra nada al terminar salvo que lo pidan los
+       usuarios; se informa de lo creado.
+     - *D3, quién ejecuta:* quien implementa lanza los escenarios con `curl`, guarda la petición en
+       `backend/yaak/workspace/` (copiando una con sesión) y arranca el servidor en el puerto 7070 en
+       segundo plano, parándolo después. Los usuarios repiten 200, 400 y 401 en Yaak al final.
+   - Si una prueba real destapa un fallo en un adaptador JDBC (2b): parar, informar con la evidencia y
+     proponer arreglo y test; no arreglarlo sin OK.
+
+   3a. [x] **Lector de la petición y DTO de respuesta** (Sonnet, esfuerzo medio). Hecho en `web/progress/`:
+   `ProgressRequestReader` (bytes → `ParsedRequest`: `StrictUtf8` → árbol → `SyncRequestJson`),
+   `SyncRequestJson` (sustituye a `SyncRequestBody`), `IsoInstants`, `StrictUtf8`, `ParsedRequest` y
+   `SyncResponse`. Plan original: `ParsedRequest` (sellado: `Parsed(drafts)` o
+   `Malformed`), `ProgressRequestReader` (bytes → `ParsedRequest`) y `SyncResponse` (`from(SyncResult)`;
+   fechas como texto con `Instant.toString()`), con `ProgressRequestReaderTest` y `SyncResponseTest`.
+   Sin HTTP ni base de datos. Tests mínimos:
+   - Lector, válido: cuerpo válido (borradores en el mismo orden, fechas parseadas); `enrollments: []`.
+   - Lector, `Malformed`: cuerpo vacío, JSON roto, `null` o `[]` en la raíz; falta `enrollments`, o es
+     `null`, no es una lista o tiene un elemento `null`; falta `courseId`, `enrolledAt` o `mastered`, o
+     `mastered` tiene un elemento `null`; falta `moduleId` o `masteredAt`; número donde va texto; texto
+     sobrante tras el JSON; fechas `"24/11/2026"`, `"2026-11-24"` y `""`.
+   - Lector, reglas: `courseId` que no es UUID y `moduleId` vacío o en blanco pasan intactos;
+     campos desconocidos (incluido `userId`) ignorados; fecha con desfase `+01:00` fijada por test.
+   - Respuesta: nombres exactos de los campos; fechas ISO con `Z` y con fracción (`…00.123Z`);
+     `moduleId` ausente (no `null`) en `skipped` de inscripción y presente en el de módulo; `code` con
+     el nombre del `ErrorCode`; listas vacías como `[]`; se conserva el orden del `SyncResult`.
+   - Revisión: a fondo. Ningún camino llega a un `NullPointerException`; sin dependencias nuevas; sin
+     `bodyAsClass`; `mvn test` en verde (668 + los nuevos).
+   - Commit: `add: progress sync request reader and response DTO (progress task 3a)`.
+
+   3b. [ ] **Controlador, cableado, Yaak y pruebas reales** (Sonnet, esfuerzo alto). `ProgressController`
+   (sin lógica: lee los bytes, `switch` sobre `ParsedRequest`; usuario de `authenticated.user().id()`;
+   `Malformed` → 400 `MALFORMED_BODY` en el campo `body`), cambio mínimo en `App.java` (los dos
+   adaptadores reciben el `DataSource`; `SyncProgress` una sola vez; ruta con `requireSession.around`) y
+   la petición nueva de Yaak. Es la **primera ejecución de los adaptadores JDBC contra PostgreSQL**.
+   Comprobaciones mínimas, con `curl`:
+   1. 401 sin token y con token inventado.
+   2. 400 con JSON roto, con `{}` y con fecha mala.
+   3. 200 con lista vacía (`{"enrollments":[],"skipped":[]}`).
+   4. Dos cursos con módulos desordenados: la respuesta sale ordenada y las filas están en la base.
+   5. La misma petición dos veces deja el mismo estado.
+   6. Gana la fecha más antigua; una más reciente no cambia nada (`enrolledAt` y `masteredAt`).
+   7. Curso inexistente y `courseId` que no es UUID van a `skipped`; el resto se guarda.
+   8. `moduleId` en blanco va a `skipped` con `REQUIRED`; el resto se guarda.
+   9. Fecha futura recortada a la hora del servidor.
+   10. Repetidos en la misma petición, fusionados.
+   11. Fracción de segundo de ida y vuelta (`timestamptz` guarda microsegundos).
+   12. Aislamiento: la cuenta B no ve lo de A; un `userId` en el cuerpo se ignora.
+   13. (Opcional) Dos peticiones a la vez con los mismos cursos en distinto orden: sin bloqueo.
+   14. Cuerpo mayor de 2 MiB: 413.
+   15. Fecha `"0001-01-01T00:00:00Z"` de ida y vuelta: sin 500, y anotar si vuelve cambiada.
+   16. `moduleId` ausente (no `null`) en el `skipped` de inscripción con el mapper real de Javalin.
+   - Revisión: a fondo. Controlador delgado; usuario siempre de la sesión; `App.java` con el cambio
+     mínimo; salidas de `curl`; `schema_migrations` antes y después; lista de lo creado en la base; sin
+     `UPDATE` ni `DELETE`.
+   - Commit: `add: POST /api/progress/sync route and Yaak request (progress task 3b)`.
+
+   3c. [ ] **Congelar el contrato** (lo hace el orquestador). Volcar a `api-progreso.md` las decisiones
+   de arriba (413, orden, sin códigos nuevos, campos desconocidos ignorados, clave repetida → 400,
+   `mastered` obligatorio, fechas aceptadas con año 0001–9999, UTF-8 sin BOM), pasar su estado a «congelado», avisarlo en el Relevo general (afecta a la parte B,
+   tarea 5), marcar la casilla de la tarea 3 y reescribir los Relevos.
+   - Commit: `docs: freeze progress sync contract and close backend part (progress task 3c)`.
 
 ## Progreso
 
@@ -127,9 +224,14 @@ Para la **tarea 3** (web):
   una `005`).
 - 2026-11-24: **2b hecha y revisada** (668 tests en verde, sin avisos; sin base de datos). **Tarea 2
   hecha.** El adaptador entero se prueba con Yaak en la tarea 3.
+- 2026-11-24: **tarea 3 decidida y partida en 3a, 3b y 3c** con los usuarios (decisiones y permisos de
+  3b, en la tarea 3). Contrato todavía en borrador; no se ha tocado código ni la base de desarrollo.
+- 2026-11-24: propuesta de 3a aprobada con ajustes («Al revisar la propuesta de 3a», en la tarea 3).
+- 2026-11-24: **3a hecha y revisada** (765 tests en verde, sin avisos; sin base de datos ni HTTP). Un BOM
+  UTF-8 al principio del cuerpo da `Malformed` (fijado por test; el lector de cursos sí lo quita): pasa
+  al contrato en 3c.
 
 ## Siguiente paso
 
-Tarea 3 (ruta y contrato), con el orquestador: resolver con los usuarios los «(abierto, tarea 3)» del
-contrato y el permiso para aplicar la `006` y escribir con Yaak en la base de desarrollo; decidir si se
-parte en pasos y preparar el mensaje para quien implementa.
+**3b** (controlador, cableado, Yaak y pruebas reales), con los permisos acotados de la tarea 3: el
+orquestador prepara el mensaje; el implementador propone y espera el OK. Después, 3c.
