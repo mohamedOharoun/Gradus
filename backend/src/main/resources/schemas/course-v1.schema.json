@@ -120,7 +120,7 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": { "enum": ["lesson", "singleChoice", "multipleChoice", "matching"] }
+        "type": { "enum": ["lesson", "singleChoice", "multipleChoice", "matching", "photo"] }
       },
       "allOf": [
         {
@@ -128,7 +128,7 @@
           "then": { "$ref": "#/$defs/lesson" }
         },
         {
-          "if": { "required": ["type"], "properties": { "type": { "enum": ["singleChoice", "multipleChoice", "matching"] } } },
+          "if": { "required": ["type"], "properties": { "type": { "enum": ["singleChoice", "multipleChoice", "matching", "photo"] } } },
           "then": { "$ref": "#/$defs/exercise" }
         }
       ]
@@ -137,7 +137,7 @@
       "type": "object",
       "required": ["type"],
       "properties": {
-        "type": { "enum": ["singleChoice", "multipleChoice", "matching"] }
+        "type": { "enum": ["singleChoice", "multipleChoice", "matching", "photo"] }
       },
       "allOf": [
         {
@@ -151,6 +151,10 @@
         {
           "if": { "required": ["type"], "properties": { "type": { "const": "matching" } } },
           "then": { "$ref": "#/$defs/matching" }
+        },
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "photo" } } },
+          "then": { "$ref": "#/$defs/photo" }
         }
       ]
     },
@@ -236,6 +240,18 @@
           "maxItems": 8,
           "items": { "$ref": "#/$defs/pair" }
         },
+        "explanation": { "$ref": "#/$defs/markdown", "maxLength": 3000 }
+      }
+    },
+    "photo": {
+      "description": "Ejercicio con foto: se resuelve en papel y se entrega una foto, que revisa el profesor. explanation es la solución que se enseña al entregar.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "prompt", "explanation"],
+      "properties": {
+        "type": { "const": "photo" },
+        "id": { "$ref": "#/$defs/id" },
+        "prompt": { "$ref": "#/$defs/markdown", "maxLength": 2000 },
         "explanation": { "$ref": "#/$defs/markdown", "maxLength": 3000 }
       }
     },

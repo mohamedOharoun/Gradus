@@ -14,7 +14,7 @@ class StepTest {
 
     /**
      * Sin {@code default}: como {@link Step} y {@link Exercise} están sellados, el compilador sabe que
-     * estos cuatro casos son todos. Si mañana se añade un tipo de ejercicio, este switch no compilará
+     * estos cinco casos son todos. Si mañana se añade un tipo de ejercicio, este switch no compilará
      * hasta tratarlo, y lo mismo pasará en las reglas.
      */
     static String kindOf(Step step) {
@@ -23,18 +23,20 @@ class StepTest {
             case SingleChoice exercise -> "singleChoice";
             case MultipleChoice exercise -> "multipleChoice";
             case Matching exercise -> "matching";
+            case PhotoExercise exercise -> "photo";
         };
     }
 
     @Test
-    void everyStepIsALessonOrOneOfTheThreeExercises() {
+    void everyStepIsALessonOrOneOfTheFourExercises() {
         List<Step> steps = List.of(
                 new Lesson("l", "Texto"),
                 new SingleChoice("s", PROMPT, options(2), "o0", EXPLANATION),
                 new MultipleChoice("m", PROMPT, options(3), List.of("o0"), EXPLANATION),
-                new Matching("p", PROMPT, pairs(2), EXPLANATION));
+                new Matching("p", PROMPT, pairs(2), EXPLANATION),
+                new PhotoExercise("f", PROMPT, EXPLANATION));
 
-        assertEquals(List.of("lesson", "singleChoice", "multipleChoice", "matching"),
+        assertEquals(List.of("lesson", "singleChoice", "multipleChoice", "matching", "photo"),
                 steps.stream().map(StepTest::kindOf).toList());
     }
 

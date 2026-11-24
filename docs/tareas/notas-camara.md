@@ -5,14 +5,17 @@ tenerlos a mano al estudiarlo o repasarlo. Es el requisito de la asignatura «al
 dispositivo» (`especificacion.md` §8: «Cámara para fotografiar apuntes y asociarlos a módulos») y
 también cubre «base de datos local SQLite» (Room).
 
-Estado: **en curso**. Decisiones S–Z aprobadas el 2026-11-24 (con las dependencias de T y V). Sin código todavía. No hay Figma de esta parte:
+Estado: **terminada** (2026-11-24). Decisiones S–Z aprobadas el 2026-11-24 (con las dependencias de T y V). No hay Figma de esta parte:
 los bocetos de abajo hacen de diseño (si no coinciden con un Figma posterior, manda el Figma).
 
-## Lo que hay hoy
+## Lo que había antes de empezar
 
-- Tocar un módulo del camino (desbloqueado o dominado) abre directamente su estudio.
-- El progreso (`ProgressStore`) vive en memoria; no hay base de datos en el móvil.
-- Ni CameraX ni Room están en `gradle/libs.versions.toml`. El Manifest solo pide `INTERNET`.
+- Tocar un módulo del camino (desbloqueado o dominado) abría directamente su estudio.
+- El progreso (`ProgressStore`) vivía en memoria; no había base de datos en el móvil.
+- Ni CameraX ni Room estaban en `gradle/libs.versions.toml`. El Manifest solo pedía `INTERNET`.
+
+Hoy: Room 2.8.5 (`gradus.db`) y CameraX 1.7.0; permiso `CAMERA` con `uses-feature camera.any`
+opcional; la hoja del módulo da paso a «Mis notas», la cámara y el visor (ver «Progreso»).
 
 ## Cómo se usa (bocetos)
 
@@ -225,7 +228,20 @@ la misma base de datos).
     «Eliminar nota» → diálogo → «Cancelar» la conserva → «Eliminar» vuelve a «Mis notas» vacía y la
     foto ya no está en `files/notes`. El pellizco no se puede hacer con `adb`: queda para probarlo a mano.
 
+- 2026-11-24: **tarea 7 hecha** (cierre). **Tarea completada.**
+  - `especificacion.md` ya describe las notas con cámara (§6 y tabla del §8); en «Pendiente de
+    diseñar» solo quedan los repasos.
+  - Comprobado por el equipo: compila; pasan los tests de `sharedLogic`, `testDebugUnitTest` y los
+    del emulador (`connectedDebugAndroidTest`); vuelta completa en el emulador en claro y oscuro;
+    a mano, el pellizco del visor y «denegado para siempre → Abrir ajustes»; TalkBack lee las notas
+    («Nota del 24 de noviembre: …») y la hoja («Mis notas, 3 fotos»).
+
+## Pendiente para más adelante
+
+- `app_name` sigue siendo «Dominio»: es lo que muestran el diálogo del permiso y el selector de
+  fotos. Cambiarlo a «Gradus» es otra tarea (afecta a `strings.xml`).
+- Guardar el progreso en Room, aprovechando la misma base de datos (fuera de alcance aquí).
+
 ## Siguiente paso
 
-Tarea 7 (cierre): `especificacion.md` (quitar «pendiente de diseñar»), pasar todos los tests y una
-vuelta completa en el emulador en claro y oscuro.
+Ninguno en esta funcionalidad.

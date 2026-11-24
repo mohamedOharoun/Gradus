@@ -8,6 +8,7 @@ import es.ulpgc.pamn.dominio.backend.domain.course.Matching;
 import es.ulpgc.pamn.dominio.backend.domain.course.MatchingPair;
 import es.ulpgc.pamn.dominio.backend.domain.course.MultipleChoice;
 import es.ulpgc.pamn.dominio.backend.domain.course.Option;
+import es.ulpgc.pamn.dominio.backend.domain.course.PhotoExercise;
 import es.ulpgc.pamn.dominio.backend.domain.course.SingleChoice;
 import es.ulpgc.pamn.dominio.backend.domain.course.TextNormalizer;
 
@@ -53,6 +54,7 @@ public final class ExerciseRules {
                 case SingleChoice single -> Stream.of(new Located<>(located.path().key("answer"), single.answer()));
                 case MultipleChoice multiple -> Locations.indexed(multiple.correct(), located.path().key("correct")).stream();
                 case Matching matching -> Stream.empty();
+                case PhotoExercise photo -> Stream.empty();
             };
             return references
                     .filter(reference -> !ids.contains(reference.value()))
