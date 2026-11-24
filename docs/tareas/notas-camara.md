@@ -5,7 +5,7 @@ tenerlos a mano al estudiarlo o repasarlo. Es el requisito de la asignatura «al
 dispositivo» (`especificacion.md` §8: «Cámara para fotografiar apuntes y asociarlos a módulos») y
 también cubre «base de datos local SQLite» (Room).
 
-Estado: **en curso**. Decisiones S–Z aprobadas el 2026-11-24 (con las dependencias de T y V). Sin código todavía. No hay Figma de esta parte:
+Estado: **hecho (2026-11-24)**. Decisiones S–Z aprobadas el 2026-11-24 (con las dependencias de T y V). No hay Figma de esta parte:
 los bocetos de abajo hacen de diseño (si no coinciden con un Figma posterior, manda el Figma).
 
 ## Lo que hay hoy
@@ -225,7 +225,24 @@ la misma base de datos).
     «Eliminar nota» → diálogo → «Cancelar» la conserva → «Eliminar» vuelve a «Mis notas» vacía y la
     foto ya no está en `files/notes`. El pellizco no se puede hacer con `adb`: queda para probarlo a mano.
 
+- 2026-11-24: **tarea 7 hecha (cierre)**; **notas con cámara terminadas**.
+  - `especificacion.md`: la hoja del módulo, las notas con cámara descritas (§5), «pendiente de
+    diseñar» solo los repasos, y en §8 la cámara (CameraX) y Room (`gradus.db`).
+    `resumen-proyecto.md` puesto al día (Ajustes, hoja, notas, la API del dispositivo y los límites).
+  - Tests: sharedLogic 749, app en el ordenador 320 y backend 616, todos bien. En el emulador, la
+    primera ejecución completa dio 3 fallos (uno de `ScreenCameraTest` y dos de `FilterSheetTest`, del
+    compañero) por el emulador saturado (carga 14 tras dos horas, «System has crashed»). Tras
+    reiniciarlo en frío: `FilterSheetTest` 61/61, y los de la cámara y lo relacionado 55/55
+    (`RoomNotesStoreTest`, `AndroidPhotoFilesTest`, `ModuleSheetTest`, `ScreenModuleNotesTest`,
+    `ScreenCameraTest`, `ScreenNoteViewerTest`). A petición del usuario, no se repitió la batería entera.
+  - Vuelta en el emulador, en claro y en oscuro: hoja del módulo → «Mis notas» → permiso → cámara →
+    foto con pie → guardar → ver → eliminar (cancelado) → «Repetir» sin dejar temporales; la hoja dice
+    «Mis notas · 1».
+  - TalkBack: se activó, pero `adb` no puede hacer sus gestos (el foco se queda en «Volver»). Lo que
+    lee cada elemento está comprobado en los tests de pantalla (descripciones y roles). Queda una pasada
+    a mano si se quiere. Se desactivó al acabar.
+
 ## Siguiente paso
 
-Tarea 7 (cierre): `especificacion.md` (quitar «pendiente de diseñar»), pasar todos los tests y una
-vuelta completa en el emulador en claro y oscuro.
+Hecho. Ideas para después: guardar también el progreso en esta base de datos Room; un atajo 📷 en
+la barra del estudio (alternativa de la decisión S); cambiar `app_name` («Dominio») a Gradus.
