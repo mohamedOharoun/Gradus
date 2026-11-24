@@ -26,11 +26,12 @@ ficheros que les dé el orquestador. Este índice, solo si el orquestador lo ind
 
 Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumula.
 
-- **Dónde estamos (2026-11-24):** parte A en la tarea 1 (paso 1a). El contrato sigue en borrador, pero
-  ya tiene resueltos sus puntos de la tarea 1 (reglas 4 y 6–9); afecta a B: `skipped` lleva un
-  `moduleId` opcional (sin él se omitió la inscripción entera).
-- **Siguiente:** la parte A sigue con 1a. La parte B puede arrancar en paralelo con otro orquestador
-  cuando queráis: solo depende del contrato.
+- **Dónde estamos (2026-11-24):** parte A con la tarea 1 hecha (dominio y caso de uso). El contrato
+  sigue en borrador, pero ya tiene resueltos sus puntos de la tarea 1 (reglas 4 y 6–9). Afecta a B:
+  `skipped` lleva un `moduleId` opcional (sin él se omitió la inscripción entera), tiene un orden
+  fijo y da los cursos inexistentes con su UUID en minúsculas («Respuesta 200»).
+- **Siguiente:** la parte A sigue con la tarea 2, con un orquestador nuevo. La parte B puede arrancar
+  en paralelo con otro orquestador cuando queráis: solo depende del contrato.
 - **Dependencias entre partes:**
   - A y B: independientes; las une el contrato. B5 (gateway HTTP) necesita el contrato **congelado**
     (lo congela A al cerrar su tarea 3).
