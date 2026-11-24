@@ -28,7 +28,6 @@ import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenMyCourses
 import es.ulpgc.pamn.dominio.ui.screens.ScreenSearch
-import es.ulpgc.pamn.dominio.ui.screens.ScreenSettings
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseActions
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseScreenState
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseViewModel
@@ -87,7 +86,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             )
         }
         tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { ScreenMyCourses(it) }
-        tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { ScreenSettings(it) }
+        tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { SettingsRoute(navController, it) }
         // Sin barra: no es una pestaña, se entra desde una y «atrás» vuelve a ella.
         composable<Route.Course> { entry ->
             val route = entry.toRoute<Route.Course>()
@@ -146,6 +145,9 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             )
         }
         courseDetailDestination(navController)
+        editProfileDestination(navController)
+        changePasswordDestination(navController)
+        preferredTagsDestination(navController)
     }
 }
 

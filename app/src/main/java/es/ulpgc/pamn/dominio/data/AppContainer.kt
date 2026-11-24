@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.data
 
+import android.content.Context
 import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.account.AccountGateways
 import es.ulpgc.pamn.dominio.account.InMemorySessionStore
@@ -8,6 +9,7 @@ import es.ulpgc.pamn.dominio.course.CachingCourseGateway
 import es.ulpgc.pamn.dominio.course.CourseGateways
 import es.ulpgc.pamn.dominio.course.progress.InMemoryProgressStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
+import es.ulpgc.pamn.dominio.settings.SettingsStore
 
 // Composition root (inyección manual): el único sitio de la app que elige las implementaciones
 // concretas, como App.java en el backend. El resto recibe interfaces por parámetro.
@@ -33,4 +35,17 @@ object AppContainer {
 
     // La sesión iniciada. De momento en memoria: se pierde al cerrar la app (tarea 6: guardarla cifrada).
     val sessionStore: SessionStore by lazy { InMemorySessionStore() }
+
+    // Guardar en el móvil necesita el Context de la app. MainActivity llama a init() al arrancar,
+    // antes de pedir nada; applicationContext vive lo que la app (no se queda con la Activity).
+    private lateinit var appContext: Context
+
+    fun init(context: Context) {
+        appContext = context.applicationContext
+    }
+
+    // Preferencias de Ajustes (modo oscuro). Se recuerdan al cerrar la app.
+    val settingsStore: SettingsStore by lazy {
+        SharedPreferencesSettingsStore(appContext.getSharedPreferences("settings", Context.MODE_PRIVATE))
+    }
 }

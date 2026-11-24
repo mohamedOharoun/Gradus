@@ -1,13 +1,24 @@
 package es.ulpgc.pamn.dominio.account.http
 
 import es.ulpgc.pamn.dominio.account.AccountGateway
+import es.ulpgc.pamn.dominio.account.ChangePasswordOutcome
+import es.ulpgc.pamn.dominio.account.DeleteAccountOutcome
+import es.ulpgc.pamn.dominio.account.PasswordChange
+import es.ulpgc.pamn.dominio.account.RenameOutcome
 import es.ulpgc.pamn.dominio.account.Credentials
 import es.ulpgc.pamn.dominio.account.LogInOutcome
+import es.ulpgc.pamn.dominio.account.LogOutOutcome
 import es.ulpgc.pamn.dominio.account.NewAccount
 import es.ulpgc.pamn.dominio.account.RegistrationOutcome
+import es.ulpgc.pamn.dominio.account.Session
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.bearerAuth
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.delete
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
+import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
 import io.ktor.http.ContentType
@@ -17,7 +28,7 @@ import kotlinx.io.IOException
 import kotlin.coroutines.cancellation.CancellationException
 
 // Adaptador HTTP + JSON del puerto AccountGateway: habla con backend/.../web/UserController
-// (registro) y SessionController (inicio de sesión). Es la frontera con la red, así que aquí se
+// (registro y Ajustes: nombre, contraseña, eliminar la cuenta) y SessionController (iniciar y cerrar sesión). Es la frontera con la red, así que aquí se
 // convierte cualquier fallo en un desenlace (RegistrationOutcome o LogInOutcome).
 internal class HttpAccountGateway(
     private val client: HttpClient,
@@ -33,6 +44,62 @@ internal class HttpAccountGateway(
         callServer(unreachable = LogInOutcome.Unreachable, failure = LogInOutcome.ServerFailure) {
             logInOutcomeOf(post("/api/sessions", credentials.toDto()))
         }
+
+    override suspend fun logOut(session: Session): LogOutOutcome =
+        callServer(unreachable = LogOutOutcome.Unreachable, failure = LogOutOutcome.ServerFailure) {
+            val response = client.delete("$baseUrl/api/sessions/current") { bearerAuth(session.token) }
+            when (response.status) {
+                // 401: el token ya no valía; para el usuario, la sesión ya está cerrada.
+                HttpStatusCode.NoContent, HttpStatusCode.Unauthorized -> LogOutOutcome.LoggedOut
+                else -> LogOutOutcome.ServerFailure
+            }
+        }
+
+    // ── Ajustes (fase 2): las tres llevan el token y un cuerpo JSON ──
+
+    override suspend fun rename(session: Session, name: String): RenameOutcome =
+        callServer(unreachable = RenameOutcome.Unreachable, failure = RenameOutcome.ServerFailure) {
+            val response = client.patch("$baseUrl/api/users/me") { withSessionAndJson(session, RenameRequestDto(name)) }
+            when (response.status) {
+                HttpStatusCode.OK -> RenameOutcome.Renamed(response.body<UserResponseDto>().toAccount())
+                HttpStatusCode.BadRequest -> RenameOutcome.Rejected(response.body<ErrorResponseDto>().toServerFieldErrors())
+                HttpStatusCode.Unauthorized -> RenameOutcome.SessionExpired
+                else -> RenameOutcome.ServerFailure
+            }
+        }
+
+    override suspend fun changePassword(session: Session, change: PasswordChange): ChangePasswordOutcome =
+        callServer(unreachable = ChangePasswordOutcome.Unreachable, failure = ChangePasswordOutcome.ServerFailure) {
+            val response = client.put("$baseUrl/api/users/me/password") { withSessionAndJson(session, change.toDto()) }
+            when (response.status) {
+                HttpStatusCode.NoContent -> ChangePasswordOutcome.Changed
+                HttpStatusCode.BadRequest -> ChangePasswordOutcome.Rejected(response.body<ErrorResponseDto>().toServerFieldErrors())
+                HttpStatusCode.Forbidden -> ChangePasswordOutcome.WrongPassword
+                HttpStatusCode.Unauthorized -> ChangePasswordOutcome.SessionExpired
+                else -> ChangePasswordOutcome.ServerFailure
+            }
+        }
+
+    // DELETE con cuerpo (decisión J de docs/tareas/ajustes.md): la contraseña confirma el borrado.
+    override suspend fun deleteAccount(session: Session, password: String): DeleteAccountOutcome =
+        callServer(unreachable = DeleteAccountOutcome.Unreachable, failure = DeleteAccountOutcome.ServerFailure) {
+            val response = client.delete("$baseUrl/api/users/me") { withSessionAndJson(session, DeleteAccountRequestDto(password)) }
+            when (response.status) {
+                HttpStatusCode.NoContent -> DeleteAccountOutcome.Deleted
+                HttpStatusCode.BadRequest -> DeleteAccountOutcome.Rejected(response.body<ErrorResponseDto>().toServerFieldErrors())
+                HttpStatusCode.Forbidden -> DeleteAccountOutcome.WrongPassword
+                HttpStatusCode.Conflict -> DeleteAccountOutcome.AuthorOfCourses
+                HttpStatusCode.Unauthorized -> DeleteAccountOutcome.SessionExpired
+                else -> DeleteAccountOutcome.ServerFailure
+            }
+        }
+
+    // Cabeceras comunes de las peticiones de Ajustes: el token de la sesión y un cuerpo JSON.
+    private fun HttpRequestBuilder.withSessionAndJson(session: Session, body: Any) {
+        bearerAuth(session.token)
+        contentType(ContentType.Application.Json)
+        setBody(body)
+    }
 
     private suspend fun post(path: String, body: Any): HttpResponse = client.post("$baseUrl$path") {
         contentType(ContentType.Application.Json)

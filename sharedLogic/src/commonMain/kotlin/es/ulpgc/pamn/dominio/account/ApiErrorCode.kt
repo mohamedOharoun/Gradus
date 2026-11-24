@@ -19,6 +19,9 @@ enum class ApiErrorCode {
     COURSE_NOT_FOUND,
     NOT_COURSE_AUTHOR,
     IDENTICAL_TO_LATEST,
+    // Ajustes (docs/tareas/ajustes.md, fase 2).
+    WRONG_PASSWORD,
+    AUTHOR_OF_COURSES,
     UNKNOWN;
 
     companion object {

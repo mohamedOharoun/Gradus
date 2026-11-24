@@ -31,5 +31,9 @@ public enum ErrorCode {
     /** Quien publica una versión no es el autor del curso (respuesta 403). */
     NOT_COURSE_AUTHOR,
     /** El contenido es idéntico al de la última versión: no se crea ninguna (respuesta 409). */
-    IDENTICAL_TO_LATEST
+    IDENTICAL_TO_LATEST,
+    /** La contraseña actual no es la de la cuenta, al cambiarla o al eliminar la cuenta (respuesta 403). */
+    WRONG_PASSWORD,
+    /** La cuenta es autora de cursos publicados y no se puede eliminar (respuesta 409). */
+    AUTHOR_OF_COURSES
 }

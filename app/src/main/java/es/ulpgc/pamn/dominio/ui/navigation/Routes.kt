@@ -34,6 +34,18 @@ sealed interface Route {
 
     // ── Dentro del grafo Main, pero sin barra (docs/tareas/camino-curso-y-ejercicios.md) ──
 
+    // Editar el nombre, desde Ajustes (docs/tareas/ajustes.md, fase 2).
+    @Serializable
+    data object EditProfile : Route
+
+    // Cambiar la contraseña, desde Ajustes (docs/tareas/ajustes.md, fase 2).
+    @Serializable
+    data object ChangePassword : Route
+
+    // Elegir las etiquetas preferidas, desde Ajustes (docs/tareas/ajustes.md, fase 3).
+    @Serializable
+    data object PreferredTags : Route
+
     // La ficha de un curso (docs/tareas/ficha-curso.md): de qué va, antes de entrar en su camino.
     @Serializable
     data class CourseDetail(val courseId: String) : Route

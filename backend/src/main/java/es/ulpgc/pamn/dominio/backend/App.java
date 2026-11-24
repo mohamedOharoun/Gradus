@@ -1,10 +1,13 @@
 package es.ulpgc.pamn.dominio.backend;
 
 import es.ulpgc.pamn.dominio.backend.application.Authenticate;
+import es.ulpgc.pamn.dominio.backend.application.ChangePassword;
+import es.ulpgc.pamn.dominio.backend.application.DeleteAccount;
 import es.ulpgc.pamn.dominio.backend.application.LogIn;
 import es.ulpgc.pamn.dominio.backend.application.LogOut;
 import es.ulpgc.pamn.dominio.backend.application.PasswordHasher;
 import es.ulpgc.pamn.dominio.backend.application.RegisterUser;
+import es.ulpgc.pamn.dominio.backend.application.RenameUser;
 import es.ulpgc.pamn.dominio.backend.application.SessionRepository;
 import es.ulpgc.pamn.dominio.backend.application.UserRepository;
 import es.ulpgc.pamn.dominio.backend.application.course.CourseInspector;
@@ -59,7 +62,10 @@ public final class App {
         Clock clock = Clock.systemUTC();
 
         UserController users = new UserController(
-                new RegisterUser(userRepository, hasher, clock, UUID::randomUUID));
+                new RegisterUser(userRepository, hasher, clock, UUID::randomUUID),
+                new RenameUser(userRepository),
+                new ChangePassword(userRepository, sessionRepository, hasher),
+                new DeleteAccount(userRepository, hasher));
         SessionController sessions = new SessionController(
                 new LogIn(userRepository, sessionRepository, hasher, SessionPolicy.STANDARD, clock,
                         UUID::randomUUID, SessionToken::generate),
@@ -86,6 +92,9 @@ public final class App {
             config.routes.post("/api/sessions", sessions::logIn);
             // Rutas protegidas: sin un token válido responden 401 sin llegar al controlador.
             config.routes.get("/api/users/me", requireSession.around(users::me));
+            config.routes.patch("/api/users/me", requireSession.around(users::rename));
+            config.routes.put("/api/users/me/password", requireSession.around(users::changePassword));
+            config.routes.delete("/api/users/me", requireSession.around(users::deleteAccount));
             config.routes.delete("/api/sessions/current", requireSession.around(sessions::logOut));
             config.routes.post("/api/courses/validate", requireSession.around(coursePublication::validate));
             config.routes.post("/api/courses", requireSession.around(coursePublication::publish));

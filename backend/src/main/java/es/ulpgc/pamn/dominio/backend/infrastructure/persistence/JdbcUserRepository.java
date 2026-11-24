@@ -30,6 +30,19 @@ public final class JdbcUserRepository implements UserRepository {
             ON CONFLICT (email) DO NOTHING
             """;
 
+    // El correo, la fecha de alta y la de los términos no cambian nunca: solo se actualiza lo demás.
+    private static final String UPDATE = """
+            UPDATE users SET name = ?, password_hash = ?
+            WHERE id = ?
+            """;
+
+    // Una sola sentencia: no hay hueco entre «¿es autor?» y «bórralo» en el que se cuele una publicación.
+    // Sus sesiones se borran solas (sessions.user_id tiene ON DELETE CASCADE).
+    private static final String DELETE_UNLESS_AUTHOR = """
+            DELETE FROM users
+            WHERE id = ? AND NOT EXISTS (SELECT 1 FROM courses WHERE courses.author_id = users.id)
+            """;
+
     private static final String SELECT_USER = """
             SELECT id, name, email, password_hash, created_at, terms_accepted_at
             FROM users
@@ -57,6 +70,30 @@ public final class JdbcUserRepository implements UserRepository {
         } catch (SQLException e) {
             // Fallo inesperado (base de datos caída, etc.): no es un caso de negocio, así que se propaga.
             throw new IllegalStateException("No se pudo guardar el usuario " + user.id(), e);
+        }
+    }
+
+    @Override
+    public void update(User user) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement update = connection.prepareStatement(UPDATE)) {
+            update.setString(1, user.name().value());
+            update.setString(2, user.passwordHash().value());
+            update.setObject(3, user.id());
+            update.executeUpdate(); // 0 filas si ya no existe: no es un error.
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo actualizar el usuario " + user.id(), e);
+        }
+    }
+
+    @Override
+    public boolean removeUnlessAuthor(UUID id) {
+        try (Connection connection = dataSource.getConnection();
+             PreparedStatement delete = connection.prepareStatement(DELETE_UNLESS_AUTHOR)) {
+            delete.setObject(1, id);
+            return delete.executeUpdate() == 1;
+        } catch (SQLException e) {
+            throw new IllegalStateException("No se pudo borrar el usuario " + id, e);
         }
     }
 

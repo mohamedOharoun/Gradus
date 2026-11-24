@@ -3,6 +3,7 @@ package es.ulpgc.pamn.dominio.account.http
 import es.ulpgc.pamn.dominio.account.Account
 import es.ulpgc.pamn.dominio.account.Credentials
 import es.ulpgc.pamn.dominio.account.NewAccount
+import es.ulpgc.pamn.dominio.account.PasswordChange
 import es.ulpgc.pamn.dominio.account.ServerFieldError
 import es.ulpgc.pamn.dominio.account.Session
 
@@ -22,3 +23,5 @@ internal fun Credentials.toDto() = LogInRequestDto(email = email, password = pas
 internal fun SessionResponseDto.toSession() = Session(token = token, expiresAt = expiresAt, account = user.toAccount())
 
 internal fun ErrorResponseDto.toServerFieldErrors() = errors.map { ServerFieldError(field = it.field, code = it.code) }
+
+internal fun PasswordChange.toDto() = ChangePasswordRequestDto(currentPassword = currentPassword, newPassword = newPassword)

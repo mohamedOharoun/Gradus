@@ -57,4 +57,75 @@ class AccountGatewaysTest {
         gateway.logIn(credentials)
         assertEquals(listOf(credentials), gateway.receivedCredentials)
     }
+
+    // ── Cerrar sesión ──
+
+    private val session = Session("tok", "2026-12-22T10:00:00Z", Account("u1", "Ana", "ana@ulpgc.es", "2026-11-17T10:00:00Z"))
+
+    @Test
+    fun `by default the fake gateway logs out`() = runTest {
+        assertEquals(LogOutOutcome.LoggedOut, FakeAccountGateway().logOut(session))
+    }
+
+    @Test
+    fun `the fake gateway can be told how to answer a log out`() = runTest {
+        assertEquals(LogOutOutcome.Unreachable, FakeAccountGateway(LogOutOutcome.Unreachable).logOut(session))
+    }
+
+    @Test
+    fun `the fake gateway remembers which session it was asked to close`() = runTest {
+        val gateway = FakeAccountGateway()
+        gateway.logOut(session)
+        assertEquals(listOf(session), gateway.closedSessions)
+    }
+
+    // ── Ajustes (fase 2) ──
+
+    // Usa la misma `session` que los tests de cerrar sesión.
+
+    @Test
+    fun `by default the fake gateway renames the account of the session like the server`() = runTest {
+        assertEquals(
+            RenameOutcome.Renamed(session.account.copy(name = "Ana Ruiz")),
+            FakeAccountGateway().rename(session, "  Ana Ruiz  "),
+        )
+    }
+
+    @Test
+    fun `the fake gateway can be told how to answer a rename and remembers the name`() = runTest {
+        val gateway = FakeAccountGateway(RenameOutcome.Unreachable)
+        assertEquals(RenameOutcome.Unreachable, gateway.rename(session, "Ana Ruiz"))
+        assertEquals(listOf("Ana Ruiz"), gateway.receivedNames)
+    }
+
+    @Test
+    fun `by default the fake gateway changes the password and remembers it`() = runTest {
+        val gateway = FakeAccountGateway()
+        val change = PasswordChange("Gradus2026!", "Nueva2026?")
+        assertEquals(ChangePasswordOutcome.Changed, gateway.changePassword(session, change))
+        assertEquals(listOf(change), gateway.receivedPasswordChanges)
+    }
+
+    @Test
+    fun `the fake gateway can be told how to answer a password change`() = runTest {
+        assertEquals(
+            ChangePasswordOutcome.WrongPassword,
+            FakeAccountGateway(ChangePasswordOutcome.WrongPassword).changePassword(session, PasswordChange("a", "b")),
+        )
+    }
+
+    @Test
+    fun `by default the fake gateway deletes the account and counts it`() = runTest {
+        val gateway = FakeAccountGateway()
+        assertEquals(DeleteAccountOutcome.Deleted, gateway.deleteAccount(session, "Gradus2026!"))
+        assertEquals(1, gateway.deletions)
+    }
+
+    @Test
+    fun `the fake gateway can be told how to answer a deletion`() = runTest {
+        assertEquals(
+            DeleteAccountOutcome.AuthorOfCourses,
+            FakeAccountGateway(DeleteAccountOutcome.AuthorOfCourses).deleteAccount(session, "Gradus2026!"),
+        )
+    }
 }

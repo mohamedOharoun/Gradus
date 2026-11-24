@@ -6,6 +6,7 @@ import es.ulpgc.pamn.dominio.backend.domain.session.SessionTokenHash;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Repositorio de sesiones falso para tests, indexado por el hash del token (como la tabla). */
@@ -26,6 +27,11 @@ final class InMemorySessionRepository implements SessionRepository {
     @Override
     public void update(Session session) {
         sessionsByTokenHash.replace(session.tokenHash(), session);
+    }
+
+    @Override
+    public void removeOthersOf(UUID userId, SessionTokenHash keep) {
+        sessionsByTokenHash.values().removeIf(s -> s.userId().equals(userId) && !s.tokenHash().equals(keep));
     }
 
     @Override
