@@ -15,6 +15,7 @@ import es.ulpgc.pamn.dominio.backend.application.course.SearchCourses;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourse;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourseVersion;
 import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourse;
+import es.ulpgc.pamn.dominio.backend.application.progress.SyncProgress;
 import es.ulpgc.pamn.dominio.backend.config.DatabaseConfig;
 import es.ulpgc.pamn.dominio.backend.config.HttpConfig;
 import es.ulpgc.pamn.dominio.backend.domain.session.SessionPolicy;
@@ -23,7 +24,9 @@ import es.ulpgc.pamn.dominio.backend.domain.course.rules.CourseValidator;
 import es.ulpgc.pamn.dominio.backend.domain.session.SessionToken;
 import es.ulpgc.pamn.dominio.backend.infrastructure.course.CourseSchema;
 import es.ulpgc.pamn.dominio.backend.infrastructure.course.JacksonCourseReader;
+import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcCourseExistence;
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcCourseRepository;
+import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcEnrollmentRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcSessionRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcUserRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.security.Pbkdf2PasswordHasher;
@@ -34,6 +37,8 @@ import es.ulpgc.pamn.dominio.backend.web.SessionController;
 import es.ulpgc.pamn.dominio.backend.web.UserController;
 import es.ulpgc.pamn.dominio.backend.web.course.CourseCatalogController;
 import es.ulpgc.pamn.dominio.backend.web.course.CoursePublicationController;
+import es.ulpgc.pamn.dominio.backend.web.progress.ProgressController;
+import es.ulpgc.pamn.dominio.backend.web.progress.ProgressRequestReader;
 import io.javalin.Javalin;
 
 import javax.sql.DataSource;
@@ -78,6 +83,10 @@ public final class App {
         CourseCatalogController courseCatalog = new CourseCatalogController(
                 new FindCourse(courseRepository), new SearchCourses(courseRepository, clock));
 
+        // Progreso: SyncProgress se crea una sola vez (lee el reloj en cada llamada); el lector es inmutable.
+        ProgressController progress = new ProgressController(new ProgressRequestReader(),
+                new SyncProgress(new JdbcEnrollmentRepository(dataSource), new JdbcCourseExistence(dataSource), clock));
+
         Javalin.create(config -> {
             config.jetty.port = http.port();
             // 2 MiB (§4.7). Javalin trae 1 000 000 bytes por defecto: sin esto, rechazaría los cursos más grandes.
@@ -90,6 +99,7 @@ public final class App {
             config.routes.post("/api/courses/validate", requireSession.around(coursePublication::validate));
             config.routes.post("/api/courses", requireSession.around(coursePublication::publish));
             config.routes.post("/api/courses/{id}/versions", requireSession.around(coursePublication::publishVersion));
+            config.routes.post("/api/progress/sync", requireSession.around(progress::sync));
             // Consulta pública: buscar y descargar cursos no necesita sesión.
             config.routes.get("/api/courses", courseCatalog::search);
             config.routes.get("/api/courses/{id}", courseCatalog::latest);

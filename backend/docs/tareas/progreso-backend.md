@@ -7,7 +7,7 @@ Rama: `dev/course-progress-tracking`. Proyecto: `backend/` (Maven, Java 25, Java
 Docker). Tests con JUnit Jupiter y repositorios en memoria: `./gradus.sh test` (`mvn test`) no necesita
 la base de datos. Commits: `… (progress task N)`.
 
-Estado: **tareas 1 y 2 hechas; tarea 3 partida en 3a, 3b y 3c; 3a hecha, toca 3b** (2026-11-24). Lo terminado y sus decisiones:
+Estado: **tareas 1 y 2 hechas; tarea 3 partida en 3a, 3b y 3c; 3a y 3b hechas, toca 3c** (2026-11-24). Lo terminado y sus decisiones:
 `progreso-backend-historico.md` (no hace falta leerlo para continuar).
 
 ## Relevo
@@ -19,8 +19,8 @@ sesión; no se acumula.
   caso de uso (`SyncProgress`), migración `006` y adaptadores JDBC (`JdbcEnrollmentRepository`,
   `JdbcCourseExistence`); falta la ruta (tarea 3). Los tres «(abierto, tarea 3)» del contrato y los
   permisos de 3b **están decididos** (ver la tarea 3). **3a hecha y revisada** (lector y DTO en
-  `web/progress/`, 764 tests). Faltan 3b (controlador, cableado, Yaak y pruebas reales) y 3c (congelar
-  el contrato, lo hace el orquestador). El contrato sigue en **borrador** hasta 3c.
+  `web/progress/`, 764 tests) y **3b hecha y revisada** (ruta, cableado, Yaak; 16 escenarios reales en
+  verde, adaptadores JDBC sin fallos). Falta 3c (congelar el contrato, lo hace el orquestador). El contrato sigue en **borrador** hasta 3c.
 - **Al empezar:** leer `AGENTS.md`, el Relevo general y las Decisiones de
   `docs/tareas/seguimiento-progreso.md`, este documento y `backend/docs/api-progreso.md`. **No** hace
   falta el histórico, `backend/docs/especificacion-cursos-v1.md` (606 líneas) ni nada de la app.
@@ -179,7 +179,7 @@ Para la **tarea 3** (web):
      `bodyAsClass`; `mvn test` en verde (668 + los nuevos).
    - Commit: `add: progress sync request reader and response DTO (progress task 3a)`.
 
-   3b. [ ] **Controlador, cableado, Yaak y pruebas reales** (Sonnet, esfuerzo alto). `ProgressController`
+   3b. [x] **Controlador, cableado, Yaak y pruebas reales** (Sonnet, esfuerzo alto). `ProgressController`
    (sin lógica: lee los bytes, `switch` sobre `ParsedRequest`; usuario de `authenticated.user().id()`;
    `Malformed` → 400 `MALFORMED_BODY` en el campo `body`), cambio mínimo en `App.java` (los dos
    adaptadores reciben el `DataSource`; `SyncProgress` una sola vez; ruta con `requireSession.around`) y
@@ -231,8 +231,20 @@ Para la **tarea 3** (web):
   base de datos ni HTTP). Un BOM
   UTF-8 al principio del cuerpo da `Malformed` (fijado por test; el lector de cursos sí lo quita): pasa
   al contrato en 3c.
+- 2026-11-24: propuesta de 3b aprobada con ajustes (Yaak encadena el login de la autora; un login por
+  cuenta y comando con `DELETE /api/sessions/current` al final; desempate por `course_id` en el escenario 15).
+- 2026-11-24: **3b hecha y revisada** (el revisor confirmó los 764 tests, el diff y, con un `SELECT` de
+  solo lectura, la 006 y 2 + 2 inscripciones con 313 + 4 módulos). `ProgressController` (sin lógica; no
+  captura el 413), cambio mínimo en `App.java` y petición de Yaak «Sincronizar progreso (200)» en la carpeta
+  nueva «Progreso · Sincronización». 764 tests en verde, sin avisos (no se añaden tests: la capa web solo se
+  prueba con Yaak). Primera ejecución real de los adaptadores JDBC contra PostgreSQL: **sin fallos**. 006
+  aplicada con `./gradus.sh db` (`schema_migrations`: 001–005 antes, 001–006 después). Los 16 escenarios
+  con `curl` dieron lo esperado (datos de prueba en `progress-a@example.test` y `progress-b@example.test`,
+  sin `UPDATE` ni `DELETE`; cero sesiones abiertas al terminar). Para 3c, anotar en el contrato: el 413 es
+  `text/plain` con el cuerpo `Content Too Large`; PostgreSQL redondea la fracción a microsegundos
+  (`.123456789Z` → `.123457Z`); el año `0001-01-01T00:00:00Z` vuelve igual.
 
 ## Siguiente paso
 
-**3b** (controlador, cableado, Yaak y pruebas reales), con los permisos acotados de la tarea 3: el
-orquestador prepara el mensaje; el implementador propone y espera el OK. Después, 3c.
+**3c** (congelar el contrato; lo hace el orquestador). Antes, los usuarios repiten 200, 400 y 401 en Yaak
+(D3): forma parte del criterio de la tarea 3.
