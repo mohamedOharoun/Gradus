@@ -19,7 +19,7 @@ sesión; no se acumula.
   caso de uso (`SyncProgress`), migración `006` y adaptadores JDBC (`JdbcEnrollmentRepository`,
   `JdbcCourseExistence`); falta la ruta (tarea 3). Los tres «(abierto, tarea 3)» del contrato y los
   permisos de 3b **están decididos** (ver la tarea 3). **3a hecha y revisada** (lector y DTO en
-  `web/progress/`, 765 tests). Faltan 3b (controlador, cableado, Yaak y pruebas reales) y 3c (congelar
+  `web/progress/`, 764 tests). Faltan 3b (controlador, cableado, Yaak y pruebas reales) y 3c (congelar
   el contrato, lo hace el orquestador). El contrato sigue en **borrador** hasta 3c.
 - **Al empezar:** leer `AGENTS.md`, el Relevo general y las Decisiones de
   `docs/tareas/seguimiento-progreso.md`, este documento y `backend/docs/api-progreso.md`. **No** hace
@@ -227,7 +227,8 @@ Para la **tarea 3** (web):
 - 2026-11-24: **tarea 3 decidida y partida en 3a, 3b y 3c** con los usuarios (decisiones y permisos de
   3b, en la tarea 3). Contrato todavía en borrador; no se ha tocado código ni la base de desarrollo.
 - 2026-11-24: propuesta de 3a aprobada con ajustes («Al revisar la propuesta de 3a», en la tarea 3).
-- 2026-11-24: **3a hecha y revisada** (765 tests en verde, sin avisos; sin base de datos ni HTTP). Un BOM
+- 2026-11-24: **3a hecha y revisada** (764 tests en verde tras quitar un test duplicado, sin avisos; sin
+  base de datos ni HTTP). Un BOM
   UTF-8 al principio del cuerpo da `Malformed` (fijado por test; el lector de cursos sí lo quita): pasa
   al contrato en 3c.
 
