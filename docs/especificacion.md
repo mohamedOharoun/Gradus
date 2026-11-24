@@ -100,7 +100,8 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
     uno bloqueado, discontinuas y grises.
   - Cabecera con el título y el progreso («3 de 10 dominados»).
   - Tocar un módulo bloqueado dice qué falta para desbloquearlo. Tocar uno de la frontera o
-    dominado abre su estudio. Al dominar un módulo, el camino se actualiza solo.
+    dominado abre su **hoja**: su título, su estado, «Estudiar» (o «Repasar» si ya está dominado) y
+    «Mis notas · N». Al dominar un módulo o guardar una nota, el camino se actualiza solo.
 - **Estudiar un módulo:**
   - **Parte formativa:** sus pasos en orden, con una barra de progreso («Paso 2 de 5»).
     - Lección: texto en Markdown básico (negrita, cursiva, código, párrafos y listas) y «Continuar».
@@ -114,7 +115,19 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
   - Un módulo sin reserva termina tras sus pasos, sin prueba.
   - Tipos de ejercicio: opción única, selección múltiple y emparejar (§7).
 
-**Pendientes de diseñar:** repasos y notas con cámara.
+- **Notas con cámara** (`tareas/notas-camara.md`): fotos de los apuntes de papel, guardadas junto al
+  módulo al que pertenecen.
+  - «Mis notas» de un módulo: las fotos en cuadrícula, la más reciente primero, con su fecha
+    («24 nov»). «Hacer foto» y «De la galería» (el selector de fotos de Android, sin permisos).
+  - Hacer foto: la cámara dentro de la app (CameraX). El permiso se pide al pulsar; si se deniega,
+    se explica para qué hace falta y, si ya no se puede volver a pedir, se ofrece abrir los ajustes.
+    Después se revisa la foto: «Repetir» o «Guardar», con un pie opcional de hasta 100 caracteres.
+  - Ver una nota: a pantalla completa, con zoom (pellizcar o doble toque), su fecha y su pie.
+    «Eliminar» pide confirmación; no hay papelera.
+  - Las fotos se quedan en el móvil (no se suben al servidor) y son del móvil, no de la cuenta.
+    TalkBack lee cada foto con su fecha y su pie.
+
+**Pendiente de diseñar:** repasos.
 
 ## 6. Formato de los cursos
 
@@ -158,8 +171,8 @@ Previstos para versiones posteriores del formato:
 | Requisito | Cómo lo cumple Gradus |
 |---|---|
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
-| API del dispositivo | Cámara para fotografiar apuntes y asociarlos a módulos |
-| SQLite | Room: cursos descargados, registro de respuestas y notas (fotos como ficheros, solo su ruta en la base de datos) |
+| API del dispositivo | Cámara (CameraX, dentro de la app) para fotografiar apuntes y asociarlos a módulos |
+| SQLite | Room (`gradus.db`): hoy, las notas con cámara (las fotos como ficheros; en la base de datos, su ruta, curso, módulo, fecha y pie). Previsto: cursos descargados y registro de respuestas |
 | Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` |
 
 ## 9. Plan por anillos

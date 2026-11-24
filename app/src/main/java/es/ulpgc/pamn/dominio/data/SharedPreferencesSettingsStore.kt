@@ -24,7 +24,7 @@ class SharedPreferencesSettingsStore(private val prefs: SharedPreferences) : Set
 
     // Fase 3: una etiqueta por línea. No se usa putStringSet porque un Set no guarda el orden, y las
     // etiquetas se ven en el orden en que se añadieron. Una etiqueta nunca lleva un salto de línea:
-    // PreferredTags las normaliza con tagKey(), que convierte cualquier espacio en « ».
+    // PreferredTags las normaliza con searchKey(), que convierte cualquier espacio en « ».
     override suspend fun setPreferredTags(tags: PreferredTags) {
         prefs.edit().putString(KEY_PREFERRED_TAGS, tags.values.joinToString(SEPARATOR)).apply()
         state.update { it.copy(preferredTags = tags) }

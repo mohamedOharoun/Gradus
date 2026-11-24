@@ -29,6 +29,8 @@ data class CourseActions(
     val onNoticeShown: () -> Unit = {},
     val onBack: () -> Unit = {},
     val onRetry: () -> Unit = {},
+    // La hoja del módulo (notas-camara.md, tarea 3): estudiar, abrir sus notas o cerrarla.
+    val sheet: ModuleSheetActions = ModuleSheetActions(),
 )
 
 // El curso descargado del servidor: mientras se descarga, la rueda; si falla, el problema; y si
@@ -92,6 +94,16 @@ private fun CourseContent(
                 modifier = Modifier.widthIn(max = 480.dp).padding(horizontal = 16.dp, vertical = 8.dp),
             )
         }
+    }
+    // La hoja del módulo tocado, encima del camino.
+    state.sheet?.let { moduleId ->
+        val module = state.course.module(moduleId) ?: return@let
+        ModuleSheet(
+            title = module.title,
+            state = state.states.getValue(moduleId),
+            noteCount = state.noteCounts[moduleId] ?: 0,
+            actions = actions.sheet,
+        )
     }
 }
 

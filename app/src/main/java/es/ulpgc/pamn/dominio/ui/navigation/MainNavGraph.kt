@@ -24,6 +24,7 @@ import es.ulpgc.pamn.dominio.ui.screens.ScreenSearch
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseActions
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseScreenState
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseViewModel
+import es.ulpgc.pamn.dominio.ui.screens.course.ModuleSheetActions
 import es.ulpgc.pamn.dominio.ui.screens.course.ScreenCourse
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
@@ -69,14 +70,24 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         composable<Route.Course> { entry ->
             val route = entry.toRoute<Route.Course>()
             val courseViewModel: CourseViewModel = viewModel(
-                factory = CourseViewModel.factory(route.courseId, AppContainer.courseGateway, AppContainer.progressStore),
+                factory = CourseViewModel.factory(
+                    route.courseId, AppContainer.courseGateway, AppContainer.progressStore, AppContainer.notesStore,
+                ),
             )
-            // Módulo desbloqueado tocado: se abre su práctica y se borra el evento.
+            // «Estudiar» / «Repasar» en la hoja del módulo: se abre su práctica y se borra el evento.
             val practiceToOpen = (courseViewModel.state as? CourseScreenState.Ready)?.ui?.practiceToOpen
             practiceToOpen?.let { moduleId ->
                 LaunchedEffect(moduleId) {
                     navController.navigate(Route.Exercise(route.courseId, moduleId))
                     courseViewModel.onPracticeOpened()
+                }
+            }
+            // «Mis notas» en la hoja del módulo: igual, con sus notas.
+            val notesToOpen = (courseViewModel.state as? CourseScreenState.Ready)?.ui?.notesToOpen
+            notesToOpen?.let { moduleId ->
+                LaunchedEffect(moduleId) {
+                    navController.navigate(Route.ModuleNotes(route.courseId, moduleId))
+                    courseViewModel.onNotesOpened()
                 }
             }
             ScreenCourse(
@@ -86,9 +97,17 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                     onNoticeShown = courseViewModel::onNoticeShown,
                     onBack = dropUnlessResumed { navController.popBackStack() },
                     onRetry = courseViewModel::onRetry,
+                    sheet = ModuleSheetActions(
+                        onStudy = courseViewModel::onStudy,
+                        onOpenNotes = courseViewModel::onOpenNotes,
+                        onDismiss = courseViewModel::onSheetDismiss,
+                    ),
                 ),
             )
         }
+        moduleNotesDestination(navController)
+        takeNoteDestination(navController)
+        noteViewerDestination(navController)
         // Estudiar un módulo (lecciones, ejercicios y prueba de dominio). Sin barra; «atrás», cerrar y
         // «Volver al camino» vuelven al camino, que ya enseña lo dominado.
         composable<Route.Exercise> { entry ->

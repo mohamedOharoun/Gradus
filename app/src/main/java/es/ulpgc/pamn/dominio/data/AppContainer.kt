@@ -1,6 +1,8 @@
 package es.ulpgc.pamn.dominio.data
 
 import android.content.Context
+import java.io.File
+import androidx.room.Room
 import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.account.AccountGateways
 import es.ulpgc.pamn.dominio.account.InMemorySessionStore
@@ -9,6 +11,10 @@ import es.ulpgc.pamn.dominio.course.CachingCourseGateway
 import es.ulpgc.pamn.dominio.course.CourseGateways
 import es.ulpgc.pamn.dominio.course.progress.InMemoryProgressStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
+import es.ulpgc.pamn.dominio.data.notes.AndroidPhotoFiles
+import es.ulpgc.pamn.dominio.data.notes.GradusDatabase
+import es.ulpgc.pamn.dominio.data.notes.RoomNotesStore
+import es.ulpgc.pamn.dominio.notes.NotesStore
 import es.ulpgc.pamn.dominio.settings.SettingsStore
 
 // Composition root (inyección manual): el único sitio de la app que elige las implementaciones
@@ -42,6 +48,21 @@ object AppContainer {
 
     fun init(context: Context) {
         appContext = context.applicationContext
+    }
+
+    // La base de datos SQLite del móvil (Room), una sola para toda la app. Hoy guarda las notas con
+    // cámara (docs/tareas/notas-camara.md); las fotos van aparte, como ficheros.
+    private val database: GradusDatabase by lazy {
+        Room.databaseBuilder(appContext, GradusDatabase::class.java, "gradus.db").build()
+    }
+
+    // Las notas con cámara de cada módulo. Se quedan en el móvil.
+    val notesStore: NotesStore by lazy { RoomNotesStore(database.notes()) }
+
+    // Las fotos de las notas, como ficheros en la carpeta privada de la app (files/notes/…).
+    // Las de la cámara se hacen primero en la caché (captures/) y pasan a files/notes/ al guardarlas.
+    val notePhotos: AndroidPhotoFiles by lazy {
+        AndroidPhotoFiles(appContext.contentResolver, appContext.filesDir, captures = File(appContext.cacheDir, "captures"))
     }
 
     // Preferencias de Ajustes (modo oscuro). Se recuerdan al cerrar la app.

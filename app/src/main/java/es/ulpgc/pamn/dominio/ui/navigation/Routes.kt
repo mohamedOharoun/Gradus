@@ -54,6 +54,18 @@ sealed interface Route {
     @Serializable
     data class Course(val courseId: String) : Route
 
+    // Las notas con cámara de un módulo (docs/tareas/notas-camara.md).
+    @Serializable
+    data class ModuleNotes(val courseId: String, val moduleId: String) : Route
+
+    // Hacer una foto para las notas de un módulo (docs/tareas/notas-camara.md, tarea 5).
+    @Serializable
+    data class TakeNote(val courseId: String, val moduleId: String) : Route
+
+    // Ver una nota con cámara (docs/tareas/notas-camara.md, tarea 6).
+    @Serializable
+    data class NoteViewer(val noteId: String) : Route
+
     // La práctica de un módulo de un curso.
     @Serializable
     data class Exercise(val courseId: String, val moduleId: String) : Route

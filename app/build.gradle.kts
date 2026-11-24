@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -41,6 +42,19 @@ android {
 dependencies {
     // Lógica en Kotlin puro (validaciones, formularios, modelo): compartible con iOS.
     implementation(project(":sharedLogic"))
+
+    // Base de datos del móvil: notas con cámara (docs/tareas/notas-camara.md, decisión V).
+    // room-compiler no va en la app: KSP lo usa al compilar para generar el código.
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // Cámara (notas-camara.md, decisión T): core (la API), camera2 (la implementación en Android),
+    // lifecycle (se enciende y apaga con la pantalla) y view (la vista previa y el controlador).
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)

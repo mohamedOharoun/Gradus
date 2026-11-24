@@ -5,6 +5,11 @@
     <!-- Para hablar con el backend (docs/tareas/conexion-registro-app-backend.md, paso 7). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Notas con cámara (docs/tareas/notas-camara.md, decisiones T y X): se pide al pulsar «Hacer foto».
+         required="false": la app se puede instalar en un móvil sin cámara (entonces solo «De la galería»). -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
     <application
         android:networkSecurityConfig="@xml/network_security_config"
         android:allowBackup="true"

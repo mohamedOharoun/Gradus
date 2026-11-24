@@ -493,6 +493,11 @@ recomendaciones automáticas.
     «%23Grafos» porque `adb input text` no traduce `%23`; se repitió con «#».) Al acabar se quitaron.
   - Nota: se guardan en el móvil (decisión L), no por cuenta: otra cuenta en el mismo móvil las vería.
 
+- 2026-11-24: **arreglo tras el merge de `dev/backend-course-search`.** El compañero renombró
+  `tagKey()` a `searchKey()` en `course/search/CourseQuery.kt` (ahora también compara el creador;
+  la regla es la misma) y `PreferredTags.kt` no compilaba. Se cambian las dos llamadas y el import a
+  `searchKey()`; su código no se toca.
+
 ## Siguiente paso
 
 Fase 3, tarea 4: nota para el compañero con cómo usar `preferredTags` y `prioritizing` en Buscar.

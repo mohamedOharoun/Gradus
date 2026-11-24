@@ -1,7 +1,7 @@
 package es.ulpgc.pamn.dominio.settings
 
 import es.ulpgc.pamn.dominio.course.CourseSummary
-import es.ulpgc.pamn.dominio.course.search.tagKey
+import es.ulpgc.pamn.dominio.course.search.searchKey
 
 // Qué pasa al intentar añadir una etiqueta preferida. La pantalla decide qué texto enseña en cada caso.
 sealed interface TagAddition {
@@ -18,7 +18,7 @@ sealed interface TagAddition {
 }
 
 // Las etiquetas preferidas de Ajustes (docs/tareas/ajustes.md, fase 3, decisión M). Inmutable: añadir
-// o quitar devuelve otra. Se guardan como Buscar compara las de los cursos (`tagKey`: espacios de sobra
+// o quitar devuelve otra. Se guardan como Buscar compara las de los cursos (`searchKey`: espacios de sobra
 // fuera y minúsculas), sin «#» delante, sin repetir y en el orden en que se añadieron.
 data class PreferredTags(val values: List<String> = emptyList()) {
 
@@ -43,7 +43,7 @@ data class PreferredTags(val values: List<String> = emptyList()) {
             (tags.add(raw) as? TagAddition.Added)?.tags ?: tags
         }
 
-        private fun normalized(raw: String): String = raw.trim().trimStart('#').tagKey()
+        private fun normalized(raw: String): String = raw.trim().trimStart('#').searchKey()
     }
 }
 
@@ -52,5 +52,5 @@ data class PreferredTags(val values: List<String> = emptyList()) {
 fun List<CourseSummary>.prioritizing(preferred: PreferredTags): List<CourseSummary> {
     if (preferred.values.isEmpty()) return this
     val wanted = preferred.values.toSet()
-    return sortedBy { course -> if (course.tags.any { it.tagKey() in wanted }) 0 else 1 }
+    return sortedBy { course -> if (course.tags.any { it.searchKey() in wanted }) 0 else 1 }
 }
