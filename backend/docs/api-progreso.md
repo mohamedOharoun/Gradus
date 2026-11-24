@@ -46,7 +46,10 @@ del usuario en el servidor. Mandar una lista vacía sirve para solo leer.
   - Orden: primero lo omitido al validar (reglas 4 con UUID inválido y 7) y después los cursos
     inexistentes (regla 4); dentro de cada grupo, en el orden de la petición. La app no depende del
     orden; solo sirve para que la respuesta sea determinista.
-  - `courseId` va tal como llegó (texto, aunque no sea un UUID).
+  - `courseId`: en lo omitido al validar, tal como llegó (texto, aunque no sea un UUID). En los cursos
+    inexistentes, en forma canónica (UUID en minúsculas), y **una sola vez** aunque la petición lo
+    repita (la regla 9 ya los ha fusionado). La app usa los ids que le da el servidor, que ya van en
+    minúsculas.
   - Sin `moduleId`: se omitió la **inscripción entera** con sus módulos. Con `moduleId`: se omitió
     **solo ese módulo**; la inscripción y sus otros módulos sí se guardaron.
 

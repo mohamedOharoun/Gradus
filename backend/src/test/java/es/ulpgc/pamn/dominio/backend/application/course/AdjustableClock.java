@@ -11,15 +11,15 @@ import java.util.Objects;
  * Reloj falso para tests que se puede adelantar: sirve para comprobar que un caso de uso lee la hora en
  * cada llamada y no una sola vez al crearse. {@link Clock#fixed} no vale, porque no cambia nunca.
  */
-final class AdjustableClock extends Clock {
+public final class AdjustableClock extends Clock {
 
     private Instant now;
 
-    AdjustableClock(Instant now) {
+    public AdjustableClock(Instant now) {
         this.now = Objects.requireNonNull(now, "now");
     }
 
-    void advance(Duration duration) {
+    public void advance(Duration duration) {
         now = now.plus(duration);
     }
 
