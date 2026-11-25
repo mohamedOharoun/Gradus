@@ -3,9 +3,11 @@ package es.ulpgc.pamn.dominio.course.progress
 import es.ulpgc.pamn.dominio.account.Session
 
 // Gateway falso, sin red: para los tests de ProgressSync. Por defecto responde «sincronizado, sin nada»;
-// con `answer` se le dice qué responder (puede depender de la sesión y de lo enviado).
+// con `answer` se le dice qué responder (puede depender de la sesión y de lo enviado). `answer` puede
+// suspender (p. ej. esperar un CompletableDeferred): así un test decide cuándo llega la respuesta.
+// La llamada se apunta en `calls` antes de responder.
 class FakeProgressGateway(
-    private val answer: (session: Session, pending: ProgressSnapshot) -> SyncOutcome =
+    private val answer: suspend (session: Session, pending: ProgressSnapshot) -> SyncOutcome =
         { _, _ -> SyncOutcome.Synced(SyncResponse(ProgressSnapshot(emptyList()), emptyList())) },
 ) : ProgressGateway {
 

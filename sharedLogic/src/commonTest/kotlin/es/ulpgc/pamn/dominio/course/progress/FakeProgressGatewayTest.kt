@@ -2,7 +2,10 @@ package es.ulpgc.pamn.dominio.course.progress
 
 import es.ulpgc.pamn.dominio.account.Account
 import es.ulpgc.pamn.dominio.account.Session
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.yield
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -50,6 +53,19 @@ class FakeProgressGatewayTest {
         assertEquals(SyncOutcome.Unreachable, gateway.sync(session, pending))
         assertEquals(SyncOutcome.SessionExpired, gateway.sync(sessionOf("u2"), pending))
         assertEquals(SyncOutcome.SessionExpired, gateway.sync(session, ProgressSnapshot(emptyList())))
+    }
+
+    // La respuesta puede suspender (los tests de ProgressSync deciden cuándo llega) y la llamada
+    // queda apuntada antes de responder.
+    @Test
+    fun `the answer can suspend and the call is remembered while it waits`() = runTest {
+        val gate = CompletableDeferred<SyncOutcome>()
+        val gateway = FakeProgressGateway(answer = { _, _ -> gate.await() })
+        val outcome = async { gateway.sync(session, pending) }
+        yield()
+        assertEquals(listOf(SyncCall("u1", pending)), gateway.calls)
+        gate.complete(SyncOutcome.Unreachable)
+        assertEquals(SyncOutcome.Unreachable, outcome.await())
     }
 
     @Test

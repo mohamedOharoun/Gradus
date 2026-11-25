@@ -29,10 +29,11 @@ llamar a estos casos de uso.
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-25):** **tareas 4 y 5 terminadas** (139 tests de progreso). Hay almacén
-  (`ProgressSyncStore`) y gateway (`ProgressGateway`, `ProgressGateways.http`, `FakeProgressGateway`).
-  Relevo general reescrito: la parte C puede empezar. Detalle en `docs/arquitectura-progreso.md`.
-- **Toca:** tarea **6** (`ProgressSync`), tras decidir B-10 (¿se llama al servidor sin nada pendiente?).
+- **Estado (2026-11-25): parte B terminada** (tareas 4, 5 y 6 revisadas; 156 tests en
+  `course.progress*`, todos en verde). Lo que hay y cómo usarlo, en `docs/arquitectura-progreso.md`
+  («Cómo extenderlo» tiene la guía para C8). Relevo general reescrito.
+- **Toca:** nada en la parte B. Si la parte C necesitara un cambio en `sharedLogic`, se reabre aquí
+  con un paso nuevo (y el contrato sigue congelado). La batería completa se pasa al cierre (tarea 14).
 - **Riesgos:**
   - `ExerciseViewModel.markMastered` lanza la excepción en la app hasta C9/C10 (B-2, aceptado).
   - El servidor redondea las fechas a microsegundos: nada debe emparejar lo enviado con lo recibido
@@ -40,10 +41,9 @@ Se **reescribe** al final de cada sesión.
   - Gradle: `--rerun` a veces da `testAndroidHostTest NO-SOURCE` (no ejecuta nada). Orden fiable:
     `./gradlew :sharedLogic:compileAndroidHostTest --rerun :sharedLogic:testAndroidHostTest --rerun`;
     comprobar en los XML de `build/test-results/` que la hora es la de la ejecución.
-- **Qué mirar en la revisión de 6:** `settle` solo tras `Synced` y con el `sent` que de verdad se envió;
-  `SessionExpired`, `Unreachable` y `ServerFailure` no tocan el almacén; un solo intento (sin reintentos);
-  qué pasa con dos `sync` a la vez y con una cancelación entre la respuesta y `settle`; el usuario sale
-  de la `Session` del parámetro (decisión 11).
+- **Para quien use esto (parte C):** `courseId` en minúsculas (ver «Qué cuidar al mergear» de la
+  referencia); sin sesión los `Flow` terminan; `ProgressSync` se crea con el **mismo** objeto que
+  implementa los tres puertos del almacén.
 
 ## Lo que ya hay y sirve de modelo
 
@@ -104,6 +104,16 @@ Se **reescribe** al final de cada sesión.
 - **B-9. `skipped` es solo informativo** (por B-8 no cambia nada en el móvil): al leerlo se es tolerante.
   `"moduleId": null` (el contrato dice que no ocurre) se lee como la inscripción entera, igual que la
   clave ausente; no hace ilegible la respuesta. Lo obligatorio de `enrollments`, en cambio, es estricto.
+- **B-10. `ProgressSync.sync` llama siempre al servidor**, también sin nada pendiente (envía
+  `{"enrollments":[]}`, que el contrato admite «para solo leer»): si no, un móvil nuevo nunca recibiría
+  el progreso de la cuenta. Sustituye al criterio del índice «nada pendiente no llama a la red». Si D13
+  (WorkManager) quiere ahorrar llamadas, lo decide allí con `pending(...).isEmpty`.
+- **B-11. `ProgressSync` sin `Mutex`.** Dos `sync` a la vez no pierden ni deshacen nada: cada `settle`
+  vacía la cola solo con su propio `sent` (por clave) y la fusión por fecha mínima no depende del orden;
+  el coste es una llamada repetida, que el servidor fusiona. Sin `NonCancellable` en `settle`: si se
+  cancela antes de escribir, lo pendiente se reenvía en la siguiente `sync` sin efectos. Si D13 quiere
+  que no coincidan, lo resuelve WorkManager (`enqueueUniqueWork`). Para probarlo, la respuesta de
+  `FakeProgressGateway` pasa a ser `suspend` (cambio de una palabra en el paso 5b).
 
 ## Tareas
 
@@ -170,12 +180,13 @@ Pasos:
   - Tests mínimos: 200, 401, 400, 413 `text/plain`, 5xx, sin conexión, tiempo agotado, cuerpo
     ilegible; `POST /api/progress/sync` con `Bearer`, JSON UTF-8 sin BOM.
 
-### [ ] 6. `ProgressSync`
+### [x] 6. `ProgressSync`
 
 Criterios de aceptación:
 - Sube lo pendiente, fusiona la respuesta (unión) y marca lo subido; devuelve el desenlace del gateway.
-- Tests mínimos: nada pendiente no llama a la red; un fallo de red deja lo pendiente; 401 no
-  reintenta; lo dominado en otro móvil aparece; lo omitido por el servidor sale de la cola.
+- Tests mínimos: sin nada pendiente envía un snapshot vacío y trae lo del servidor (B-10); un fallo de
+  red deja lo pendiente; 401 no reintenta; lo dominado en otro móvil aparece; lo omitido por el
+  servidor sale de la cola.
 
 Paso único · Opus 5.5, esfuerzo medio · revisión a fondo (corrutinas; dos sincronizaciones a la vez).
 Tests añadidos a los mínimos: `ServerFailure` deja lo pendiente; un 200 sin cambios deja el estado igual.
@@ -202,6 +213,11 @@ Tests añadidos a los mínimos: `ServerFailure` deja lo pendiente; un 200 sin ca
   `userId` y lo enviado (`SyncCall`), **no** la `Session`, para que el token no quede guardado.
   `ProgressGateways.http` no se conecta a `AppContainer` (C8).
 
+- 2026-11-25: **6 hecho y revisado; parte B terminada.** `ProgressSync` (B-10, B-11) y `answer`
+  `suspend` en el Fake. El orquestador corrigió el comentario de `ProgressSnapshot.isEmpty` (y su test
+  y la referencia), que contradecía B-10. Recuento real de tests de progreso: 43 tras 4b, 71 tras 4c,
+  106 tras 5a, 134 tras 5b y 156 tras 6 (las cifras anteriores de este documento estaban mal sumadas).
+
 ## Siguiente paso
 
-Decidir B-10 con los usuarios; después, tarea 6 en un chat nuevo (Opus 5.5, esfuerzo medio).
+Parte B terminada. Lo siguiente es de la parte C (C7 Room, C8 sincronizar), con su orquestador.

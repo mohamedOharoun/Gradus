@@ -5,7 +5,8 @@ package es.ulpgc.pamn.dominio.course.progress
 // orden garantizado: nadie debe depender de él.
 data class ProgressSnapshot(val enrollments: List<EnrollmentSnapshot>) {
 
-    // Sin inscripciones no hay nada que enviar (la sincronización no llama a la red).
+    // Sin inscripciones: en lo pendiente, no hay nada que subir. ProgressSync llama al servidor igual
+    // (B-10: así trae lo del servidor); sirve a quien quiera decidir si merece la pena sincronizar (D13).
     val isEmpty: Boolean get() = enrollments.isEmpty()
 }
 

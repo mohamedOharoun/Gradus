@@ -4,7 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
-// isEmpty dice si hay algo que enviar (la sincronización no llama a la red si está vacío).
+// isEmpty dice si hay algo que subir (ProgressSync llama al servidor igual: B-10).
 class ProgressSnapshotTest {
 
     @Test

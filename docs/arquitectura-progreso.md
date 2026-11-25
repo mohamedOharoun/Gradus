@@ -21,7 +21,7 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `MasteredModule(moduleId, masteredAt)` | Un módulo dominado y su fecha | *Value object* (`data class`) |
 | `EnrollmentStore` | Puerto: `enrolled(courseId): Flow<Boolean>` y `suspend enroll(courseId)` | *Strategy* (puerto con implementaciones intercambiables) |
 | `ProgressStore` | Puerto: `mastered(courseId): Flow<Set<String>>` y `suspend markMastered(courseId, moduleId)` | *Strategy* |
-| `ProgressSnapshot(enrollments)` → `EnrollmentSnapshot(enrollment, mastered)` | Lo que se envía o se recibe al sincronizar, con la forma del contrato (lo dominado dentro de su inscripción). Las listas no tienen orden garantizado; `isEmpty` = nada que enviar | *Value object* / DTO de dominio |
+| `ProgressSnapshot(enrollments)` → `EnrollmentSnapshot(enrollment, mastered)` | Lo que se envía o se recibe al sincronizar, con la forma del contrato (lo dominado dentro de su inscripción). Las listas no tienen orden garantizado; `isEmpty` = nada que subir (`ProgressSync` llama igual, B-10) | *Value object* / DTO de dominio |
 | `ProgressSyncStore` | Puerto de la sincronización: `suspend pending(userId)` y `suspend settle(userId, sent, remote)`; el usuario va por parámetro (decisión 11) | *Strategy* |
 | `InMemoryProgressStore(sessions, clock)` | Implementa **los tres puertos** con un solo `MutableStateFlow`; la parte C pondrá Room en su lugar | *Interface Segregation* (un objeto, tres puertos pequeños); inyección de dependencias (`SessionStore`, `Clock`) |
 | `UserProgress` → `CourseProgress` (`internal`) | El estado de un usuario: `courses: courseId → CourseProgress(enrollment, mastered, enrollmentPending, pendingModules)` | Valor inmutable con transformaciones puras (enfoque funcional) |
@@ -31,7 +31,8 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `ProgressGateway` | Puerto: `suspend sync(session, pending): SyncOutcome`. La `Session` va por parámetro (decisión 11) | *Strategy* |
 | `SyncOutcome` (`Synced(SyncResponse) \| SessionExpired \| Unreachable \| ServerFailure`) | Desenlace de la llamada, sin textos; nunca se lanza una excepción por red o servidor | Jerarquía sellada (tipo suma) |
 | `ProgressGateways.http(baseUrl)` | La única forma de obtener el gateway real desde fuera de `sharedLogic` (no está conectado a `AppContainer`: es C8) | *Factory method* |
-| `FakeProgressGateway(answer)` y `SyncCall(userId, sent)` | Gateway sin red para los tests de `ProgressSync`: responde lo configurado y recuerda **el id del usuario** y lo enviado, nunca la `Session` (el token no queda guardado) | *Test double* (fake) |
+| `FakeProgressGateway(answer)` y `SyncCall(userId, sent)` | Gateway sin red para los tests de `ProgressSync`: responde lo configurado y recuerda **el id del usuario** y lo enviado, nunca la `Session` (el token no queda guardado). `answer` es `suspend` (puede esperar a un `CompletableDeferred`: el test decide cuándo llega la respuesta) y la llamada se apunta antes de responder | *Test double* (fake) |
+| `ProgressSync(store, gateway)` y `suspend sync(session): SyncOutcome` | Caso de uso de la sincronización: sube lo pendiente del usuario de la sesión, fusiona la respuesta y devuelve el desenlace del gateway tal cual | Caso de uso (*Interactor*) sobre dos puertos inyectados (*Strategy*) |
 
 Paquete `course/progress/http/` (`internal`, traduce entre el modelo y el JSON; sin HTTP):
 
@@ -65,7 +66,12 @@ Cómo está hecho `InMemoryProgressStore`:
 - `progressOf(userId)` es `internal` y de solo lectura: existe para que los tests vean todo el estado
   con sus fechas (los puertos no las exponen, y `pending` solo enseña lo pendiente). Se mantiene.
 
-*Pendiente (tarea 6: el caso de uso `ProgressSync`).*
+Cómo está hecho `ProgressSync`:
+
+- Tres pasos y nada más: `sent = store.pending(userId)`, `gateway.sync(session, sent)` y, **solo si es
+  `Synced`**, `store.settle(userId, sent, response.remote)`. Devuelve el desenlace con `also`.
+- `userId = session.account.id`: la sesión llega por parámetro (decisión 11), no se lee de `SessionStore`.
+- Sin `Mutex` ni `NonCancellable` (B-11): lo explican los invariantes de la sincronización.
 
 ## Flujo
 
@@ -78,18 +84,23 @@ Inscribirse → estudiar → dominar → sincronizar.
 3. **Dominar:** `ProgressStore.markMastered(courseId, moduleId)` guarda el módulo con la fecha del
    `Clock`. Dominar dos veces conserva la primera fecha. Sin inscripción o sin sesión lanza
    `IllegalStateException` y no escribe nada.
-4. **Sincronizar** (lo que toca al almacén; el gateway y el caso de uso son las tareas 5 y 6):
-   1. `sent = pending(userId)`: cada inscripción pendiente y cada módulo pendiente, este dentro de
-      su inscripción aunque ya estuviera subida (el contrato no admite módulos sueltos). Si
-      `sent.isEmpty`, no hay nada que enviar.
-   2. Se envía `sent` (tarea 5). Mientras viaja, el estudiante puede seguir inscribiéndose y dominando.
+4. **Sincronizar:** `ProgressSync(store, gateway).sync(session)`, con la sesión actual por parámetro.
+   1. `sent = pending(userId)`, con `userId = session.account.id`: cada inscripción pendiente y cada
+      módulo pendiente, este dentro de su inscripción aunque ya estuviera subida (el contrato no admite
+      módulos sueltos).
+   2. `gateway.sync(session, sent)` **siempre**, también con `sent` vacío (B-10: envía
+      `{"enrollments":[]}` y así llega lo dominado en otro móvil). Un solo intento. Mientras viaja, el
+      estudiante puede seguir inscribiéndose y dominando.
    3. Tras un 200: `settle(userId, sent, remote)`, en una sola operación:
       - todo lo de `sent` sale de la cola **por clave** (curso; curso + módulo), nunca por fecha. Lo
         omitido por el servidor (`skipped`) también sale y se conserva en el móvil (B-8);
       - `remote` (todo el progreso del usuario en el servidor) se fusiona: unión, gana la fecha más
         antigua, lo nuevo no queda pendiente, nada local se borra.
       Lo hecho mientras la petición viajaba no está en `sent`: sigue pendiente.
-   4. Si no hay 200, no se llama a `settle`: todo sigue pendiente.
+   4. Si no hay 200 (`SessionExpired`, `Unreachable`, `ServerFailure`), no se llama a `settle`: el
+      almacén no cambia y todo sigue pendiente.
+   5. `sync` devuelve el desenlace del gateway tal cual; qué hacer con él lo decide quien llama (ver
+      «Cómo extenderlo»).
 
 ## Invariantes
 
@@ -117,6 +128,17 @@ Reglas que nunca se rompen (p. ej. no hay módulo dominado sin inscripción).
   servidor recorta a su hora (regla 8). Al fusionar gana la más antigua, así que el móvil se queda con
   la del servidor: los dos acaban con la misma fecha.
 - **`settle` es idempotente:** dos veces con lo mismo deja el mismo estado.
+- **`ProgressSync` solo llama a `settle` tras `Synced`, y con el `sent` que de verdad envió.** Con
+  `SessionExpired`, `Unreachable` o `ServerFailure` el almacén queda igual (cola, fechas y nada nuevo).
+- **Un solo intento por `sync`:** ni tras un 401 ni tras un fallo de red. Reintentar es cosa de quien
+  llama (parte D).
+- **`sync` nunca lanza por la red ni por el servidor** (llega como `SyncOutcome`). Si falla el almacén
+  (p. ej. Room), su excepción sí sale; la cancelación también se propaga.
+- **Dos `sync` a la vez no pierden ni deshacen nada** (B-11, sin `Mutex`): cada una solo saca de la
+  cola **su** `sent`, por clave, y la fusión es unión con la fecha mínima, así que una respuesta antigua
+  que llega tarde no borra lo nuevo. El coste es una llamada repetida.
+- **Una cancelación antes de `settle` solo provoca un reenvío inofensivo:** `settle` es todo o nada,
+  así que todo sigue pendiente; la siguiente `sync` lo reenvía y el servidor lo fusiona (fecha mínima).
 - **Quien escucha conserva su usuario:** `mastered` y `enrolled` leen la sesión al empezar; si luego
   entra otro usuario, quien ya escuchaba no se entera de lo suyo. La interfaz debe volver a escuchar
   al cambiar de sesión.
@@ -206,6 +228,25 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
     `pending`. Nunca `DELETE`.
   - Los `Flow` de `mastered` y `enrolled` deben emitir tras `settle` (con Room, al leer de las mismas
     tablas, sale solo).
+  - `ProgressSync` no cambia: se le pasa el almacén Room en lugar del de memoria.
+- **Sincronizar desde la app (parte C; la D lo automatiza con WorkManager):**
+  1. Crea `ProgressSync(store, gateway)` en `AppContainer` (C8) con el **mismo** objeto que implementa
+     `ProgressStore` y `EnrollmentStore`, y el gateway de `ProgressGateways.http(baseUrl)`.
+  2. Cuándo llamar a `sync(session)`: con la sesión actual (`SessionStore.current()`; si es `null`, no
+     se sincroniza). Momentos razonables: al iniciar sesión o abrir la app (para traer lo de otros
+     móviles, aunque no haya nada pendiente), tras inscribirse o dominar un módulo, y cuando el
+     estudiante lo pida. Desde una corrutina del `ViewModel` (`viewModelScope`) o del `Worker`, nunca
+     en el hilo principal bloqueándolo.
+  3. Qué hacer con cada desenlace (los textos los decide la interfaz):
+     - `Synced`: nada más; quien escucha `mastered` y `enrolled` ya ve lo fusionado. `skipped` es solo
+       informativo (B-8): no hay que borrar ni reintentar nada.
+     - `SessionExpired`: la sesión no vale. No reintentes con ella: lleva al estudiante a iniciar sesión
+       (lo pendiente sigue guardado y se sube tras entrar).
+     - `Unreachable`: sin conexión. Avisa si quieres y reintenta más tarde (WorkManager, parte D).
+     - `ServerFailure`: fallo del servidor. Igual que `Unreachable`, pero no insistas en bucle.
+  4. No captures excepciones alrededor de `sync` para «tapar» la red: no las lanza. Las del almacén son
+     un fallo real. No hace falta evitar dos `sync` a la vez (B-11); si D quiere ahorrar llamadas, usa
+     trabajo único de WorkManager o mira `pending(userId).isEmpty` (B-10).
 
 ## Qué cuidar al mergear
 

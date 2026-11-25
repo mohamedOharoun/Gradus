@@ -6,7 +6,8 @@ Que un usuario se **inscriba** en un curso, estudie (también sin conexión) y s
 Este documento es el **índice común**: decisiones, contrato, reparto en partes y acuerdos. El detalle
 de cada parte vive en su propio documento, para que cada orquestador lea solo lo suyo.
 
-Estado: **parte A (backend) terminada; contrato congelado** (2026-11-24). Rama: `dev/course-progress-tracking`.
+Estado: **partes A (backend) y B (`sharedLogic`) terminadas; contrato congelado** (2026-11-25). Rama:
+`dev/course-progress-tracking`.
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -27,21 +28,15 @@ ficheros que les dé el orquestador. Este índice, solo si el orquestador lo ind
 
 Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumula.
 
-- **Dónde estamos (2026-11-24):** **parte A terminada** (tareas 1–3): `POST /api/progress/sync` funciona
-  contra PostgreSQL (16 escenarios reales) y la `006` está aplicada en la base de desarrollo.
-- **Contrato congelado (2026-11-24): `backend/docs/api-progreso.md`.** Lo que afecta a la parte B (B5,
-  `HttpProgressGateway`), además de lo que ya decía el borrador:
-  - **413** si el cuerpo supera 2 MiB: `text/plain`, no JSON. Todo lo que no sea 200 ni 401 es
-    `ServerFailure`; un 400 indica un error de la app.
-  - Lectura estricta: todos los campos obligatorios (también `mastered`, aunque sea `[]`); fechas con
-    `Z`, año 0001–9999; UTF-8 sin BOM; clave repetida → 400. Campos desconocidos, ignorados.
-  - Las fechas de la respuesta llegan con 0, 3 o 6 decimales (se guardan en microsegundos): el DTO
-    tiene que aceptar los tres formatos.
-  - `skipped` sin `moduleId` (clave ausente, no `null`) = inscripción entera omitida.
-  - La app no depende del orden de `enrollments` ni de `skipped`.
-- **Parte B (2026-11-25): tarea 4 terminada; la parte C puede empezar.** Decisiones B-1 a B-8 en
-  `docs/tareas/progreso-logica.md`; cómo es y qué debe cumplir Room, en **`docs/arquitectura-progreso.md`**
-  («Otra forma de guardar el progreso» e «Invariantes»). Lo que afecta a la parte C:
+- **Dónde estamos (2026-11-25):**
+  - **Parte A terminada** (tareas 1–3): `POST /api/progress/sync` funciona contra PostgreSQL y la `006`
+    está aplicada en la base de desarrollo. Contrato congelado: `backend/docs/api-progreso.md`.
+  - **Parte B terminada** (tareas 4–6, 156 tests): modelo, puertos, almacén en memoria, gateway HTTP
+    (cumple el contrato: 413 en `text/plain`, fechas con 0/3/6 decimales, `skipped`, UTF-8 sin BOM) y
+    `ProgressSync`. Decisiones B-1 a B-11 en `docs/tareas/progreso-logica.md`.
+- **Para la parte C, todo en `docs/arquitectura-progreso.md`:** qué debe cumplir Room («Otra forma de
+  guardar el progreso» e «Invariantes») y cómo sincronizar desde la app («Sincronizar desde la app»).
+  Lo más importante:
   - Puertos que Room implementa (en `course/progress/`): `ProgressStore` y `EnrollmentStore` (leen la
     sesión de `SessionStore`) y `ProgressSyncStore` (`pending(userId)`, `settle(userId, sent, remote)` en
     una transacción). Lo pendiente es una columna en cada tabla, no un campo del modelo.
@@ -55,11 +50,17 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
   - **`courseId` en minúsculas:** `settle` compara el id tal cual y el servidor lo devuelve en minúsculas;
     C debe comprobar que los ids del catálogo llegan así (o normalizarlos al guardar).
   - Lo omitido por el servidor (`skipped`) sale de la cola y el móvil lo conserva (B-8).
-- **Siguiente:** parte B sigue con la tarea 5 (gateway HTTP) y la 6 (`ProgressSync`). La parte C puede
-  arrancar C7 en paralelo (falta el permiso para Room + KSP).
+  - **C8:** `ProgressSync(store, ProgressGateways.http(baseUrl)).sync(session)`, con el **mismo** objeto
+    que implementa los tres puertos del almacén. Llama **siempre** al servidor, también sin nada
+    pendiente (B-10): sincronizar tras iniciar sesión trae lo de otros móviles. Devuelve
+    `Synced | SessionExpired | Unreachable | ServerFailure` (los textos, en la interfaz); no lanza por la
+    red; dos `sync` a la vez no hacen daño (B-11). Si D13 quiere ahorrar llamadas, que lo decida con
+    `pending(...).isEmpty`.
+- **Siguiente:** la parte C (C7 Room, C8 sincronizar, C9 la puerta, C10 el botón), con su orquestador.
+  Falta el permiso para Room + KSP.
 - **Dependencias entre partes:**
-  - A y B: independientes; las une el contrato, **ya congelado**: B5 (gateway HTTP) puede empezar.
-  - C necesita B4 (**hecha**) y el permiso para Room + KSP. C8 (sincronizar) necesita A3, B5 y B6.
+  - A y B: **terminadas**.
+  - C: lo que necesitaba de A y B está hecho; solo falta el permiso para Room + KSP.
   - D necesita C. WorkManager (D13) necesita la sesión persistente (D11).
 - **Cambios de contrato:** quien necesite cambiar `api-progreso.md` lo propone a los usuarios, lo
   apunta aquí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador. Ningún
@@ -116,9 +117,9 @@ Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquesta
 - **5.** `ProgressGateway` + `HttpProgressGateway` (Ktor) + DTO + *mapper* + Fake; desenlaces
   `Synced | SessionExpired | Unreachable | ServerFailure`. Tests con `MockEngine` (200, 401, 400, sin
   conexión, 5xx, cuerpo ilegible). Es la **primera llamada con sesión** de la app.
-- **6.** `ProgressSync`: sube lo pendiente, fusiona la respuesta y marca lo subido. Tests: nada
-  pendiente no llama a la red; fallo de red deja lo pendiente; 401 no reintenta; lo dominado en otro
-  móvil aparece; lo omitido por el servidor sale de la cola.
+- **6.** `ProgressSync`: sube lo pendiente, fusiona la respuesta y marca lo subido. Tests: sin nada
+  pendiente también llama y trae lo del servidor (B-10, 2026-11-25); fallo de red deja lo pendiente;
+  401 no reintenta; lo dominado en otro móvil aparece; lo omitido por el servidor sale de la cola.
 - **7.** Room por usuario (inscripciones, dominados, pendientes); `AppContainer` con `Context`.
 - **8.** Sincronizar tras iniciar sesión, tras dominar y al volver la conexión.
 - **9.** El camino usa `studyAccess`; `Route.Exercise` vuelve atrás sin inscripción.
@@ -165,5 +166,6 @@ Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquesta
 - 2026-11-24: definición hecha y aprobada (decisiones 1–11). Documento partido en índice + documentos
   por parte para que cada orquestador cargue solo lo suyo. Creados `backend/docs/api-progreso.md`
   (borrador) y `backend/docs/tareas/progreso-backend.md`.
-- 2026-11-25: **parte A terminada y contrato congelado** (tarea 3 de `progreso-backend.md`). Lo que
-  cambia para B, en el Relevo general.
+- 2026-11-25: **parte A terminada y contrato congelado** (tarea 3 de `progreso-backend.md`).
+- 2026-11-25: **parte B terminada** (tareas 4-6 de `progreso-logica.md`). Creada la referencia viva
+  `docs/arquitectura-progreso.md`. Lo que necesita la parte C, en el Relevo general.
