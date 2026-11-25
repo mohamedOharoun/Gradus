@@ -26,6 +26,21 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `InMemoryProgressStore(sessions, clock)` | Implementa **los tres puertos** con un solo `MutableStateFlow`; la parte C pondrá Room en su lugar | *Interface Segregation* (un objeto, tres puertos pequeños); inyección de dependencias (`SessionStore`, `Clock`) |
 | `UserProgress` → `CourseProgress` (`internal`) | El estado de un usuario: `courses: courseId → CourseProgress(enrollment, mastered, enrollmentPending, pendingModules)` | Valor inmutable con transformaciones puras (enfoque funcional) |
 | `UserProgress.pending()` y `.settled(sent, remote)` (`internal`, `UserProgressSync.kt`) | Las transformaciones puras de la sincronización | Funciones puras (extensión) |
+| `SyncResponse(remote, skipped)` | Un 200 de la sincronización en el modelo de la app: todo el progreso remoto (`ProgressSnapshot`) y lo omitido | *Value object* |
+| `SkippedProgress` (`WholeEnrollment \| SingleModule`) | Lo que el servidor no guardó, con su `code` como texto. Solo informativo (B-8, B-9) | Jerarquía sellada (tipo suma) |
+| `ProgressGateway` | Puerto: `suspend sync(session, pending): SyncOutcome`. La `Session` va por parámetro (decisión 11) | *Strategy* |
+| `SyncOutcome` (`Synced(SyncResponse) \| SessionExpired \| Unreachable \| ServerFailure`) | Desenlace de la llamada, sin textos; nunca se lanza una excepción por red o servidor | Jerarquía sellada (tipo suma) |
+| `ProgressGateways.http(baseUrl)` | La única forma de obtener el gateway real desde fuera de `sharedLogic` (no está conectado a `AppContainer`: es C8) | *Factory method* |
+| `FakeProgressGateway(answer)` y `SyncCall(userId, sent)` | Gateway sin red para los tests de `ProgressSync`: responde lo configurado y recuerda **el id del usuario** y lo enviado, nunca la `Session` (el token no queda guardado) | *Test double* (fake) |
+
+Paquete `course/progress/http/` (`internal`, traduce entre el modelo y el JSON; sin HTTP):
+
+| Pieza | Qué es | Patrón |
+|---|---|---|
+| `ProgressDtos.kt` (`SyncRequestDto`, `EnrollmentDto`, `MasteredDto`, `SyncResponseDto`, `SkippedDto`) | El JSON de `POST /api/progress/sync`, campo a campo | DTO |
+| `encodeSyncRequest(snapshot)` | `ProgressSnapshot` → texto JSON de la petición | *Mapper*, función pura |
+| `decodeSyncResponse(body)` | Texto JSON de un 200 → `SyncResponse?` (`null` = no se puede leer; no lanza) | *Mapper*, función pura |
+| `HttpProgressGateway(client, baseUrl)` | Adaptador Ktor del puerto: `POST /api/progress/sync` con `Authorization: Bearer`. Solo HTTP: el JSON es de los mappers; las excepciones van por `callServer` | Adaptador (*Adapter*); `callServer` es una función de orden superior |
 
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
 (`Clock.System` por defecto); los tests usan un `FakeClock`.
@@ -50,7 +65,7 @@ Cómo está hecho `InMemoryProgressStore`:
 - `progressOf(userId)` es `internal` y de solo lectura: existe para que los tests vean todo el estado
   con sus fechas (los puertos no las exponen, y `pending` solo enseña lo pendiente). Se mantiene.
 
-*Pendiente (tareas 5 y 6).*
+*Pendiente (tarea 6: el caso de uso `ProgressSync`).*
 
 ## Flujo
 
@@ -112,7 +127,61 @@ Reglas que nunca se rompen (p. ej. no hay módulo dominado sin inscripción).
 
 Cómo pasa cada campo y cada respuesta de `POST /api/progress/sync` al modelo de la app.
 
-*Pendiente (tarea 5).*
+Código: `course/progress/http/` (`ProgressDtos.kt` y `ProgressDtoMappers.kt`). Solo traduce; el HTTP, el
+estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
+
+**Petición** (`encodeSyncRequest`):
+- Todos los campos se escriben, también `"mastered":[]`. Los DTO **no tienen valores por defecto** y el
+  `Json` lleva `encodeDefaults = true` (refuerzo: si alguien añade un valor por defecto, no deja de
+  escribirse y el servidor no responde 400).
+- Las fechas van con `Instant.toString()`: UTC con `Z`. Con nanosegundos, se escriben todos; el servidor
+  redondea a microsegundos.
+- Lo dominado va dentro de su inscripción (la forma de `ProgressSnapshot`).
+
+**Respuesta 200** (`decodeSyncResponse`):
+
+| Contrato | En la app |
+|---|---|
+| `enrollments[]` (`courseId`, `enrolledAt`, `mastered[]`) | `SyncResponse.remote` (`ProgressSnapshot`); `courseId` tal cual llega |
+| Fechas con 0, 3 o 6 decimales | `Instant.parse` las acepta todas |
+| `skipped[]` sin `moduleId` **o con `"moduleId": null`** | `SkippedProgress.WholeEnrollment(courseId, code)` |
+| `skipped[]` con `moduleId` (también `""` y `" "`) | `SkippedProgress.SingleModule(courseId, moduleId, code)` |
+| `code` | Texto: la app no depende de los códigos |
+| Campos desconocidos | Se ignoran en todos los niveles |
+| Falta un campo obligatorio, vale `null`, tipo equivocado o fecha inválida | `null` (no se puede leer) |
+| JSON roto, cuerpo vacío o no JSON | `null` |
+
+- Obligatorio es todo salvo `moduleId` en `skipped`. Estricto en `enrollments`; tolerante con lo
+  desconocido.
+- `"moduleId": null` se lee como la inscripción entera (B-9): `skipped` es solo informativo (B-8) y
+  hacer ilegible la respuesta por un campo que nadie usa impediría `settle` y vaciar la cola.
+- `decodeSyncResponse` captura `IllegalArgumentException` (de ella heredan `SerializationException` y
+  el error de fecha): nunca sale una excepción hacia fuera.
+- Quien use el resultado no debe emparejar lo enviado con lo recibido por fecha (el servidor redondea):
+  se empareja por clave (`settle`).
+
+**Estados → desenlaces** (`HttpProgressGateway`; mira primero el estado y solo lee el cuerpo en el 200):
+
+| Respuesta o fallo | `SyncOutcome` |
+|---|---|
+| 200 con cuerpo legible | `Synced(SyncResponse)` |
+| 200 con cuerpo ilegible (`decodeSyncResponse` da `null`) | `ServerFailure` |
+| 401 (el cuerpo no se lee) | `SessionExpired` |
+| 400 `MALFORMED_BODY` (error de la app) | `ServerFailure` |
+| 413 en `text/plain` (`Content Too Large`) | `ServerFailure` |
+| 5xx y cualquier otro estado (404…) | `ServerFailure` |
+| Sin red, servidor apagado o tiempo agotado (`IOException`) | `Unreachable` |
+| Otra excepción (no de red) | `ServerFailure` |
+| Cancelación de la corrutina | se relanza (no es un fallo) |
+
+- **Petición:** `POST {baseUrl}/api/progress/sync`, cabecera `Authorization: Bearer <token>`, cuerpo
+  `TextContent(encodeSyncRequest(pending), ContentType.Application.Json)`. `TextContent` es un cuerpo
+  ya hecho: `ContentNegotiation` no lo serializa otra vez. El tipo va sin `charset` y Ktor lo codifica
+  en UTF-8 sin BOM, que es lo que pide el contrato (lo comprueban los tests con los bytes reales).
+- **El token nunca sale de la cabecera:** no está en ningún `toString` (`Session` lo oculta), ni en
+  `SyncOutcome` (no guarda la sesión), ni en lo que recuerda el Fake (`SyncCall` guarda solo el `userId`).
+- Un 401 (`SessionExpired`) no se reintenta con la misma sesión; `Unreachable` y `ServerFailure` dejan
+  todo pendiente (decisión de `ProgressSync`, tarea 6).
 
 ## Cómo extenderlo
 

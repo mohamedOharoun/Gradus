@@ -29,11 +29,10 @@ llamar a estos casos de uso.
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-25):** **tarea 4 terminada** (4a, 4b y 4c revisados; 76 tests de progreso).
-  `InMemoryProgressStore(sessions, clock)` cumple `ProgressStore`, `EnrollmentStore` y
-  `ProgressSyncStore`. Relevo general reescrito: la parte C puede empezar. Detalle en
-  `docs/arquitectura-progreso.md`.
-- **Toca:** paso **5a** (DTO y *mapper*; mensaje al implementador preparado por el orquestador).
+- **Estado (2026-11-25):** **tareas 4 y 5 terminadas** (139 tests de progreso). Hay almacén
+  (`ProgressSyncStore`) y gateway (`ProgressGateway`, `ProgressGateways.http`, `FakeProgressGateway`).
+  Relevo general reescrito: la parte C puede empezar. Detalle en `docs/arquitectura-progreso.md`.
+- **Toca:** tarea **6** (`ProgressSync`), tras decidir B-10 (¿se llama al servidor sin nada pendiente?).
 - **Riesgos:**
   - `ExerciseViewModel.markMastered` lanza la excepción en la app hasta C9/C10 (B-2, aceptado).
   - El servidor redondea las fechas a microsegundos: nada debe emparejar lo enviado con lo recibido
@@ -41,10 +40,10 @@ Se **reescribe** al final de cada sesión.
   - Gradle: `--rerun` a veces da `testAndroidHostTest NO-SOURCE` (no ejecuta nada). Orden fiable:
     `./gradlew :sharedLogic:compileAndroidHostTest --rerun :sharedLogic:testAndroidHostTest --rerun`;
     comprobar en los XML de `build/test-results/` que la hora es la de la ejecución.
-- **Qué mirar en la revisión de 5a:** cada punto de B-5 con su test (DTO de la petición sin valores por
-  defecto y `"mastered":[]` en el texto; fechas con 0, 3 y 6 decimales; `skipped` con y sin `moduleId`,
-  también `" "`); respuesta estricta en lo obligatorio y tolerante con lo desconocido; un cuerpo
-  ilegible da «no se puede leer», nunca una excepción hacia fuera; nada de HTTP (eso es 5b).
+- **Qué mirar en la revisión de 6:** `settle` solo tras `Synced` y con el `sent` que de verdad se envió;
+  `SessionExpired`, `Unreachable` y `ServerFailure` no tocan el almacén; un solo intento (sin reintentos);
+  qué pasa con dos `sync` a la vez y con una cancelación entre la respuesta y `settle`; el usuario sale
+  de la `Session` del parámetro (decisión 11).
 
 ## Lo que ya hay y sirve de modelo
 
@@ -102,6 +101,9 @@ Se **reescribe** al final de cada sesión.
   móvil las quita de su cola de pendientes»; borrarlo sería una baja, decisión 7). Por tanto **todo lo
   enviado sale de la cola** tras un 200, por clave; `settle` no necesita `skipped`, y la comparación sin
   mayúsculas de B-5 ya no hace falta para la cola (el gateway sigue devolviendo `skipped`).
+- **B-9. `skipped` es solo informativo** (por B-8 no cambia nada en el móvil): al leerlo se es tolerante.
+  `"moduleId": null` (el contrato dice que no ocurre) se lee como la inscripción entera, igual que la
+  clave ausente; no hace ilegible la respuesta. Lo obligatorio de `enrollments`, en cambio, es estricto.
 
 ## Tareas
 
@@ -148,7 +150,7 @@ Pasos (cada uno: propuesta → OK → tests primero; actualiza su sección de la
     `SettleMergeTest`), más: una fecha futura del móvil queda sustituida por la recortada del servidor;
     `isEmpty`; los tests no dependen del orden de las listas.
 
-### [ ] 5. `ProgressGateway` HTTP
+### [x] 5. `ProgressGateway` HTTP
 
 Criterios de aceptación:
 - `ProgressGateway` (puerto) + `HttpProgressGateway` (Ktor) + DTO + *mapper* + `FakeProgressGateway`.
@@ -160,10 +162,10 @@ Criterios de aceptación:
 
 Pasos:
 
-- [ ] **5a. DTO y *mapper*** · Sonnet 5.5, esfuerzo medio · revisión del contrato punto por punto (B-5).
+- [x] **5a. DTO y *mapper*** · Sonnet 5.5, esfuerzo medio · revisión del contrato punto por punto (B-5).
   - Tests mínimos: `mastered: []` se envía; fechas con 0, 3 y 6 decimales; `skipped` con y sin
     `moduleId` (también `" "`); campos desconocidos ignorados; falta un campo de la respuesta → ilegible.
-- [ ] **5b. `ProgressGateway`, `HttpProgressGateway` (con `callServer`) y `FakeProgressGateway`** ·
+- [x] **5b. `ProgressGateway`, `HttpProgressGateway` (con `callServer`) y `FakeProgressGateway`** ·
   Sonnet 5.5, esfuerzo medio · revisión del contrato y de que el token no salga en logs.
   - Tests mínimos: 200, 401, 400, 413 `text/plain`, 5xx, sin conexión, tiempo agotado, cuerpo
     ilegible; `POST /api/progress/sync` con `Bearer`, JSON UTF-8 sin BOM.
@@ -192,6 +194,14 @@ Tests añadidos a los mínimos: `ServerFailure` deja lo pendiente; un 200 sin ca
   Tests de «quien escucha» con `backgroundScope` + `yield()` (sin `UnconfinedTestDispatcher`, que pide
   *opt-in*).
 
+- 2026-11-25: **5a hecho y revisado.** `SkippedDto.moduleId` es `String?` (B-9). `encodeDefaults = true`
+  es un refuerzo sin test propio (hoy ningún DTO de la petición tiene valor por defecto que lo ponga a
+  prueba; lo vigila el test de `"mastered":[]`). Las fechas con nanosegundos se envían enteras.
+
+- 2026-11-25: **5b hecho y revisado; tarea 5 terminada.** Fuera del plan, aprobado: el Fake recuerda
+  `userId` y lo enviado (`SyncCall`), **no** la `Session`, para que el token no quede guardado.
+  `ProgressGateways.http` no se conecta a `AppContainer` (C8).
+
 ## Siguiente paso
 
-Paso 5a: abrir un chat nuevo con el mensaje del orquestador (Sonnet 5.5, esfuerzo medio).
+Decidir B-10 con los usuarios; después, tarea 6 en un chat nuevo (Opus 5.5, esfuerzo medio).
