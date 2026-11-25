@@ -18,6 +18,7 @@ Estado: **parte A (backend) terminada; contrato congelado** (2026-11-24). Rama: 
 | `backend/docs/tareas/progreso-backend.md` | Parte A: tareas 1–3, su Relevo y su progreso | Orquestador A y sus implementadores |
 | `docs/tareas/progreso-logica.md` | Parte B: tareas 4–6 (**lo crea su orquestador** al empezar, con la plantilla de abajo) | Orquestador B |
 | `docs/tareas/progreso-app.md` | Partes C y D: tareas 7–13 (**lo crea su orquestador**) | Orquestador C/D |
+| `docs/arquitectura-progreso.md` | **Referencia viva:** piezas, flujo, invariantes, cómo extenderlo y qué cuidar al mergear | Orquestadores B, C y D; quien mergee o añada algo que use el progreso |
 
 Los implementadores leen `AGENTS.md`, el documento de **su** parte (Relevo y su paso) y la lista de
 ficheros que les dé el orquestador. Este índice, solo si el orquestador lo indica.
@@ -38,10 +39,19 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     tiene que aceptar los tres formatos.
   - `skipped` sin `moduleId` (clave ausente, no `null`) = inscripción entera omitida.
   - La app no depende del orden de `enrollments` ni de `skipped`.
-- **Siguiente:** la parte B puede arrancar (solo depende del contrato, ya congelado). Después, C y D.
+- **Parte B (2026-11-25):** arrancada; plan y decisiones B-1 a B-7 en `docs/tareas/progreso-logica.md`.
+  Lo que afecta a la parte C:
+  - B4 cambia **solo** la línea de `InMemoryProgressStore` en `AppContainer.kt` (para que compile).
+  - Desde B4, `markMastered` sin inscripción lanza excepción: la app **se cierra al dominar un módulo
+    hasta C9/C10** (no se captura; es el invariante). La rama no sirve para enseñar la app hasta entonces.
+  - El puerto de pendientes (para Room) se define en **B4c**: C7 necesita B4 entera.
+  - **C9** prueba que, sin inscripción, no se abre ni un módulo frontera ni uno dominado (en B solo se
+    prueba `studyAccess`, que no recibe el estado del módulo).
+- **Siguiente:** parte B en curso (paso 4a). Después, C y D.
 - **Dependencias entre partes:**
   - A y B: independientes; las une el contrato, **ya congelado**: B5 (gateway HTTP) puede empezar.
-  - C necesita B4 (puertos) y el permiso para Room + KSP. C8 (sincronizar) necesita A3, B5 y B6.
+  - C necesita B4 entera (puertos, incluido el de pendientes de 4c) y el permiso para Room + KSP.
+    C8 (sincronizar) necesita A3, B5 y B6.
   - D necesita C. WorkManager (D13) necesita la sesión persistente (D11).
 - **Cambios de contrato:** quien necesite cambiar `api-progreso.md` lo propone a los usuarios, lo
   apunta aquí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador. Ningún
