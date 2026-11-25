@@ -88,6 +88,12 @@ internal sealed interface StepDto
 @SerialName("lesson")
 internal data class LessonDto(val id: String, val text: String) : StepDto
 
+// Un paso con foto. Es un StepDto pero no un ExerciseDto: en `review` no se puede leer y da error,
+// como lo rechaza el servidor (PHOTO_IN_REVIEW). `explanation` es obligatoria (decisión A).
+@Serializable
+@SerialName("photo")
+internal data class PhotoDto(val id: String, val prompt: String, val explanation: String) : StepDto
+
 @Serializable
 internal sealed interface ExerciseDto : StepDto
 

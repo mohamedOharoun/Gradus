@@ -40,7 +40,7 @@ body:
       ]
     }
 bodyType: application/json
-description: Un ejercicio photo en review: error PHOTO_IN_REVIEW en /modules/0/review/0 y no se publica.
+description: "Un ejercicio photo en review: error PHOTO_IN_REVIEW en /modules/0/review/0 y no se publica."
 headers:
 - enabled: true
   name: Content-Type

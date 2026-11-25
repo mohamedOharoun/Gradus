@@ -1,0 +1,36 @@
+type: http_request
+model: http_request
+id: rq_GWyCUYbsQf
+createdAt: 2026-11-25T17:00:00.000000000
+updatedAt: 2026-11-25T17:00:00.000000000
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_ei3GYikdgC
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: "Sin token. Código UNAUTHENTICATED."
+headers: []
+method: GET
+name: "Descargar sin sesión (401)"
+sortPriority: 13.0
+url: "${[ baseUrl ]}/api/submissions/${[ response.body.path(request='rq_Mhg6GJEMVV', path='$.id') ]}/photo"
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

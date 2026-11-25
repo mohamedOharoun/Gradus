@@ -1,7 +1,6 @@
 package es.ulpgc.pamn.dominio.data
 
 import android.content.Context
-import java.io.File
 import androidx.room.Room
 import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.account.AccountGateways
@@ -14,8 +13,16 @@ import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.data.notes.AndroidPhotoFiles
 import es.ulpgc.pamn.dominio.data.notes.GradusDatabase
 import es.ulpgc.pamn.dominio.data.notes.RoomNotesStore
+import es.ulpgc.pamn.dominio.data.submission.AndroidSubmissionPhotos
+import es.ulpgc.pamn.dominio.data.submission.SubmissionPhotos
 import es.ulpgc.pamn.dominio.notes.NotesStore
 import es.ulpgc.pamn.dominio.settings.SettingsStore
+import es.ulpgc.pamn.dominio.submission.SubmissionGateway
+import es.ulpgc.pamn.dominio.submission.SubmissionGateways
+import java.io.File
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 // Composition root (inyección manual): el único sitio de la app que elige las implementaciones
 // concretas, como App.java en el backend. El resto recibe interfaces por parámetro.
@@ -64,6 +71,22 @@ object AppContainer {
     val notePhotos: AndroidPhotoFiles by lazy {
         AndroidPhotoFiles(appContext.contentResolver, appContext.filesDir, captures = File(appContext.cacheDir, "captures"))
     }
+
+    // Entregas con foto (docs/tareas/ejercicio-foto.md): el servidor y las fotos preparadas, temporales
+    // en la caché (cache/submissions/), que se borran al entregarlas o salir del paso (decisión K).
+    val submissionGateway: SubmissionGateway by lazy { SubmissionGateways.http(BASE_URL) }
+    val submissionPhotos: SubmissionPhotos by lazy {
+        // La cámara escribe en cache/captures/, la misma carpeta que la de las notas (AndroidPhotoFiles).
+        AndroidSubmissionPhotos(
+            appContext.contentResolver,
+            File(appContext.cacheDir, "submissions"),
+            captures = File(appContext.cacheDir, "captures"),
+        )
+    }
+
+    // Trabajo que debe acabar aunque se cierre la pantalla que lo pidió (borrar fotos temporales).
+    // SupervisorJob: si una tarea falla, las demás siguen.
+    val backgroundScope: CoroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
 
     // Preferencias de Ajustes (modo oscuro). Se recuerdan al cerrar la app.
     val settingsStore: SettingsStore by lazy {

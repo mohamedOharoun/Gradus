@@ -28,6 +28,7 @@ import es.ulpgc.pamn.dominio.ui.screens.course.ModuleSheetActions
 import es.ulpgc.pamn.dominio.ui.screens.course.ScreenCourse
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
+import es.ulpgc.pamn.dominio.ui.screens.exercise.PhotoStepUi
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchViewModel
 import es.ulpgc.pamn.dominio.ui.screens.search.actions
@@ -107,6 +108,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         }
         moduleNotesDestination(navController)
         takeNoteDestination(navController)
+        takeSubmissionPhotoDestination(navController)
         noteViewerDestination(navController)
         // Estudiar un módulo (lecciones, ejercicios y prueba de dominio). Sin barra; «atrás», cerrar y
         // «Volver al camino» vuelven al camino, que ya enseña lo dominado.
@@ -120,13 +122,17 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                 return@composable
             }
             val exerciseViewModel: ExerciseViewModel = viewModel(
-                factory = ExerciseViewModel.factory(course, route.moduleId, AppContainer.progressStore),
+                factory = ExerciseViewModel.factory(
+                    course, route.moduleId, AppContainer.progressStore, AppContainer.submissionGateway,
+                    AppContainer.sessionStore, AppContainer.submissionPhotos, AppContainer.backgroundScope,
+                ),
             )
             val study = exerciseViewModel.study
             if (study == null) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
             }
+            val photoSources = rememberExercisePhotoSources(entry, navController, route, exerciseViewModel)
             ScreenExercise(
                 study = study,
                 actions = ExerciseActions(
@@ -137,8 +143,15 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                     onContinue = exerciseViewModel::onContinue,
                     onStartTest = exerciseViewModel::onStartTest,
                     onRetry = exerciseViewModel::onRetry,
+                    onTakePhoto = photoSources.onTakePhoto,
+                    onPickPhoto = photoSources.onPickPhoto,
+                    onDiscardPhoto = exerciseViewModel::onDiscardPhoto,
+                    onSubmitPhoto = exerciseViewModel::onSubmitPhoto,
+                    onSubmitAgain = exerciseViewModel::onSubmitAgain,
+                    onSubmitPhotoLater = exerciseViewModel::onSubmitPhotoLater,
                     onClose = dropUnlessResumed { navController.popBackStack() },
                 ),
+                photo = PhotoStepUi(exerciseViewModel.photoNotice, exerciseViewModel.canSubmitPhotos),
             )
         }
         courseDetailDestination(navController)

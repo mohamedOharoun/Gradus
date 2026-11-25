@@ -1,0 +1,34 @@
+type: folder
+model: folder
+id: fl_ei3GYikdgC
+createdAt: 2026-11-25T17:00:00.000000000
+updatedAt: 2026-11-25T17:00:00.000000000
+workspaceId: wk_kGqZSBRAjF
+folderId: null
+authentication: {}
+authenticationType: null
+description: "POST /api/courses/{id}/exercises/{exerciseId}/submissions, GET /api/submissions/mine y GET /api/submissions/{id}/photo (docs/tareas/ejercicio-foto.md). Antes, una vez por ordenador: crea un entorno privado (no compartido) con la variable fixturesDir = la ruta absoluta de backend/yaak/fixtures (con / en Windows); Yaak no resuelve rutas relativas al workspace. Después envía, de «Cursos · Publicación», los dos registros, los dos inicios de sesión y «Publicar curso con foto (201)». Luego estas, en orden. El 413 no está aquí (una foto de más de 2 MB no se guarda en el repositorio): ver el progreso del paso 3e-2."
+headers: []
+name: Entregas
+sortPriority: 6.0
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingRequestMessageSize:
+  enabled: false
+  value: 67108864
+settingHttpVersion:
+  enabled: false
+  value: auto

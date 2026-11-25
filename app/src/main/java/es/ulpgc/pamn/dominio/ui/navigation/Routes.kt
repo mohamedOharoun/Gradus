@@ -69,4 +69,8 @@ sealed interface Route {
     // La práctica de un módulo de un curso.
     @Serializable
     data class Exercise(val courseId: String, val moduleId: String) : Route
+
+    // Hacer la foto de una entrega desde el estudio de un módulo (docs/tareas/ejercicio-foto.md, decisión W).
+    @Serializable
+    data class TakeSubmissionPhoto(val courseId: String, val moduleId: String) : Route
 }

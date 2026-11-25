@@ -15,7 +15,8 @@ data class Mastery(val questions: Int, val minCorrect: Int) {
     }
 }
 
-// Un paso de la parte formativa de un módulo: una lección para leer o un ejercicio para responder.
+// Un paso de la parte formativa de un módulo: una lección para leer, un ejercicio para responder o
+// una tarea con foto para entregar.
 sealed interface Step {
     val id: String
 
@@ -25,6 +26,12 @@ sealed interface Step {
     data class Exercise(val question: Question) : Step {
         override val id: String get() = question.id
     }
+
+    // Se resuelve en papel, se le hace una foto y se entrega (docs/tareas/ejercicio-foto.md). No es
+    // una Question porque no se corrige sola (decisión R): así, por tipos, nunca puede acabar en la
+    // prueba de dominio, que sale de `review` (List<Question>). `prompt` y `explanation`, en Markdown;
+    // la explicación es la solución que se enseña al entregar (decisión C).
+    data class Photo(override val id: String, val prompt: String, val explanation: String) : Step
 }
 
 // Un módulo es un nodo del grafo. `requires`: ids de sus prerrequisitos (aristas A → B).

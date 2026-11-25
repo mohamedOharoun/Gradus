@@ -71,11 +71,11 @@ fun ScreenCamera(
             FormTopBar(title = title, onBack = actions.onClose)
             Spacer(Modifier.height(16.dp))
             when (val stage = state.stage) {
-                is CameraStage.NeedsPermission -> PermissionContent(stage, actions)
+                is CameraStage.NeedsPermission -> PermissionContent(stage, state.forSubmission, actions)
                 CameraStage.Ready, is CameraStage.Capturing ->
                     ShootingContent(capturing = stage is CameraStage.Capturing, failed = state.captureFailed, actions, preview)
-                is CameraStage.Reviewing -> ReviewContent(stage, actions, photoFile(stage.capture))
-                CameraStage.Closed -> Unit
+                is CameraStage.Reviewing -> ReviewContent(stage, state.forSubmission, actions, photoFile(stage.capture))
+                CameraStage.Closed, is CameraStage.Used -> Unit
             }
         }
     }
@@ -83,16 +83,16 @@ fun ScreenCamera(
 
 // Decisión X: para qué hace falta el permiso; si se denegó para siempre, a los ajustes del sistema.
 @Composable
-private fun ColumnScope.PermissionContent(stage: CameraStage.NeedsPermission, actions: CameraActions) {
+private fun ColumnScope.PermissionContent(stage: CameraStage.NeedsPermission, forSubmission: Boolean, actions: CameraActions) {
     Column(
         modifier = Modifier.weight(1f).fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, modifier = Modifier.size(48.dp))
-        Text(permissionText(stage), style = MaterialTheme.typography.bodyLarge)
+        Text(permissionText(stage, forSubmission), style = MaterialTheme.typography.bodyLarge)
         Text(
-            "Si no, puedes añadir fotos «De la galería».",
+            if (forSubmission) "Si no, puedes elegirla «De la galería»." else "Si no, puedes añadir fotos «De la galería».",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -132,9 +132,10 @@ private fun ShutterButton(enabled: Boolean, onClick: () -> Unit, modifier: Modif
     }
 }
 
-// Boceto 3, derecha: la foto hecha, el pie opcional y «Repetir» / «Guardar».
+// Boceto 3, derecha: la foto hecha, el pie opcional y «Repetir» / «Guardar». Para una entrega, sin pie y
+// «Usar foto» (decisión W).
 @Composable
-private fun ColumnScope.ReviewContent(review: CameraStage.Reviewing, actions: CameraActions, photo: File) {
+private fun ColumnScope.ReviewContent(review: CameraStage.Reviewing, forSubmission: Boolean, actions: CameraActions, photo: File) {
     val side = with(LocalDensity.current) { 720.dp.roundToPx() }
     Column(
         modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
@@ -146,13 +147,15 @@ private fun ColumnScope.ReviewContent(review: CameraStage.Reviewing, actions: Ca
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxWidth().height(360.dp).clip(RoundedCornerShape(16.dp)),
         )
-        FormField(
-            label = "Pie de foto (opcional)",
-            value = review.caption,
-            onValueChange = actions.onCaptionChange,
-            error = CAPTION_TOO_LONG.takeIf { review.captionTooLong },
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
-        )
+        if (!forSubmission) {
+            FormField(
+                label = "Pie de foto (opcional)",
+                value = review.caption,
+                onValueChange = actions.onCaptionChange,
+                error = CAPTION_TOO_LONG.takeIf { review.captionTooLong },
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
+            )
+        }
     }
     Spacer(Modifier.height(16.dp))
     if (review.saveFailed) ErrorText(SAVE_FAILED, Modifier.padding(bottom = 8.dp))
@@ -161,7 +164,11 @@ private fun ColumnScope.ReviewContent(review: CameraStage.Reviewing, actions: Ca
             Text("Repetir")
         }
         PrimaryButton(
-            text = if (review.saving) "Guardando…" else "Guardar",
+            text = when {
+                forSubmission -> "Usar foto"
+                review.saving -> "Guardando…"
+                else -> "Guardar"
+            },
             onClick = actions.onSave,
             enabled = !review.saving,
             modifier = Modifier.weight(1f),
@@ -169,7 +176,10 @@ private fun ColumnScope.ReviewContent(review: CameraStage.Reviewing, actions: Ca
     }
 }
 
-internal fun permissionText(stage: CameraStage.NeedsPermission): String = when {
+internal fun permissionText(stage: CameraStage.NeedsPermission, forSubmission: Boolean = false): String = when {
+    forSubmission && stage.permanently ->
+        "Para fotografiar tu ejercicio, activa el permiso de cámara en los ajustes del móvil. La foto solo se envía al pulsar «Entregar»."
+    forSubmission -> "Para fotografiar tu ejercicio, Gradus necesita usar la cámara. La foto solo se envía al pulsar «Entregar»."
     stage.permanently ->
         "Para fotografiar tus apuntes, activa el permiso de cámara en los ajustes del móvil. Las fotos se quedan en tu móvil."
     else -> "Para fotografiar tus apuntes, Gradus necesita usar la cámara. Las fotos se quedan en tu móvil."

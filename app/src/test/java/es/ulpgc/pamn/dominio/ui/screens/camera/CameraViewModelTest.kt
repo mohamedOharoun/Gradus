@@ -52,7 +52,7 @@ class CameraViewModelTest {
 
     private val notes = InMemoryNotesStore()
     private val photos = FakePhotoFiles()
-    private val viewModel = CameraViewModel("g", "bfs", notes, photos, clock = { 7_000L }, newId = { "id-nueva" })
+    private val viewModel = CameraViewModel(CameraPurpose.Note("g", "bfs", notes), photos, clock = { 7_000L }, newId = { "id-nueva" })
 
     private val stage get() = viewModel.state.stage
 
@@ -286,5 +286,69 @@ class CameraViewModelTest {
         runCurrent()
         assertEquals(emptyList<String>(), photos.discarded)
         assertEquals(1, notes.notes("g", "bfs").first().size)
+    }
+
+    // ── La foto de una entrega (docs/tareas/ejercicio-foto.md, decisión W) ──
+
+    private val forSubmission = CameraViewModel(CameraPurpose.Submission, photos)
+
+    private fun CameraViewModel.reviewingPhoto() {
+        onPermission(granted = true)
+        onShutter()
+        onCaptured()
+    }
+
+    @Test
+    fun `a camera for notes asks for a caption`() {
+        assertFalse(viewModel.state.forSubmission)
+    }
+
+    // Sin pie: la foto de un ejercicio no lo lleva.
+    @Test
+    fun `a camera for a submission has no caption, also after shooting`() {
+        assertTrue(forSubmission.state.forSubmission)
+        forSubmission.reviewingPhoto()
+        assertTrue(forSubmission.state.forSubmission)
+    }
+
+    // «Usar foto»: la foto pasa al paso tal cual, sin guardar ninguna nota ni tirarla (ahora es del paso).
+    @Test
+    fun `using the photo of a submission hands it over without saving a note`() = runTest {
+        forSubmission.reviewingPhoto()
+        forSubmission.onSave()
+        runCurrent()
+
+        assertEquals(CameraStage.Used("cache/captura1.jpg"), forSubmission.state.stage)
+        assertEquals(emptyList<String>(), photos.kept)
+        assertEquals(emptyList<String>(), photos.discarded)
+        assertTrue(notes.notes("g", "bfs").first().isEmpty())
+    }
+
+    // Una vez entregada al paso, salir no la tira.
+    @Test
+    fun `leaving after using the photo does not throw it away`() = runTest {
+        forSubmission.reviewingPhoto()
+        forSubmission.onSave()
+        forSubmission.onLeave()
+        runCurrent()
+        assertEquals(emptyList<String>(), photos.discarded)
+    }
+
+    @Test
+    fun `retaking the photo of a submission throws it away as for a note`() = runTest {
+        forSubmission.reviewingPhoto()
+        forSubmission.onRetake()
+        runCurrent()
+        assertEquals(CameraStage.Ready, forSubmission.state.stage)
+        assertEquals(listOf("cache/captura1.jpg"), photos.discarded)
+    }
+
+    // Si la cámara falla, sigue siendo la cámara de una entrega.
+    @Test
+    fun `a failed capture keeps the purpose`() {
+        forSubmission.onPermission(granted = true)
+        forSubmission.onShutter()
+        forSubmission.onCaptureFailed()
+        assertTrue(forSubmission.state.forSubmission)
     }
 }

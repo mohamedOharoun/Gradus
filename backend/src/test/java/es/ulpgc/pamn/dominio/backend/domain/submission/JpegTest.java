@@ -89,8 +89,9 @@ class JpegTest {
 
     @Test
     void theMaximumLeavesRoomForTheRestOfTheRequest() {
-        // Toda petición está limitada al tamaño de un curso (maxRequestSize en App.java). El multipart
-        // añade separadores y el campo «version»: la foto tiene que caber con margen.
+        // La petición con la foto está limitada a 2 MiB, como un curso (UploadLimit, en la capa web: el
+        // multipart no lo frena maxRequestSize). El multipart añade separadores y el campo «version»: la foto
+        // tiene que caber con margen.
         assertTrue(Jpeg.MAX_BYTES + 64 * 1024 <= CourseContent.MAX_SIZE_BYTES);
     }
 

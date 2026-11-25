@@ -170,6 +170,35 @@ class CourseDtoMappersTest {
         assertIs<CourseDecoding.Malformed>(decodeCourseVersion(courseWith(review = lessonInReview)))
     }
 
+    // ── Paso con foto (docs/tareas/ejercicio-foto.md, decisión R) ──
+
+    @Test
+    fun `a photo step keeps its id, its prompt and its explanation`() {
+        val step = decodeOk(courseWith(exercise = PHOTO)).module("m1")!!.steps.single()
+        assertEquals(Step.Photo(id = "f1", prompt = "Dibuja el grafo.", explanation = "Cuatro vértices."), step)
+    }
+
+    // Una foto no se corrige sola: no es una pregunta, así que no está entre los ejercicios del módulo.
+    @Test
+    fun `a photo step is not one of the exercises of its module`() {
+        val course = decodeOk(courseWith(exercise = "$SINGLE_CHOICE_ANSWER_C, ${PHOTO.replace("f1", "f2")}"))
+        assertEquals(listOf("f1"), course.module("m1")!!.exercises.map { it.id })
+        assertEquals(2, course.module("m1")!!.steps.size)
+    }
+
+    // Decisión D: la prueba de dominio se corrige al momento; el servidor lo rechaza con PHOTO_IN_REVIEW.
+    @Test
+    fun `a photo in the review pool is malformed`() {
+        assertIs<CourseDecoding.Malformed>(decodeCourseVersion(courseWith(review = PHOTO.replace("f1", "r1"))))
+    }
+
+    // Decisión A: la explicación es obligatoria (es la solución que ve el alumno al entregar).
+    @Test
+    fun `a photo step without explanation is malformed`() {
+        val withoutExplanation = """{"type": "photo", "id": "f1", "prompt": "Dibuja el grafo."}"""
+        assertIs<CourseDecoding.Malformed>(decodeCourseVersion(courseWith(exercise = withoutExplanation)))
+    }
+
     @Test
     fun `a body that is not JSON is malformed`() {
         assertIs<CourseDecoding.Malformed>(decodeCourseVersion("<html>Error</html>"))
@@ -233,6 +262,8 @@ class CourseDtoMappersTest {
              "options": [{"id": "a", "text": "Uno"}, {"id": "b", "text": "Dos"}, {"id": "c", "text": "Tres"}],
              "answer": "c", "explanation": "Porque sí."}
         """
+
+        const val PHOTO = """{"type": "photo", "id": "f1", "prompt": "Dibuja el grafo.", "explanation": "Cuatro vértices."}"""
 
         const val SEARCH_PAGE = """
             {"items": [{"id": "c1", "version": 2, "author": {"id": "u1", "name": "Ana"},

@@ -548,8 +548,9 @@ Se documenta porque la cota de §3.6 depende de ello. La app debe:
 - En `multipleChoice`, **exigir al menos una opción marcada**.
 - En `matching`, **exigir completar todas las parejas**.
 - En `photo`, **no dar el paso por corregido**: la app sube la foto como entrega pendiente de
-  revisión, enseña `explanation` al entregar y deja continuar sin esperar a la revisión
-  (`docs/tareas/ejercicio-foto.md` en la raíz del repositorio).
+  revisión, enseña `explanation` al entregar y deja continuar sin esperar a la revisión. También se
+  puede dejar «para más tarde» sin bloquear el módulo (`docs/tareas/ejercicio-foto.md` en la raíz del
+  repositorio; rutas en `api-entregas.md`).
 - Sortear la prueba de dominio **sin reemplazo**, priorizando los ejercicios que no salieron en el intento anterior.
 
 ---

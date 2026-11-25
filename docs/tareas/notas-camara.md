@@ -5,11 +5,7 @@ tenerlos a mano al estudiarlo o repasarlo. Es el requisito de la asignatura «al
 dispositivo» (`especificacion.md` §8: «Cámara para fotografiar apuntes y asociarlos a módulos») y
 también cubre «base de datos local SQLite» (Room).
 
-<<<<<<< HEAD
 Estado: **hecho (2026-11-24)**. Decisiones S–Z aprobadas el 2026-11-24 (con las dependencias de T y V). No hay Figma de esta parte:
-=======
-Estado: **terminada** (2026-11-24). Decisiones S–Z aprobadas el 2026-11-24 (con las dependencias de T y V). No hay Figma de esta parte:
->>>>>>> 5031586c8855efd3e3619ec7062fa79a94b74330
 los bocetos de abajo hacen de diseño (si no coinciden con un Figma posterior, manda el Figma).
 
 ## Lo que había antes de empezar
@@ -232,7 +228,6 @@ la misma base de datos).
     «Eliminar nota» → diálogo → «Cancelar» la conserva → «Eliminar» vuelve a «Mis notas» vacía y la
     foto ya no está en `files/notes`. El pellizco no se puede hacer con `adb`: queda para probarlo a mano.
 
-<<<<<<< HEAD
 - 2026-11-24: **tarea 7 hecha (cierre)**; **notas con cámara terminadas**.
   - `especificacion.md`: la hoja del módulo, las notas con cámara descritas (§5), «pendiente de
     diseñar» solo los repasos, y en §8 la cámara (CameraX) y Room (`gradus.db`).
@@ -246,30 +241,19 @@ la misma base de datos).
   - Vuelta en el emulador, en claro y en oscuro: hoja del módulo → «Mis notas» → permiso → cámara →
     foto con pie → guardar → ver → eliminar (cancelado) → «Repetir» sin dejar temporales; la hoja dice
     «Mis notas · 1».
-  - TalkBack: se activó, pero `adb` no puede hacer sus gestos (el foco se queda en «Volver»). Lo que
-    lee cada elemento está comprobado en los tests de pantalla (descripciones y roles). Queda una pasada
-    a mano si se quiere. Se desactivó al acabar.
-
-## Siguiente paso
-
-Hecho. Ideas para después: guardar también el progreso en esta base de datos Room; un atajo 📷 en
-la barra del estudio (alternativa de la decisión S); cambiar `app_name` («Dominio») a Gradus.
-=======
-- 2026-11-24: **tarea 7 hecha** (cierre). **Tarea completada.**
-  - `especificacion.md` ya describe las notas con cámara (§6 y tabla del §8); en «Pendiente de
-    diseñar» solo quedan los repasos.
-  - Comprobado por el equipo: compila; pasan los tests de `sharedLogic`, `testDebugUnitTest` y los
-    del emulador (`connectedDebugAndroidTest`); vuelta completa en el emulador en claro y oscuro;
-    a mano, el pellizco del visor y «denegado para siempre → Abrir ajustes»; TalkBack lee las notas
-    («Nota del 24 de noviembre: …») y la hoja («Mis notas, 3 fotos»).
+  - TalkBack: con `adb` no se pueden hacer sus gestos (el foco se queda en «Volver»); lo que lee cada
+    elemento está comprobado en los tests de pantalla (descripciones y roles).
+  - Comprobado a mano por el equipo: compila; pasan los tests de `sharedLogic`, `testDebugUnitTest` y
+    del emulador; vuelta en claro y oscuro; el pellizco del visor y «denegado para siempre → Abrir
+    ajustes»; TalkBack lee las notas («Nota del 24 de noviembre: …») y la hoja («Mis notas, 3 fotos»).
 
 ## Pendiente para más adelante
 
 - `app_name` sigue siendo «Dominio»: es lo que muestran el diálogo del permiso y el selector de
   fotos. Cambiarlo a «Gradus» es otra tarea (afecta a `strings.xml`).
 - Guardar el progreso en Room, aprovechando la misma base de datos (fuera de alcance aquí).
+- Un atajo 📷 en la barra del estudio (la alternativa de la decisión S).
 
 ## Siguiente paso
 
 Ninguno en esta funcionalidad.
->>>>>>> 5031586c8855efd3e3619ec7062fa79a94b74330

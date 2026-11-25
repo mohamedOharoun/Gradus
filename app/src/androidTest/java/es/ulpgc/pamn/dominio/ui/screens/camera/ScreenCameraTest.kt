@@ -33,12 +33,17 @@ class ScreenCameraTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun show(stage: CameraStage, captureFailed: Boolean = false, actions: CameraActions = CameraActions()) =
+    private fun show(
+        stage: CameraStage,
+        captureFailed: Boolean = false,
+        actions: CameraActions = CameraActions(),
+        forSubmission: Boolean = false,
+    ) =
         composeRule.setContent {
             GradusTheme {
                 ScreenCamera(
                     title = "Nueva nota · BFS",
-                    state = CameraUiState(stage, captureFailed),
+                    state = CameraUiState(stage, captureFailed, forSubmission),
                     actions = actions,
                     preview = { modifier -> Box(modifier.testTag("vista previa")) },
                     photoFile = { File("no-existe") },
@@ -158,5 +163,28 @@ class ScreenCameraTest {
         composeRule.onNode(hasClickAction() and hasContentDescription("Volver")).performClick()
 
         assertEquals(1, leaves)
+    }
+
+    // ── La foto de una entrega (docs/tareas/ejercicio-foto.md, decisión W) ──
+
+    // Sin pie y con «Usar foto»: la foto va al paso, no a las notas.
+    @Test
+    fun the_photo_of_a_submission_has_no_caption_and_is_used() {
+        var used = 0
+        show(CameraStage.Reviewing("captura.jpg"), actions = CameraActions(onSave = { used++ }), forSubmission = true)
+
+        composeRule.onNodeWithText("Pie de foto (opcional)").assertDoesNotExist()
+        button("Guardar").assertDoesNotExist()
+        button("Repetir").assertIsDisplayed()
+        button("Usar foto").performClick()
+        assertEquals(1, used)
+    }
+
+    // Al pedir el permiso dice para qué es: la foto solo sale del móvil al entregarla.
+    @Test
+    fun for_a_submission_the_permission_says_what_the_photo_is_for() {
+        show(CameraStage.NeedsPermission(), forSubmission = true)
+        composeRule.onNodeWithText("Para fotografiar tu ejercicio", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("tus apuntes", substring = true).assertDoesNotExist()
     }
 }

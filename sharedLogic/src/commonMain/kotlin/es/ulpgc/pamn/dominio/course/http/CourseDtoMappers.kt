@@ -112,6 +112,7 @@ private fun ModuleDto.toModule() = Module(
 private fun StepDto.toStep(): Step = when (this) {
     is LessonDto -> Step.Lesson(id = id, text = text)
     is ExerciseDto -> Step.Exercise(toQuestion())
+    is PhotoDto -> Step.Photo(id = id, prompt = prompt, explanation = explanation)
 }
 
 // En el JSON las opciones se nombran por id ("answer": "a"); en la app, por su posición.

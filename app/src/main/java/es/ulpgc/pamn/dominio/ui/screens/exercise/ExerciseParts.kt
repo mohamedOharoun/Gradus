@@ -124,8 +124,9 @@ fun ContinueBar(onContinue: () -> Unit, modifier: Modifier = Modifier) {
     BottomPanel(modifier) { PrimaryButton(text = "Continuar", onClick = onContinue) }
 }
 
+// El panel de abajo, compartido con el paso con foto (PhotoStepBottomBar).
 @Composable
-private fun BottomPanel(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+internal fun BottomPanel(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = modifier
             .fillMaxWidth()

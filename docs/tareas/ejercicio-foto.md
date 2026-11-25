@@ -4,7 +4,8 @@ Un tipo de ejercicio nuevo en el formato de curso: el alumno **lo resuelve en pa
 foto y la entrega**. La foto se **sube al servidor** y queda **pendiente de revisión**. La revisión
 por el profesor (el autor del curso) es la fase 2 y no entra en esta tarea.
 
-Estado: **propuesta** (2026-11-24). Sin código. Decidido: solo fase 1; la foto no va a «Mis notas».
+Estado: **hecho** (fase 1, 2026-11-25). Solo falta probar TalkBack a mano (ver «Pendiente»).
+Decidido: solo fase 1; la foto no va a «Mis notas».
 Reutiliza la cámara de `notas-camara.md` y amplía `backend/docs/especificacion-cursos-v1.md`.
 
 ## Lo que hay hoy
@@ -117,7 +118,8 @@ editar o recortar la foto, reintentar en segundo plano (WorkManager), un editor 
    `ListMySubmissions` y `DownloadSubmissionPhoto`, repositorio JDBC, controlador y rutas; límite de
    3 MB en esa ruta.
    *Acepta si:* desde Yaak: 201, 400 (no JPEG), 404 (ejercicio que no es `photo`), 413, 401; otra
-   cuenta recibe 403 al pedir la foto.
+   cuenta recibe 403 al pedir la foto. **Hecha (2026-11-25)**, con el límite en 2 MiB (decisiones F y N);
+   el 413 se prueba con el guion del paso 3e-2, no desde Yaak.
 
    **Plan por pasos de la tarea 3** (propuesta del 2026-11-24, pendiente de aprobar). Cada paso
    termina con `mvn test` en verde; los pasos a–c no tocan base de datos ni HTTP.
@@ -152,6 +154,50 @@ editar o recortar la foto, reintentar en segundo plano (WorkManager), un editor 
    - **M (nueva) · La app envía la versión del curso que estudia.** El servidor comprueba que en *esa*
      versión el ejercicio existe y es `photo`. Los ids son estables entre versiones (§2.4), así que
      en la fase 2 el profesor verá juntas las entregas de un ejercicio aunque cambie la versión.
+
+   Decisiones del paso 3e (aprobadas el 2026-11-25). **Corrigen F:** `maxRequestSize` solo limita
+   `ctx.bodyAsBytes()`; el multipart de Javalin 7.2.4 va aparte y por defecto **no tiene límite**
+   (una foto de 20 MB se aceptaba y se escribía en el disco temporal; comprobado con una sonda).
+   - **N · Límite del multipart en `App.java`:** `config.jetty.multipartConfig` a 2 MiB
+     (`UploadLimit.MAX_REQUEST_BYTES`), con la foto en memoria y no en el disco. Solo afecta al multipart.
+   - **O · El 413 en dos capas:** si el `Content-Length` pasa de 2 MiB, 413 sin leer nada; sin esa
+     cabecera, el límite de Jetty lanza una `ServletException` («400: bad multipart», la misma que un
+     multipart roto), que un manejador nuevo de `ExceptionHandlers` convierte en 400 `MALFORMED_BODY`.
+   - **P · Códigos nuevos:** `INVALID_PHOTO` (400), `PHOTO_TOO_LARGE` (413), `EXERCISE_NOT_FOUND`
+     (404), `SUBMISSION_NOT_FOUND` (404), `NOT_SUBMISSION_OWNER` (403). Se reutilizan `REQUIRED` (falta
+     la foto o la versión; `courseId` en la consulta), `INVALID_PARAMETER` y `COURSE_NOT_FOUND`.
+   - **Q · Paquete `web/submission`** con su propio lector de ids (no se toca `PathIds`). Una entrega:
+     `{id, courseId, courseVersion, exerciseId, submittedAt, status, photoBytes}`; la lista,
+     `{"submissions": [...]}`; la foto, `image/jpeg` con `Cache-Control: private, no-store`.
+
+   Decisiones de la tarea 4 (aprobadas el 2026-11-25). **Cambian el plan:** no hay `PhotoTask` como
+   `Question`.
+   - **R · `Step.Photo`, no una `Question`:** no se corrige sola; como `Step` no puede acabar en la
+     prueba de dominio (que sale de `review: List<Question>`). En el JSON, `PhotoDto` es un `StepDto`
+     y no un `ExerciseDto`: en `review` da `Malformed`, como `PHOTO_IN_REVIEW` en el servidor.
+   - **S · «Entregar más tarde»:** el paso cuenta como hecho si se entrega o se deja para más tarde;
+     sin sesión o sin cámara no se bloquea el módulo. La prueba de dominio no depende de él.
+   - **T · El puerto solo tiene `submit`** (`SubmissionGateway`, `SubmitOutcome`); listar y descargar,
+     cuando haga falta. `ApiErrorCode` con los cinco códigos nuevos.
+   - **U · Adaptador con `submitFormWithBinaryData`** (en `ktor-client-core` 3.6.1, sin dependencias
+     nuevas); la foto como fichero (`filename="foto.jpg"`, `image/jpeg`) y 60 s de tiempo máximo.
+   - **V · La app sigue compilando:** en la tarea 4, un hueco provisional en `ScreenExercise` (el
+     enunciado y «Entregar más tarde»); la tarea 5 lo sustituye.
+
+   Decisiones de la tarea 5 (aprobadas el 2026-11-25):
+   - **W · La cámara de las notas con un «modo»:** `CameraViewModel` y `ScreenCamera` reciben el
+     propósito (nota: pie y «Guardar»; entrega: «Repetir» y «Usar foto»). En modo entrega devuelve la
+     ruta de la foto al paso con `savedStateHandle`. No se duplica el permiso ni la máquina de estados.
+   - **X · Preparar la foto:** puerto `SubmissionPhotos` (en `app/data`): girarla según el EXIF,
+     reducirla a 2000 px y guardarla como JPEG en `cache/submissions/`; el tamaño, con funciones puras
+     en `sharedLogic` (`PhotoScaling`).
+   - **Y · Sesión caducada:** «Tu sesión ha caducado. Vuelve a iniciar sesión para entregar» y «Entregar
+     más tarde»; no se sale del estudio (se perdería lo hecho). No hay modo invitado: entrar en Inicio
+     ya exige sesión.
+   - **Z · Curso sin versión publicada** (el de ejemplo): no se puede entregar; solo «Entregar más
+     tarde», con una frase que lo explica.
+   Plan: 5a preparar la foto · 5b `ExerciseViewModel` · 5c la pantalla del paso · 5d cámara y galería ·
+   5e prueba en el emulador contra el servidor.
 4. **`sharedLogic`** (test primero). `PhotoTask` (`Question`), el estado del paso (sin foto → con foto
    → entregando → entregada / fallo), el puerto `SubmissionGateway` y su adaptador HTTP (multipart),
    probado con `MockEngine`.
@@ -240,7 +286,271 @@ autor del curso?
     (nuevo) e `InMemoryCourseRepository` / `FakeCourseReader`, que pasan a ser públicos para usarlos
     desde este paquete (solo cambia la visibilidad). En rojo antes. **679 tests del backend en verde.**
 
+- 2026-11-24: **paso 3c hecho** (consultar, en memoria).
+  - `SubmissionRepository`: `mine(alumno, curso)` (sin orden y sin los bytes), `find(id)` y
+    `photo(id)`. `InMemorySubmissionRepository` las implementa (más `addWithoutPhoto`, solo para probar
+    el caso imposible de una entrega sin foto).
+  - `ListMySubmissions`: las del alumno en ese curso, la más reciente primero y, a igual instante, por
+    id de mayor a menor (`NEWEST_FIRST`). El orden se decide en el caso de uso, no en el repositorio:
+    la regla está en un sitio y el JDBC del 3d no tiene que repetirla. Un curso que no existe da una
+    lista vacía (no se cuenta qué cursos existen).
+  - `DownloadSubmissionPhoto` + `DownloadPhotoResult` (`Found(entrega, foto) | NotFound | Forbidden`):
+    ¿existe? → ¿es suya? → la foto. Si no existe, `NotFound` para cualquiera. Una entrega sin foto
+    guardada es fallo del servidor (`IllegalStateException`, 500).
+  - Tests: `ListMySubmissionsTest` (7) y `DownloadSubmissionPhotoTest` (6), en rojo antes (8 fallaban).
+    **692 tests del backend en verde.**
+  - Arreglado de paso: `docs/tareas/notas-camara.md` tenía marcas de conflicto subidas en el merge
+    `3fce63e`; se juntaron las dos versiones.
+
+- 2026-11-24: **paso 3d hecho** (base de datos).
+  - `db/init/005_create_submissions.sql`: tabla `submissions` (foto en `photo BYTEA` y su tamaño en
+    `photo_bytes`), `student_id` con `ON DELETE CASCADE` desde `users` (H), clave ajena
+    `(course_id, course_version)` → `course_versions` (M: la versión existe), `CHECK` con nombre
+    (versión ≥ 1, ejercicio no en blanco, estado conocido, tamaño 1–2 000 000, `photo_bytes =
+    octet_length(photo)`) e índice `(student_id, course_id)`. Idempotente (`IF NOT EXISTS`).
+  - `JdbcSubmissionRepository`: `add` en una sola sentencia; `mine` y `find` sin leer la columna
+    `photo`; `photo` vuelve a pasar los bytes por `Jpeg.check` (si no valen, 500). Sin `ORDER BY`:
+    ordena `ListMySubmissions`.
+  - Probado en un PostgreSQL 18 desechable (Docker, `postgres:18-alpine`, borrado al acabar; el
+    `gradus-postgres` del equipo no se tocó y aún no tiene la `005`): migraciones 001–005 y repetir
+    la 005 sin efecto; un programa de prueba (scratchpad) con la clase real: 15/15 (guardar, una foto
+    de casi 2 MB, buscar con microsegundos, listar, leer la foto, `ListMySubmissions` y
+    `DownloadSubmissionPhoto` sobre JDBC, versión inexistente y id repetido rechazados, cascada al
+    borrar la cuenta sin tocar las de otros); y los cuatro `CHECK` rechazando datos imposibles.
+  - Sin test automático del repositorio, como los demás JDBC. **692 tests del backend en verde.**
+  - Visto: Docker Desktop estaba cerrado; al abrirlo arrancó solo `gradus-postgres`. El puerto
+    55432 está reservado por Windows (Hyper-V): el contenedor de prueba usó uno libre.
+
+- 2026-11-25: **paso 3e-1 hecho** (partes puras de la capa web, decisiones N–Q).
+  - `ErrorCode`: los cinco códigos de P (al final; no se renombra ninguno). `ErrorCodeTest` los incluye.
+  - Paquete `web/submission`:
+    - `SubmissionParams`: `id` (UUID canónico) y `version` (entero positivo de hasta 9 cifras).
+    - `UploadLimit`: `MAX_REQUEST_BYTES` (2 MiB) y `exceededBy(contentLength)` (`-1` = sin cabecera, no se juzga).
+    - `SubmissionResponse`, `SubmissionListResponse`.
+    - `JsonReply` (estado + cuerpo) y `SubmissionReplies`: cada desenlace de `SubmitPhotoResult` y cada
+      error de las tres rutas, como funciones puras (`switch` sobre los sellados).
+  - Tests, en rojo antes: `SubmissionParamsTest` (9), `UploadLimitTest` (5), `SubmissionResponsesTest`
+    (5), `SubmissionRepliesTest` (15). Corregido el comentario de `JpegTest` que daba por buena la
+    suposición de F. **726 tests del backend en verde.**
+
+- 2026-11-25: **paso 3e-2 hecho** (HTTP).
+  - `SubmissionController` (`web/submission`): `submit` (UUID del curso → `Content-Length` → `version`
+    → `photo` → `SubmitPhoto`), `mine` y `photo` (`image/jpeg`, `Cache-Control: private, no-store`,
+    `X-Content-Type-Options: nosniff`). Lo que responde lo decide `SubmissionReplies` (3e-1).
+  - Cambio sobre O: el manejador de la `ServletException` es `web/submission/MultipartErrors` y no un
+    método en `ExceptionHandlers` (es del compañero: así no hay conflicto). `App.java` lo registra.
+  - `App.java`: límite del multipart (N) con `UploadLimit.MAX_REQUEST_BYTES` (total, fichero y en
+    memoria), las piezas de entregas y las tres rutas con `RequireSession`.
+  - Probado con el servidor real (`App`) contra un PostgreSQL 18 desechable (borrado al acabar): un
+    guion de peticiones (scratchpad) da **37/37**. Entregar (también 2 000 000 bytes y *chunked*), 413
+    por la foto (2 000 001) y por el `Content-Length` (3 MB, 20 MB), no JPEG, sin foto, sin versión,
+    versión «01» o inexistente, curso inexistente o no UUID, ejercicio que no es `photo`, sin sesión,
+    multipart roto, JSON; listar (orden, solo las propias, `courseId` que falta o no vale, sin sesión);
+    descargar (mismos bytes, cabeceras, 403 a otra cuenta, 404, sin sesión); y las rutas de cursos
+    siguen igual. En la base de datos, solo las 3 entregas válidas.
+  - Visto al probar (Jetty): un campo de **texto** del multipart no puede pasar de 200 000 bytes; si
+    `photo` llega como texto grande → 400 `MALFORMED_BODY`, si es pequeño → 400 `REQUIRED`. Sin
+    `Content-Length`, al pasar el límite el servidor corta la conexión a mitad del envío.
+  - **Para la tarea 4 (app):** el campo `photo` tiene que ir como **fichero** (con `filename` en
+    `Content-Disposition`); si no, el servidor no lo ve como foto.
+  - Sin test automático del controlador (haría falta una dependencia, `javalin-testtools`).
+    **726 tests del backend en verde.**
+
+- 2026-11-25: **paso 3f hecho; tarea 3 terminada.**
+  - Yaak, carpeta nueva «Entregas» (`fl_ei3GYikdgC`, 14 peticiones): entregar (201), otra vez (201),
+    no JPEG (400), sin foto (400), sin versión (400), en una lección (404), en una versión que no
+    existe (404), sin sesión (401), mis entregas (200), sin `courseId` (400), descargar la propia (200),
+    la de otra cuenta (403), una que no existe (404) y sin sesión (401). La alumna es «otra cuenta» y
+    el curso, «Publicar curso con foto (201)» de «Cursos · Publicación».
+  - Fotos de prueba en `backend/yaak/fixtures/` (un JPEG de 17 KB con un grafo y un PNG), generadas
+    con `ImageIO`. Yaak usa la ruta del fichero tal cual (leído en su código: `crates/yaak-http`,
+    `build_multipart_body`) y sustituye las variables también en el cuerpo, así que la ruta es
+    `${[ fixturesDir ]}/…`, una variable de un entorno **privado** de cada ordenador (README de Yaak).
+  - Arreglado `rq_JmzZqefikj` («Foto en la reserva (422)»): su `description` tenía un `: ` sin
+    comillas y no era YAML válido; Yaak no podía leerlo. Los 75 ficheros del workspace se leen ya sin error.
+  - Comprobado sin abrir Yaak: un simulador (scratchpad) lee los YAML de verdad, sustituye las
+    plantillas y arma el multipart como Yaak (separador `------YaakFormBoundary`, `filename`,
+    `Content-Length`), contra el servidor real y un PostgreSQL desechable (borrado): **22/22**, con la
+    foto descargada igual byte a byte y «Foto en la reserva (422)», que estaba pendiente.
+  - Pendiente: enviarlas desde Yaak de verdad (crear antes el entorno con `fixturesDir` y ejecutar
+    `./gradus.sh`, que aplica la `005` a `gradus-postgres`).
+
+- 2026-11-25: **paso 4a hecho** (decisiones R–V).
+  - `sharedLogic`: `Step.Photo(id, prompt, explanation)`; `PhotoDto` (`"type": "photo"`, `StepDto` y
+    no `ExerciseDto`) y su conversión; `StepState.Photo(photo, later)` (hecho si `later`);
+    `StepSession.submitPhotoLater()` y `ModuleStudy.submitPhotoLater()` (fuera de una foto, nada).
+  - App (provisional, V): `PhotoTaskContent` en `ScreenExercise` (enunciado, sin la explicación: es la
+    solución, decisión C), `PhotoLaterBar` en `ExerciseParts`, `onSubmitPhotoLater` en
+    `ExerciseActions`, `ExerciseViewModel` y `MainNavGraph`, y la preview `PhotoTaskPreview`. Los
+    cursos con foto ya se abren en la app (antes, `CourseDecoding.Malformed`).
+  - Tests, en rojo antes: `CourseDtoMappersTest` (+4: se lee, no es un ejercicio del módulo, en
+    `review` y sin `explanation` dan `Malformed`), `ModuleStudyTest` (+7) y `ExerciseViewModelTest`
+    (nuevo, 2). Este último encontró un fallo: el ViewModel avanzaba siempre tras «más tarde», así
+    que un toque tardío en una lección la saltaba; ahora solo avanza si había una foto que dejar.
+  - **760 tests de `sharedLogic` y 322 JVM de la app en verde**; los instrumentados compilan.
+
+- 2026-11-25: **paso 4b hecho** (estado de la tarea con foto, `sharedLogic`).
+  - Adelantado del 4c lo que el estado necesita: paquete `submission` con `Submission(id, submittedAt)`,
+    `PhotoRejection` (`MISSING`, `NOT_JPEG`, `TOO_LARGE`) y `SubmitOutcome` (sellado: `Submitted` y los
+    `Problem` `PhotoRejected`, `NotFound`, `SessionExpired`, `Unreachable` y `ServerFailure`, cada uno
+    con `canRetry`).
+  - `PhotoStep` (máquina inmutable) y `PhotoTask` (`Empty`, `Ready`, `Sending`, `Failed`, `Sent`):
+    `take`, `discard`, `send`, `finished`, `again` y `leaveForLater`; `isDone` (hay entrega o «más
+    tarde»), `canSend`, `canLeaveForLater` (no mientras se entrega), `showsSolution` y `photoPath` (el
+    fichero mientras hace falta, para que la app lo borre, decisión K). Solo cuenta la respuesta de un
+    envío en curso; una foto rechazada o un ejercicio que ya no existe no se reintentan; si falla una
+    segunda entrega, la primera sigue contando.
+  - `StepState.Photo(step: PhotoStep)` sustituye al `later` provisional del 4a;
+    `StepSession.updatePhoto(stepId, …)` y `ModuleStudy.updatePhoto` / `currentPhoto`: la foto se cambia
+    por el id del paso, para que una respuesta de la red vaya al suyo.
+  - Tests, en rojo antes: `PhotoStepTest` (27) y `ModuleStudyTest` (+6). **793 tests de `sharedLogic`
+    y 322 JVM de la app en verde.**
+
+- 2026-11-25: **paso 4c hecho** (puerto de entregas, `sharedLogic`).
+  - `PhotoSubmission(courseId, courseVersion, exerciseId, jpeg)`: clase y no data class (un `ByteArray`
+    se compara por identidad): copia los bytes al entrar y al salir, `equals`/`hashCode` por contenido y
+    `toString` con el tamaño y sin los bytes; versión ≥ 1, ids no en blanco, foto no vacía.
+  - Puerto `SubmissionGateway.submit(session, submission): SubmitOutcome` (decisión T) y
+    `FakeSubmissionGateway`: por defecto acepta cada foto como una entrega nueva («entrega-1», …);
+    también responde siempre lo mismo o lo que diga una función, y recuerda lo recibido y con qué sesión.
+  - `ApiErrorCode`: los cinco códigos nuevos, antes de `UNKNOWN`.
+  - Tests, en rojo antes: `PhotoSubmissionTest` (8), `FakeSubmissionGatewayTest` (5) y el contrato
+    de `ApiErrorCode` en `RegisterProblemTest`. **806 tests de `sharedLogic` y 322 JVM de la app en verde.**
+
+- 2026-11-25: **paso 4d hecho; tarea 4 terminada.**
+  - `HttpSubmissionGateway` (`submission/http`): `submitFormWithBinaryData` con `version` y `photo`
+    (fichero `foto.jpg`, `image/jpeg`), token y 60 s (`timeout { … }`). 201 → `Submitted`; 400
+    `INVALID_PHOTO` / `REQUIRED` en `photo` → `PhotoRejected` (`NOT_JPEG` / `MISSING`); otro 400 →
+    `ServerFailure` (sería un fallo de la app); 413 → `TOO_LARGE`; 404 → `NotFound`; 401 →
+    `SessionExpired`; sin red o sin tiempo → `Unreachable`. `SubmissionGateways.http(baseUrl)`.
+  - Encontrado contra el servidor real: con más de 2 MiB, el servidor responde 413 sin leer (decisión
+    O) y corta la conexión; OkHttp lo ve como fallo de red y daba `Unreachable` («sin conexión»).
+    Arreglo: `PhotoSubmission.MAX_BYTES` (2 000 000, como `Jpeg.MAX_BYTES`) e `isTooLarge`; el
+    adaptador rechaza la foto con `TOO_LARGE` **sin enviarla**.
+  - Tests, en rojo antes: `HttpSubmissionGatewayTest` (19, con `MockEngine`: ruta, token, multipart,
+    bytes intactos, 60 s, cada respuesta y el límite sin petición) y `PhotoSubmissionTest` (+2).
+  - Probado contra el servidor real (`App`) y un PostgreSQL desechable (borrado), con una sonda
+    temporal en `androidHostTest` (OkHttp de verdad; borrada al acabar): JPEG real y de 1 999 000 bytes
+    → entregadas; PNG → `NOT_JPEG`; 2 000 001 y 3 000 000 bytes → `TOO_LARGE`; una lección y la versión
+    99 → `NotFound`; token inventado → `SessionExpired`; servidor apagado → `Unreachable`. La foto
+    descargada después es igual byte a byte.
+  - **827 tests de `sharedLogic` y 322 JVM de la app en verde.**
+
+- 2026-11-25: **paso 5a hecho** (preparar la foto; decisiones W–Z aprobadas).
+  - `sharedLogic`: `PixelSize` y `PhotoScaling` (`MAX_SIDE` = 2000; `fit`: proporción, sin agrandar,
+    redondeo y al menos 1 px; `sampleSize`: la mayor potencia de 2 que deja el lado mayor en 2000 o más).
+    `PhotoScalingTest` (10), en rojo antes. **837 tests de `sharedLogic` en verde.**
+  - App: puerto `SubmissionPhotos` (`prepare`, `read`, `delete`) y `AndroidSubmissionPhotos`: lee la
+    URI una vez, decodifica reducida, gira según el EXIF y escala al tamaño final en una sola matriz, y
+    comprime en JPEG con la mejor calidad que quepa en `PhotoSubmission.MAX_BYTES` (85, 70, 55, 40).
+    Solo lee y borra dentro de su carpeta; no toca la foto de origen.
+  - `AndroidSubmissionPhotosTest` (instrumentado, 10: grande → 2000 × 1500, pequeña igual, tumbada →
+    derecha, PNG → JPEG, ruido cabe en 2 MB, fichero nuevo y origen intacto, no imagen → nada, leer,
+    borrar y no borrar fuera). En rojo antes (no compilaba). **Pendiente de ejecutarlo en el emulador.**
+
+- 2026-11-25: **paso 5b hecho** (`ExerciseViewModel` con el paso con foto).
+  - `sharedLogic`: `ModuleStudy.photoPaths` (los ficheros de foto aún en uso en la parte formativa) y
+    `PhotoStep.leaveForLater()` suelta la foto (al salir del paso sin entregar se borra, decisión K).
+    Tests +4 (`ModuleStudyTest` 3, `PhotoStepTest` 1), en rojo antes. **841 tests de `sharedLogic`.**
+  - `ExerciseViewModel`: recibe `SubmissionGateway`, `SessionStore`, `SubmissionPhotos` y un ámbito
+    `cleanup` que sobrevive al ViewModel. `onPhotoChosen` (prepara la foto; aviso `PhotoNotice`
+    `PREPARING` / `UNREADABLE`; ignorada mientras se entrega o ya entregada), `onDiscardPhoto`,
+    `onSubmitPhoto` (entregar o reintentar; un doble toque envía una vez; la respuesta va a su paso),
+    `onSubmitAgain`, `onSubmitPhotoLater`, `onLeave` / `onCleared` y `canSubmitPhotos` (Z). Sin sesión →
+    `SessionExpired` sin enviar (Y); foto desaparecida de la caché → `PhotoRejected(MISSING)`.
+    **Todo cambio pasa por `change()`**, que borra las fotos que dejan de estar en `photoPaths` (al
+    entregar, cambiar, descartar, dejar para más tarde o acabar los pasos).
+  - `AppContainer`: `submissionGateway`, `submissionPhotos` (`cache/submissions/`) y `backgroundScope`
+    (`SupervisorJob` + `Dispatchers.IO`); `MainNavGraph` pasa las piezas nuevas a la factory.
+  - Tests: `ExerciseViewModelTest` (20; 18 nuevos, en rojo antes) con `FakeSubmissionGateway`,
+    `InMemorySessionStore` y `FakeSubmissionPhotos` (nuevo, en `app/src/test`). **340 tests JVM de la
+    app en verde**; los instrumentados compilan.
+  - Para el 5d: la foto de la cámara (`cache/captures/`) es un origen más; después de prepararla hay que
+    tirarla (`PhotoFiles.discardCapture`), porque `prepare` no toca el origen.
+
+- 2026-11-25: **paso 5c hecho** (la pantalla del paso con foto; sustituye al hueco provisional del 4a).
+  - `PhotoStepTexts.kt` (puro, con test JVM): el texto de cada `SubmitOutcome.Problem`;
+    `mainButton(canSubmit)` («Entregar», «Entregando…», «Reintentar» o, entregada, «Continuar») y
+    `secondaryButton()` (`SecondaryPhotoButton`: «Entregar más tarde», «Entregar otra vez» o, si ya
+    hay una entrega que cuenta, «Continuar sin entregar otra»; ninguno mientras se entrega).
+  - `PhotoStepParts.kt`: `PhotoStepContent` (módulo, enunciado en Markdown como encabezado, la foto
+    con «Tu foto» para TalkBack, el aviso de `PhotoNotice` con liveRegion, «Hacer foto» / «Hacer otra»,
+    «De la galería» y «Quitar la foto»; sin ellos mientras se entrega, ya entregada o en un curso sin
+    publicar, que lo explica) y `PhotoStepBottomBar` (el fallo con liveRegion, «Entregada · pendiente
+    de revisión» con la solución, y los dos botones). `PhotoStepUi(notice, canSubmit)`.
+  - `ScreenExercise` recibe `photo: PhotoStepUi`; `ExerciseActions` con `onTakePhoto` (null: sin
+    cámara), `onPickPhoto`, `onDiscardPhoto`, `onSubmitPhoto` y `onSubmitAgain`; `BottomPanel` pasa a
+    `internal`; fuera `PhotoLaterBar` y `PhotoTaskContent` (provisionales). `MainNavGraph` pasa las
+    acciones del ViewModel y el `PhotoStepUi`; la cámara y la galería se conectan en el 5d.
+  - Previews en claro y oscuro de cada estado (sin foto, preparando, con foto, entregando, sin conexión,
+    rechazada, entregada, curso sin publicar).
+  - Tests: `PhotoStepTextsTest` (16, JVM, en rojo antes). `PhotoStepScreenTest` (14, Compose,
+    instrumentado; escrito después de la pantalla y **pendiente de ejecutar en el emulador**).
+    **356 tests JVM de la app en verde**; los instrumentados compilan.
+
+- 2026-11-25: **paso 5d hecho** (la cámara en modo entrega y la galería).
+  - Fotos de la cámara: `SubmissionPhotos.prepareCapture` (prepara y tira la de la cámara) y
+    `discardCapture` (solo dentro de `cache/captures/`); `AndroidSubmissionPhotos` recibe esa carpeta.
+    `ExerciseViewModel.onPhotoTaken`: si el paso no acepta foto ahora (se está entregando), la tira sin
+    prepararla. `onPhotoChosen` y `onPhotoTaken` comparten `usePhoto`.
+  - Cámara con propósito (W, patrón Strategy): `CameraPurpose.Note(courseId, moduleId, notes)` o
+    `CameraPurpose.Submission`; estado nuevo `CameraStage.Used(capture)` («Usar foto»: ni se guarda ni
+    se tira, ahora es del paso); `CameraUiState.forSubmission` (sin pie, «Usar foto» y otro texto al pedir
+    el permiso). `onShutter` y `onCaptureFailed` ahora copian el estado (antes lo creaban de nuevo y se
+    perdía el propósito).
+  - Navegación: lo de Android de la cámara (permiso, CameraX, ajustes) pasa de `TakeNoteDestination` a
+    `CameraRoute` (compartido); `Route.TakeSubmissionPhoto` y `TakeSubmissionPhotoDestination`, que
+    devuelve la foto con el `savedStateHandle` de la pantalla anterior; `rememberExercisePhotoSources`
+    (recoge esa foto, el Photo Picker y si hay cámara). `MainNavGraph`: 15 líneas en total desde el 4a.
+  - Tests, en rojo antes: `ExerciseViewModelTest` (+3) y `CameraViewModelTest` (+6). Instrumentados,
+    compilados y **pendientes de ejecutar**: `AndroidSubmissionPhotosTest` (+3, 13 en total),
+    `ScreenCameraTest` (+2) y `PhotoStepScreenTest` (14). **365 tests JVM de la app en verde.**
+
+- 2026-11-25: **paso 5e hecho; tarea 5 terminada** (emulador `Medium_Phone_API_37.0`).
+  - Tests instrumentados, solo los de este trabajo: `AndroidSubmissionPhotosTest` (13),
+    `ScreenCameraTest`, `PhotoStepScreenTest` (14) y `StudyAccessibilityTest`: **47/47**. Uno falló al
+    principio y era real: el enunciado (MarkdownText) no llegaba a TalkBack como encabezado, porque
+    `heading()` quedaba en el contenedor y no junto al texto; arreglado con
+    `semantics(mergeDescendants = true)`.
+  - Servidor con `./gradus.sh` (aplicó la `005` a `gradus-postgres`); curso publicado con las peticiones
+    de Yaak de «Cursos · Publicación»; la app con la cuenta de prueba. Comprobado:
+    - Un curso con foto se abre (antes, `Malformed`) y el paso se ve como en el boceto.
+    - Cámara en modo entrega: permiso, «Foto del ejercicio · Introducción», sin pie, «Repetir» /
+      «Usar foto»; la foto de la cámara se tira y la preparada ocupa 80 902 bytes.
+    - Sin conexión (quitando el `adb reverse`): aviso, la foto se conserva, «Reintentar» la entrega.
+    - Entregada: «Entregada · pendiente de revisión», la solución, «Continuar» y «Entregar otra vez»; la
+      foto se borra del móvil. En la base de datos: `intro-foto`, versión 1, `PENDING`, 80 902 bytes.
+    - «Entregar otra vez» desde la galería (el Photo Picker de este emulador pide «Done»): «Continuar
+      sin entregar otra» mientras tanto; segunda entrega en el servidor (15 603 bytes).
+    - «Entregar más tarde» y cerrar el módulo con una foto pendiente: la foto se borra (1 → 0).
+    - Modo oscuro; al cambiarlo Android recrea la pantalla y la foto y el estado se conservan.
+  - No probado a mano: TalkBack (no se maneja con adb; lo cubren los tests de semántica), una foto
+    rechazada (la app siempre prepara un JPEG que cabe) y la sesión caducada (habría que borrar las
+    sesiones de la cuenta de prueba en `gradus-postgres`); los dos últimos, con tests JVM.
+  - **365 tests JVM de la app y 841 de `sharedLogic` en verde.**
+
+- 2026-11-25: **tarea 6 hecha** (cierre; documentos).
+  - `backend/docs/api-entregas.md` (nuevo): las tres rutas, el multipart (`version` y el fichero
+    `photo`), los límites (2 000 000 bytes la foto, 2 MiB la petición, 200 000 los campos de texto), las
+    respuestas y los códigos nuevos y reutilizados. Aparte de `api-cursos.md`, que es sobre todo del
+    compañero.
+  - `docs/especificacion.md`: el ejercicio con foto entre las funcionalidades, la tarea con foto en
+    «Estudiar un módulo» y en §7, y en §8 la cámara y el backend.
+  - `backend/docs/especificacion-cursos-v1.md` §5: «Entregar más tarde» y el enlace a `api-entregas.md`.
+  - `docs/resumen-proyecto.md` (local, en `.gitignore`): la fila del ejercicio con foto, la ruta de
+    entregar, la cámara y un límite conocido.
+  - El curso de ejemplo con foto ya estaba en Yaak («Publicar curso con foto (201)»).
+
+## Pendiente para más adelante
+
+- **Probar TalkBack a mano** en el paso con foto (no se maneja con adb). Lo cubren `PhotoStepScreenTest`
+  y `StudyAccessibilityTest` (encabezado, «Tu foto», avisos con liveRegion, 48 dp).
+- Fase 2: la revisión por el autor del curso (ver arriba).
+- Enseñar en la app las entregas anteriores al volver al paso («Entregada el 24 nov»); el servidor ya
+  las lista (`GET /api/submissions/mine`).
+- Si se guarda la sesión al cerrar la app (`registro-cuentas-reales.md`, tarea 6), «sesión caducada»
+  será más frecuente: se podría ofrecer iniciar sesión desde el paso.
+
 ## Siguiente paso
 
-Paso 3c: `ListMySubmissions` y `DownloadSubmissionPhoto` (test primero, en memoria).
-Pendiente de antes: enviar desde Yaak las peticiones del curso con foto con el servidor reiniciado.
+Ninguno en esta funcionalidad: está terminada (fase 1). Queda la prueba de TalkBack a mano.

@@ -107,13 +107,15 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
     - Lección: texto en Markdown básico (negrita, cursiva, código, párrafos y listas) y «Continuar».
     - Ejercicio: «Comprobar»; después, el resultado (con la solución si se falla), la
       **explicación** del autor y «Continuar». Fallar aquí no impide seguir.
+    - Tarea con foto: se resuelve en papel y se entrega una foto (ver «Ejercicio con foto» abajo).
   - **Prueba de dominio:** una pantalla dice cuántas preguntas hay y cuántas hay que acertar
     («Empezar la prueba» o «Ahora no»). Las preguntas se sortean de la reserva y se responden igual
     que los ejercicios.
   - **Resultado:** «¡Módulo dominado!» (y se desbloquea lo que dependía de él) o «Te faltó 1 para
     aprobar», con «Repetir la prueba» (otro sorteo, sin repetir las lecciones) y «Volver al camino».
   - Un módulo sin reserva termina tras sus pasos, sin prueba.
-  - Tipos de ejercicio: opción única, selección múltiple y emparejar (§7).
+  - Tipos de ejercicio: opción única, selección múltiple, emparejar y, solo en la parte formativa,
+    la tarea con foto (§7).
 
 - **Notas con cámara** (`tareas/notas-camara.md`): fotos de los apuntes de papel, guardadas junto al
   módulo al que pertenecen.
@@ -126,6 +128,20 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
     «Eliminar» pide confirmación; no hay papelera.
   - Las fotos se quedan en el móvil (no se suben al servidor) y son del móvil, no de la cuenta.
     TalkBack lee cada foto con su fecha y su pie.
+
+- **Ejercicio con foto** (`tareas/ejercicio-foto.md`; contrato en `backend/docs/api-entregas.md`): un
+  paso del módulo que se resuelve en papel; el alumno le hace una foto y la **entrega** al servidor,
+  donde queda **pendiente de revisión** (la revisión por el autor del curso es la fase 2).
+  - «Hacer foto» (la cámara de la app, sin pie: «Repetir» o «Usar foto») o «De la galería». La foto se
+    endereza, se reduce a 2000 px de lado y se envía en JPEG; antes de entregarla se puede cambiar o quitar.
+  - «Entregar»: al entregarla se ve «Entregada · pendiente de revisión» y la **solución** del autor, y
+    se sigue sin esperar a la revisión. «Entregar otra vez» hace una entrega nueva (cuenta la última).
+  - Sin conexión: aviso y «Reintentar» con la misma foto. Si la sesión ha caducado, se pide volver a
+    iniciar sesión. Una foto que el servidor no acepta pide otra.
+  - «Entregar más tarde»: no bloquea el módulo (sin sesión, sin cámara o en un curso que no está en el
+    servidor). La prueba de dominio no depende de la foto: nunca incluye tareas con foto.
+  - Las fotos son temporales en el móvil: se borran al entregarlas o al salir del paso. En el servidor
+    solo las puede ver quien las subió y se borran con su cuenta.
 
 **Pendiente de diseñar:** repasos.
 
@@ -157,6 +173,9 @@ Formato v1:
   (`matching`). En la app, unir parejas se hace tocando uno de cada lado (aparece una flecha entre
   los dos), sin arrastrar; solo es correcta si están bien todas las parejas. Ver
   `tareas/camino-curso-y-ejercicios.md`.
+- **Tarea con foto** (`photo`): no se corrige en la app; se entrega como foto pendiente de revisión.
+  Solo en la parte formativa (`steps`): en la reserva el validador la rechaza (`PHOTO_IN_REVIEW`). Ver
+  `tareas/ejercicio-foto.md`.
 
 Previstos para versiones posteriores del formato:
 
@@ -171,9 +190,9 @@ Previstos para versiones posteriores del formato:
 | Requisito | Cómo lo cumple Gradus |
 |---|---|
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
-| API del dispositivo | Cámara (CameraX, dentro de la app) para fotografiar apuntes y asociarlos a módulos |
+| API del dispositivo | Cámara (CameraX, dentro de la app) para fotografiar apuntes y asociarlos a módulos, y para entregar los ejercicios con foto |
 | SQLite | Room (`gradus.db`): hoy, las notas con cámara (las fotos como ficheros; en la base de datos, su ruta, curso, módulo, fecha y pie). Previsto: cursos descargados y registro de respuestas |
-| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` |
+| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga, entregas con foto y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` |
 
 ## 9. Plan por anillos
 

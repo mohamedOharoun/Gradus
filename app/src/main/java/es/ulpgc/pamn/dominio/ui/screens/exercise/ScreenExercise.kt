@@ -42,25 +42,38 @@ data class ExerciseActions(
     val onContinue: () -> Unit = {},
     val onStartTest: () -> Unit = {},
     val onRetry: () -> Unit = {},
+    // Tarea con foto (docs/tareas/ejercicio-foto.md). `onTakePhoto` null: sin cámara en el móvil.
+    val onTakePhoto: (() -> Unit)? = {},
+    val onPickPhoto: () -> Unit = {},
+    val onDiscardPhoto: () -> Unit = {},
+    val onSubmitPhoto: () -> Unit = {},
+    val onSubmitAgain: () -> Unit = {},
+    val onSubmitPhotoLater: () -> Unit = {},
     val onClose: () -> Unit = {},
 )
 
 // Estudiar un módulo: sus lecciones y ejercicios, la prueba de dominio y su resultado.
 // Sin estado: pinta la etapa de ModuleStudy en la que se esté. Las previews están en ScreenExercisePreviews.kt.
 @Composable
-fun ScreenExercise(study: ModuleStudy, actions: ExerciseActions, modifier: Modifier = Modifier) {
+fun ScreenExercise(
+    study: ModuleStudy,
+    actions: ExerciseActions,
+    modifier: Modifier = Modifier,
+    photo: PhotoStepUi = PhotoStepUi(),
+) {
     val title = study.module.title
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { StudyTopBar(study.stage, actions.onClose) },
-        bottomBar = { StudyBottomBar(study, actions) },
+        bottomBar = { StudyBottomBar(study, actions, photo) },
     ) { innerPadding ->
         val content = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
         when (val stage = study.stage) {
             is StudyStage.Learning -> when (val step = stage.steps.current) {
                 is StepState.Reading -> Centered(content) { LessonContent(title, step.lesson) }
                 is StepState.Answering -> Centered(content) { QuestionContent(title, step.exercise, actions) }
+                is StepState.Photo -> Centered(content) { PhotoStepContent(title, step.step, photo, actions) }
                 null -> Unit
             }
             is StudyStage.TestIntro -> StudyMessage(
@@ -107,13 +120,15 @@ private fun StudyTopBar(stage: StudyStage, onClose: () -> Unit) {
     }
 }
 
-// Abajo: «Continuar» en una lección; «Comprobar» y la explicación en un ejercicio.
+// Abajo: «Continuar» en una lección; «Comprobar» y la explicación en un ejercicio; «Entregar» y lo que
+// toque en una tarea con foto.
 @Composable
-private fun StudyBottomBar(study: ModuleStudy, actions: ExerciseActions) {
+private fun StudyBottomBar(study: ModuleStudy, actions: ExerciseActions, photo: PhotoStepUi) {
     val stage = study.stage
     val exercise = study.currentExercise
     when {
         stage is StudyStage.Learning && stage.steps.current is StepState.Reading -> ContinueBar(actions.onContinue)
+        study.currentPhoto != null -> PhotoStepBottomBar(study.currentPhoto!!, photo, actions)
         exercise != null -> {
             val isLastTestQuestion = stage is StudyStage.Testing && stage.practice.position == stage.practice.total
             ExerciseBottomBar(exercise, if (isLastTestQuestion) "Ver resultado" else "Continuar", actions.onCheck, actions.onContinue)

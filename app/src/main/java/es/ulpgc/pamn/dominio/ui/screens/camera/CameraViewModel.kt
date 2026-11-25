@@ -15,8 +15,8 @@ import es.ulpgc.pamn.dominio.notes.checkCaption
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-// En qué punto está la cámara de las notas (docs/tareas/notas-camara.md, boceto 3). Máquina de estados:
-// NeedsPermission → Ready → Capturing → Reviewing → (Guardar) Closed  /  (Repetir) Ready.
+// En qué punto está la cámara (docs/tareas/notas-camara.md, boceto 3). Máquina de estados:
+// NeedsPermission → Ready → Capturing → Reviewing → (Guardar) Closed  /  (Usar foto) Used  /  (Repetir) Ready.
 sealed interface CameraStage {
 
     // Falta el permiso de cámara (decisión X). `denied`: ya se pidió y se dijo que no;
@@ -40,28 +40,44 @@ sealed interface CameraStage {
 
     // Guardada o abandonada: la navegación vuelve a «Mis notas».
     data object Closed : CameraStage
+
+    // La foto de una entrega, ya elegida: la navegación la lleva al paso con foto, que ahora es su dueño.
+    data class Used(val capture: String) : CameraStage
+}
+
+// Para qué es la foto (patrón Strategy: el mismo flujo de cámara, con distinto final al «Guardar»).
+sealed interface CameraPurpose {
+    // Una nota de «Mis notas»: pie opcional y «Guardar» la guarda en las notas del módulo.
+    data class Note(val courseId: String, val moduleId: String, val notes: NotesStore) : CameraPurpose
+
+    // La foto de una entrega (docs/tareas/ejercicio-foto.md, decisión W): sin pie; «Usar foto» la devuelve.
+    data object Submission : CameraPurpose
 }
 
 // `captureFailed`: la última foto no se pudo hacer (se avisa y se puede volver a disparar).
-data class CameraUiState(val stage: CameraStage = CameraStage.NeedsPermission(), val captureFailed: Boolean = false)
+// `forSubmission`: la foto es para entregar (sin pie, «Usar foto» y otro texto al pedir el permiso).
+data class CameraUiState(
+    val stage: CameraStage = CameraStage.NeedsPermission(),
+    val captureFailed: Boolean = false,
+    val forSubmission: Boolean = false,
+)
 
-// La cámara de las notas de un módulo. No sabe nada de CameraX: la pantalla hace la foto donde le dice
-// `Capturing.capture` y avisa con onCaptured / onCaptureFailed. Así se prueba en el ordenador.
+// La cámara de las notas de un módulo o de la foto de una entrega (`purpose`). No sabe nada de CameraX:
+// la pantalla hace la foto donde le dice `Capturing.capture` y avisa con onCaptured / onCaptureFailed.
+// Así se prueba en el ordenador.
 class CameraViewModel(
-    private val courseId: String,
-    private val moduleId: String,
-    private val notes: NotesStore,
+    private val purpose: CameraPurpose,
     private val photos: PhotoFiles,
     private val clock: () -> Long = System::currentTimeMillis,
     private val newId: () -> String = { UUID.randomUUID().toString() },
 ) : ViewModel() {
 
     companion object {
-        fun factory(courseId: String, moduleId: String, notes: NotesStore, photos: PhotoFiles) =
-            viewModelFactory { initializer { CameraViewModel(courseId, moduleId, notes, photos) } }
+        fun factory(purpose: CameraPurpose, photos: PhotoFiles) =
+            viewModelFactory { initializer { CameraViewModel(purpose, photos) } }
     }
 
-    var state by mutableStateOf(CameraUiState())
+    var state by mutableStateOf(CameraUiState(forSubmission = purpose is CameraPurpose.Submission))
         private set
 
     private var stage: CameraStage
@@ -80,7 +96,7 @@ class CameraViewModel(
     // Disparar: solo con la cámara lista (dos toques rápidos hacen una foto).
     fun onShutter() {
         if (stage != CameraStage.Ready) return
-        state = CameraUiState(stage = CameraStage.Capturing(photos.newCapture()), captureFailed = false)
+        state = state.copy(stage = CameraStage.Capturing(photos.newCapture()), captureFailed = false)
     }
 
     fun onCaptured() {
@@ -91,7 +107,7 @@ class CameraViewModel(
     // La cámara no pudo hacer la foto: se tira lo que haya escrito y se vuelve a la vista previa.
     fun onCaptureFailed() {
         val capturing = stage as? CameraStage.Capturing ?: return
-        state = CameraUiState(stage = CameraStage.Ready, captureFailed = true)
+        state = state.copy(stage = CameraStage.Ready, captureFailed = true)
         viewModelScope.launch { photos.discardCapture(capturing.capture) }
     }
 
@@ -108,10 +124,18 @@ class CameraViewModel(
         stage = review.copy(caption = caption, captionTooLong = false)
     }
 
-    // «Guardar»: con un pie válido, la foto pasa a las notas y se guarda la nota.
+    // «Guardar» (nota): con un pie válido, la foto pasa a las notas y se guarda la nota.
+    // «Usar foto» (entrega): la foto temporal pasa tal cual al paso; ni se guarda ni se tira.
     fun onSave() {
         val review = stage as? CameraStage.Reviewing ?: return
         if (review.saving) return
+        when (purpose) {
+            is CameraPurpose.Note -> saveNote(review, purpose)
+            CameraPurpose.Submission -> stage = CameraStage.Used(review.capture)
+        }
+    }
+
+    private fun saveNote(review: CameraStage.Reviewing, note: CameraPurpose.Note) {
         val caption = when (val check = checkCaption(review.caption)) {
             is CaptionCheck.Valid -> check.caption
             CaptionCheck.TooLong -> return run { stage = review.copy(captionTooLong = true) }
@@ -123,7 +147,7 @@ class CameraViewModel(
                 stage = review.copy(saving = false, saveFailed = true)
                 return@launch
             }
-            notes.add(Note(newId(), courseId, moduleId, path, caption, clock()))
+            note.notes.add(Note(newId(), note.courseId, note.moduleId, path, caption, clock()))
             stage = CameraStage.Closed
         }
     }
