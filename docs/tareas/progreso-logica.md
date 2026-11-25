@@ -29,20 +29,25 @@ llamar a estos casos de uso.
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-25):** 4a hecho y revisado (`kotlin.time.Instant` compila sin `@OptIn`: B-1
-  confirmado).
-- **Toca:** paso **4b** (mensaje al implementador preparado por el orquestador).
+- **Estado (2026-11-25):** 4a y 4b hechos y revisados. `InMemoryProgressStore(sessions, clock)` cumple
+  `ProgressStore` y `EnrollmentStore` por usuario, con lo dominado anidado en su inscripción
+  (`UserProgress` → `CourseProgress`). Detalle en `docs/arquitectura-progreso.md`.
+- **Toca:** paso **4c** (puerto de pendientes; mensaje al implementador preparado por el orquestador).
+  Cuando 4c esté hecho, B4 queda entera: reescribir el Relevo general (desbloquea la parte C).
 - **Riesgos:**
-  - Al exigir inscripción, `ExerciseViewModel.markMastered` lanzará excepción en la app hasta que la
-    parte C ponga el botón de inscribirse (C9/C10).
-  - Los 6 tests de `InMemoryProgressStoreTest` dominan sin inscribirse: hay que adaptarlos en B4.
+  - `ExerciseViewModel.markMastered` lanza la excepción en la app hasta C9/C10 (B-2, aceptado).
   - El servidor redondea las fechas a microsegundos: nada debe emparejar lo enviado con lo recibido
     comparando fechas.
-- **Qué mirar en la próxima revisión (4b):** la sesión se lee **antes** de `update` (es `suspend`) y la
-  comprobación de inscripción va **dentro** de la lambda de `update` (si lanza, el valor no cambia: no
-  quedan filas); `mastered` y `enrolled` leen la sesión al empezar a escuchar; en `AppContainer.kt` solo
-  cambia la línea 32 y `:app` compila; los 6 tests antiguos siguen documentando lo mismo; la referencia
-  rellena flujo, invariantes, «cómo extenderlo» (tipo de ejercicio) y «qué cuidar al mergear».
+  - Gradle: `--rerun` a veces da `testAndroidHostTest NO-SOURCE` (no ejecuta nada). Orden fiable:
+    `./gradlew :sharedLogic:compileAndroidHostTest --rerun :sharedLogic:testAndroidHostTest --rerun`;
+    comprobar en los XML de `build/test-results/` que la hora es la de la ejecución.
+- **Qué mirar en la revisión de 4c:** el `pending` de cada inscripción y de cada módulo no está en los
+  *value objects* públicos (`Enrollment`, `MasteredModule`) sino en el estado interno; `settle` es una
+  sola transformación pura dentro de `update`; todo lo enviado sale de la cola, y lo marcado durante la
+  petición no; la fusión es unión con la fecha más antigua y avisa a quien escucha; el comentario del
+  puerto dice lo que Room tiene que cumplir (en una sola transacción).
+- **Abierto para 4c:** si `pending` sustituye a `progressOf` (se mantiene si los tests de fechas lo
+  necesitan); si `settle` necesita `skipped` (ver el mensaje de 4c).
 
 ## Lo que ya hay y sirve de modelo
 
@@ -120,7 +125,7 @@ Pasos (cada uno: propuesta → OK → tests primero; actualiza su sección de la
     (`moduleId`, `masteredAt: Instant`); `StudyAccess` sellado (`Allowed | NotEnrolled`) y
     `studyAccess(enrolled: Boolean)`.
   - Tests mínimos (`StudyAccessTest`): no inscrito → `NotEnrolled`; inscrito → `Allowed`.
-- [ ] **4b. `EnrollmentStore` y almacén en memoria por usuario** · Sonnet 5.5, esfuerzo alto ·
+- [x] **4b. `EnrollmentStore` y almacén en memoria por usuario** · Sonnet 5.5, esfuerzo alto ·
   revisión a fondo (atomicidad con `update`, nada escrito si falla, sesión leída dentro del `Flow`).
   - `EnrollmentStore` (`enrolled(courseId): Flow<Boolean>`, `suspend enroll(courseId)`).
     `InMemoryProgressStore(sessions: SessionStore, clock: Clock = Clock.System)` implementa los dos
@@ -174,7 +179,10 @@ Tests añadidos a los mínimos: `ServerFailure` deja lo pendiente; un 200 sin ca
   aprobados. Creado el esqueleto de `docs/arquitectura-progreso.md`.
 - 2026-11-25: **4a hecho y revisado.** Sin tests de los `data class` (no tienen lógica propia); un
   test fija que el `when` sobre `StudyAccess` es exhaustivo sin `else`.
+- 2026-11-25: **4b hecho y revisado.** Fuera del plan, aprobado: `progressOf(userId)` `internal` para
+  ver fechas en los tests; sin sesión, el `Flow` emite el vacío y **termina** (la interfaz debe volver a
+  escuchar al cambiar de sesión). 48 tests de progreso en verde.
 
 ## Siguiente paso
 
-Paso 4b: abrir un chat nuevo con el mensaje del orquestador (Sonnet 5.5, esfuerzo alto).
+Paso 4c: abrir un chat nuevo con el mensaje del orquestador (Opus 5.5, esfuerzo medio).

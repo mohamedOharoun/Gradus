@@ -29,7 +29,7 @@ object AppContainer {
     val courseGateway: CachingCourseGateway by lazy { CachingCourseGateway(CourseGateways.http(BASE_URL)) }
 
     // Qué módulos ha dominado el usuario. De momento en memoria: se pierde al cerrar la app.
-    val progressStore: ProgressStore by lazy { InMemoryProgressStore() }
+    val progressStore: ProgressStore by lazy { InMemoryProgressStore(sessionStore) }
 
     // La sesión iniciada. De momento en memoria: se pierde al cerrar la app (tarea 6: guardarla cifrada).
     val sessionStore: SessionStore by lazy { InMemorySessionStore() }
