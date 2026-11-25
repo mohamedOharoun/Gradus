@@ -6,7 +6,7 @@ Que un usuario se **inscriba** en un curso, estudie (también sin conexión) y s
 Este documento es el **índice común**: decisiones, contrato, reparto en partes y acuerdos. El detalle
 de cada parte vive en su propio documento, para que cada orquestador lea solo lo suyo.
 
-Estado: **definición aprobada; parte A con las tareas 1 y 2 hechas** (2026-11-24). Rama: `dev/course-progress-tracking`.
+Estado: **parte A (backend) terminada; contrato congelado** (2026-11-24). Rama: `dev/course-progress-tracking`.
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -26,16 +26,21 @@ ficheros que les dé el orquestador. Este índice, solo si el orquestador lo ind
 
 Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumula.
 
-- **Dónde estamos (2026-11-24):** parte A con las tareas 1 y 2 hechas (dominio, caso de uso, migración
-  `006` y adaptadores JDBC); le queda la 3 (ruta y congelar el contrato). El contrato
-  sigue en borrador, pero ya tiene resueltos sus puntos de la tarea 1 (reglas 4 y 6–9). Afecta a B:
-  `skipped` lleva un `moduleId` opcional (sin él se omitió la inscripción entera), tiene un orden
-  fijo y da los cursos inexistentes con su UUID en minúsculas («Respuesta 200»).
-- **Siguiente:** la parte A sigue con la tarea 3, que congela el contrato. La parte B puede arrancar
-  en paralelo con otro orquestador cuando queráis: solo depende del contrato.
+- **Dónde estamos (2026-11-24):** **parte A terminada** (tareas 1–3): `POST /api/progress/sync` funciona
+  contra PostgreSQL (16 escenarios reales) y la `006` está aplicada en la base de desarrollo.
+- **Contrato congelado (2026-11-24): `backend/docs/api-progreso.md`.** Lo que afecta a la parte B (B5,
+  `HttpProgressGateway`), además de lo que ya decía el borrador:
+  - **413** si el cuerpo supera 2 MiB: `text/plain`, no JSON. Todo lo que no sea 200 ni 401 es
+    `ServerFailure`; un 400 indica un error de la app.
+  - Lectura estricta: todos los campos obligatorios (también `mastered`, aunque sea `[]`); fechas con
+    `Z`, año 0001–9999; UTF-8 sin BOM; clave repetida → 400. Campos desconocidos, ignorados.
+  - Las fechas de la respuesta llegan con 0, 3 o 6 decimales (se guardan en microsegundos): el DTO
+    tiene que aceptar los tres formatos.
+  - `skipped` sin `moduleId` (clave ausente, no `null`) = inscripción entera omitida.
+  - La app no depende del orden de `enrollments` ni de `skipped`.
+- **Siguiente:** la parte B puede arrancar (solo depende del contrato, ya congelado). Después, C y D.
 - **Dependencias entre partes:**
-  - A y B: independientes; las une el contrato. B5 (gateway HTTP) necesita el contrato **congelado**
-    (lo congela A al cerrar su tarea 3).
+  - A y B: independientes; las une el contrato, **ya congelado**: B5 (gateway HTTP) puede empezar.
   - C necesita B4 (puertos) y el permiso para Room + KSP. C8 (sincronizar) necesita A3, B5 y B6.
   - D necesita C. WorkManager (D13) necesita la sesión persistente (D11).
 - **Cambios de contrato:** quien necesite cambiar `api-progreso.md` lo propone a los usuarios, lo
@@ -142,3 +147,5 @@ Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquesta
 - 2026-11-24: definición hecha y aprobada (decisiones 1–11). Documento partido en índice + documentos
   por parte para que cada orquestador cargue solo lo suyo. Creados `backend/docs/api-progreso.md`
   (borrador) y `backend/docs/tareas/progreso-backend.md`.
+- 2026-11-25: **parte A terminada y contrato congelado** (tarea 3 de `progreso-backend.md`). Lo que
+  cambia para B, en el Relevo general.

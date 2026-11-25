@@ -7,7 +7,8 @@ Rama: `dev/course-progress-tracking`. Proyecto: `backend/` (Maven, Java 25, Java
 Docker). Tests con JUnit Jupiter y repositorios en memoria: `./gradus.sh test` (`mvn test`) no necesita
 la base de datos. Commits: `… (progress task N)`.
 
-Estado: **tareas 1 y 2 hechas; tarea 3 partida en 3a, 3b y 3c; 3a y 3b hechas, toca 3c** (2026-11-24). Lo terminado y sus decisiones:
+Estado: **parte A terminada (tareas 1–3); contrato congelado** (2026-11-25). Solo falta que los usuarios
+repitan 200, 400 y 401 en Yaak para marcar la casilla de la tarea 3. Lo terminado y sus decisiones:
 `progreso-backend-historico.md` (no hace falta leerlo para continuar).
 
 ## Relevo
@@ -15,33 +16,23 @@ Estado: **tareas 1 y 2 hechas; tarea 3 partida en 3a, 3b y 3c; 3a y 3b hechas, t
 Lo que necesita quien coja la parte A (orquestador o revisor). **Se reescribe** al terminar cada
 sesión; no se acumula.
 
-- **Dónde estamos (2026-11-24):** tareas 1 y 2 hechas y revisadas (668 tests en verde). Hay dominio,
-  caso de uso (`SyncProgress`), migración `006` y adaptadores JDBC (`JdbcEnrollmentRepository`,
-  `JdbcCourseExistence`); falta la ruta (tarea 3). Los tres «(abierto, tarea 3)» del contrato y los
-  permisos de 3b **están decididos** (ver la tarea 3). **3a hecha y revisada** (lector y DTO en
-  `web/progress/`, 764 tests) y **3b hecha y revisada** (ruta, cableado, Yaak; 16 escenarios reales en
-  verde, adaptadores JDBC sin fallos). Falta 3c (congelar el contrato, lo hace el orquestador). El contrato sigue en **borrador** hasta 3c.
-- **Al empezar:** leer `AGENTS.md`, el Relevo general y las Decisiones de
-  `docs/tareas/seguimiento-progreso.md`, este documento y `backend/docs/api-progreso.md`. **No** hace
-  falta el histórico, `backend/docs/especificacion-cursos-v1.md` (606 líneas) ni nada de la app.
-- **Para la tarea 3 hay que saber:**
-  - Los adaptadores JDBC **no se han ejecutado nunca contra PostgreSQL** (el SQL sí, en la 2a; los
-    tipos, `createArrayOf("uuid", …)` y los lotes, no). Las pruebas con Yaak son su primera prueba
-    real: además del criterio, conviene mandar lo mismo dos veces, una fecha más antigua y un curso
-    inexistente.
-  - La `006` aún no está en la base de desarrollo, que ya tiene una `005_create_course_ratings.sql` de
-    otra rama. Los usuarios dieron permiso **solo para 3b** y con los límites de «Permisos de 3b» (tarea
-    3): aplicarla con `./gradus.sh`, escribir cuentas y progreso de prueba solo con la API.
-  - Cableado en `App.java`: `JdbcEnrollmentRepository` y `JdbcCourseExistence` reciben el `DataSource`;
-    `SyncProgress` se crea una sola vez.
-  - `findAll` ya devuelve el orden propuesto en el contrato (inscripciones por `enrolled_at, course_id`;
-    módulos por `module_id`): la tarea 3 lo confirma al congelar el contrato.
-- **Resuelto para la tarea 3 (2026-11-24):** sin límites propios (vale el de 2 MiB; el contrato añade
-  413), el orden propuesto, sin códigos de error nuevos. Se vuelcan al contrato en 3c.
-- **Riesgos:** el contrato, que comparte la parte B (no se cambia tras congelarlo).
-- **Qué mirar en la revisión de la tarea 3:** el usuario sale siempre de la sesión, nunca del cuerpo;
-  400 solo para la forma del JSON (los problemas de valor van a `skipped`); `moduleId` se omite en
-  `skipped` cuando está vacío; fechas ISO-8601 UTC; contrato congelado y avisado en el Relevo general.
+- **Dónde estamos (2026-11-25):** parte A terminada. `POST /api/progress/sync` está en `App.java` y
+  funciona contra PostgreSQL: dominio y caso de uso (`SyncProgress`), migración `006`, adaptadores
+  JDBC, lector estricto y DTO (`web/progress/`) y `ProgressController`. 764 tests en verde. Los 16
+  escenarios reales de 3b dieron lo esperado y los adaptadores JDBC no fallaron. El contrato
+  (`backend/docs/api-progreso.md`) está **congelado** y avisado en el Relevo general.
+- **Pendiente de los usuarios:** repetir en Yaak «Sincronizar progreso (200)», el 400 (quitando
+  `enrollments`) y el 401 (quitando `Authorization`). Escribe una inscripción y un módulo en
+  `autora.cursos@example.com`. Con eso, el revisor marca la casilla de la tarea 3.
+- **Base de desarrollo:** tiene la `006` (`schema_migrations` de la 001 a la 006; la 005 es de
+  valoraciones, de otra rama). Datos de prueba de 3b, que se dejan a propósito: `progress-a@example.test`
+  (2 inscripciones, 313 módulos) y `progress-b@example.test` (2 inscripciones, 4 módulos), sin
+  sesiones abiertas. Para deshacer la 006, la receta de «Permisos de 3b» (solo si lo piden los usuarios).
+- **Si alguien retoma la parte A:** solo para un cambio de contrato (protocolo del Relevo general) o un
+  fallo que encuentre la parte B o la C. Leer `AGENTS.md`, el Relevo general, este Relevo, la tarea 3 y
+  el contrato. **No** hace falta el histórico, `backend/docs/especificacion-cursos-v1.md` ni nada de
+  la app.
+- **Riesgos:** ninguno abierto en la parte A. El contrato no se cambia por cuenta propia.
 - **Mejoras pendientes (fuera de esta parte):** mover `AdjustableClock` (test, `application/course`, hoy
   `public`) a un paquete de test común; unificar el decodificador UTF-8 de 3a con `Utf8Text`
   (`infrastructure/course`, privado de paquete) en un paquete común.
@@ -206,7 +197,7 @@ Para la **tarea 3** (web):
      `UPDATE` ni `DELETE`.
    - Commit: `add: POST /api/progress/sync route and Yaak request (progress task 3b)`.
 
-   3c. [ ] **Congelar el contrato** (lo hace el orquestador). Volcar a `api-progreso.md` las decisiones
+   3c. [x] **Congelar el contrato** (lo hace el orquestador). Volcar a `api-progreso.md` las decisiones
    de arriba (413, orden, sin códigos nuevos, campos desconocidos ignorados, clave repetida → 400,
    `mastered` obligatorio, fechas aceptadas con año 0001–9999, UTF-8 sin BOM), pasar su estado a «congelado», avisarlo en el Relevo general (afecta a la parte B,
    tarea 5), marcar la casilla de la tarea 3 y reescribir los Relevos.
@@ -243,8 +234,11 @@ Para la **tarea 3** (web):
   sin `UPDATE` ni `DELETE`; cero sesiones abiertas al terminar). Para 3c, anotar en el contrato: el 413 es
   `text/plain` con el cuerpo `Content Too Large`; PostgreSQL redondea la fracción a microsegundos
   (`.123456789Z` → `.123457Z`); el año `0001-01-01T00:00:00Z` vuelve igual.
+- 2026-11-25: **3c hecha.** Contrato congelado, con lo decidido y lo comprobado en 3a y 3b (413 en
+  `text/plain`, microsegundos, año 0001–9999, UTF-8 sin BOM, clave repetida, campos desconocidos,
+  orden). Avisado en el Relevo general para la parte B (B5). Casilla de la tarea 3, pendiente de Yaak.
 
 ## Siguiente paso
 
-**3c** (congelar el contrato; lo hace el orquestador). Antes, los usuarios repiten 200, 400 y 401 en Yaak
-(D3): forma parte del criterio de la tarea 3.
+Los usuarios repiten 200, 400 y 401 en Yaak; el revisor marca entonces la casilla de la tarea 3. La
+parte A queda cerrada; lo siguiente es la parte B, con su propio orquestador.
