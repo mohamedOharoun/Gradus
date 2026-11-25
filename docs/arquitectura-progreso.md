@@ -216,6 +216,11 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   3. **No captures** la `IllegalStateException` de `markMastered`: es el invariante y avisa de un fallo
      de programación (se llegó a dominar sin comprobar `studyAccess`). Taparla escondería el fallo.
   4. Nunca escribas lo dominado por otro camino que no sea `markMastered`.
+- **Inscribirse desde otra pantalla:** `EnrollmentViewModel(courseId, enrollmentStore)` (en
+  `ui/screens/enrollment/`, con su `factory`) + `EnrollButton(state, onEnroll)` (en `ui/components/`).
+  El ViewModel expone un `EnrollmentState` (`Unknown`, `NotEnrolled`, `Enrolling`, `Enrolled`) y el
+  botón solo lo pinta: ninguno navega ni sabe en qué página están. No captures la
+  `IllegalStateException` de `enroll` sin sesión (fallo de programación).
 - **Otra forma de guardar el progreso (otra base de datos, otro servidor):** implementa
   `ProgressStore` y `EnrollmentStore` cumpliendo los invariantes de arriba (por usuario, nada escrito
   si falla, primera fecha, sin sesión). Para sincronizar, implementa también `ProgressSyncStore`:

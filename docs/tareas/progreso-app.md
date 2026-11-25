@@ -4,16 +4,16 @@ Parte C y D del seguimiento del progreso (índice común: `docs/tareas/seguimien
 Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`. Rama:
 `dev/course-progress-tracking`.
 
-Estado: **plan de la parte C aprobado; 9a hecho; 9b revisado, falta la prueba en el emulador (2026-11-25).**
+Estado: **plan de la parte C aprobado; tarea 9 hecha; 10a hecho (2026-11-25).** Siguiente: 10b.
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-25):** 9a hecho. 9b revisado (código y 21 tests); **falta la prueba en el
-  emulador** (la hacen los usuarios: el implementador no tenía cuenta). Con 9b la app ya no se cierra,
-  pero nadie puede inscribirse (ni, por tanto, estudiar) hasta 10b.
-- **Paso que toca:** cerrar 9b con la prueba en el emulador; después, 10a (Sonnet 5.5, esfuerzo medio).
+- **Dónde estamos (2026-11-25):** tarea 9 hecha y en commits (9a, 9b; 9b probado en el emulador por los
+  usuarios). La app ya no se cierra, pero nadie puede inscribirse (ni, por tanto, estudiar) hasta 10b.
+- **Paso que toca:** 10b (Sonnet 5.5, esfuerzo medio), mensaje preparado. 10a hecho y revisado
+  (`EnrollmentViewModel`, `EnrollButton`, `EnrollmentState`; todavía sin usar en ninguna pantalla).
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
@@ -23,9 +23,10 @@ Se **reescribe** al final de cada sesión; no se acumula.
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo.
   - Hasta D11 la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
     no hay sesión (el camino sale vacío e inscribirse lanzaría). Conocido y aceptado hasta D11.
-- **Qué mirar en la próxima revisión (10a):** que `EnrollButton` no navegue ni conozca la página; que
-  dos toques seguidos inscriban una sola vez; estados del botón (Inscribirme, inscribiéndose, Inscrito
-  desactivado); previews claro/oscuro y 48 dp.
+- **Qué mirar en la próxima revisión (10b):** que «Ir al camino» viva solo en la página (no en
+  `EnrollButton`) y esté siempre activo; que el `EnrollmentViewModel` se cree con la entrada de la
+  página; que Buscar navegue a la página y no al camino; cambios mínimos en `Routes` y `MainNavGraph`;
+  emulador de punta a punta (inscribirse, ir al camino, dominar, sin cierre).
 - **Comprobar los tests:** leer el XML con `read_file` o un `grep` que imprima `<`/`>` se cuelga en
   esta máquina; usar `grep -o 'tests="[0-9]*" … timestamp="[^"]*"'` (sin las etiquetas). Si Android
   Studio tiene un Gradle ocupado, lanzar `./gradlew` desacoplado (`setsid nohup … > /tmp/log &`) y
@@ -121,7 +122,9 @@ desde el camino (C-6: se hará después reutilizando `EnrollButton` y `Enrollmen
     - **«Ir al camino»**, propio de la página de relleno (se borra con ella): **siempre activo** (decisión 4,
       el camino se ve sin inscripción), con estilo secundario sin inscripción y principal tras
       inscribirse («se activa» visualmente). Tras inscribirse no se navega solo.
-  - La ruta lleva `courseId` y el título que ya tiene Buscar (la página no descarga el curso).
+  - La ruta lleva solo `courseId` (corregido el 2026-11-25: Buscar avisa con el id, no con el título, y
+    pasarlo obligaría a cambiar `SearchActions`, `SearchViewModel.actions`, `SearchResultsContent` y sus
+    tests). La página de relleno no descarga el curso ni enseña su título: eso llegará con la definitiva.
   - En el camino, sin inscripción, tocar cualquier módulo (frontera, dominado o bloqueado) enseña
     «Inscríbete para empezar a estudiar» (antes que «bloqueado»). `ScreenCourse` no cambia salvo el texto
     del aviso.
@@ -134,7 +137,7 @@ desde el camino (C-6: se hará después reutilizando `EnrollButton` y `Enrollmen
 La casilla la marca el orquestador tras revisar. Los tests nombrados son el **mínimo** (AGENTS §7).
 Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b → 7c → 7d → 8a → 8b.
 
-### [ ] 9. La puerta en la interfaz
+### [x] 9. La puerta en la interfaz
 
 - **[x] 9a · Combinar acceso y estado del módulo (`sharedLogic`).** Sonnet 5.5, esfuerzo medio.
   - Función pura nueva (fichero nuevo en `course/progress/`; no cambia nada de B): con el curso, el
@@ -144,7 +147,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
     inscripción»; inscrito, frontera y dominado abren; inscrito y bloqueado da lo que falta; módulo
     inexistente da `null`.
   - Revisión: ligera (leer el fichero y los tests; ejecutarlos).
-- **[ ] 9b · El camino y la práctica usan la puerta (`app`).** Opus 5.5, esfuerzo medio (corrutinas).
+- **[x] 9b · El camino y la práctica usan la puerta (`app`).** Opus 5.5, esfuerzo medio (corrutinas).
   - `CourseViewModel` escucha `enrolled` y `mastered` y decide el toque con 9a; aviso nuevo
     `CourseNotice.NotEnrolled` y su texto en `CourseNoticeMessages.kt`. La entrada de `Route.Exercise`
     vuelve atrás sin inscripción, antes de enseñar la práctica. `AppContainer` expone el mismo
@@ -157,7 +160,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
 
 ### [ ] 10. Botón de inscribirse y página de relleno
 
-- **[ ] 10a · `EnrollmentViewModel` + `EnrollButton`.** Sonnet 5.5, esfuerzo medio.
+- **[x] 10a · `EnrollmentViewModel` + `EnrollButton`.** Sonnet 5.5, esfuerzo medio.
   - Ficheros propios: el ViewModel (`courseId`, `EnrollmentStore`) expone si está inscrito y si se está
     inscribiendo; el botón (`ui/components/`) recibe el estado y `onEnroll` (*state hoisting*), 48 dp,
     previews claro/oscuro. Estados del botón: «Inscribirme», inscribiéndose (no se puede pulsar) e
@@ -167,7 +170,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
     y que inscrito está desactivado (`app/src/androidTest`).
   - Revisión: normal (código, tests, previews).
 - **[ ] 10b · Página de relleno y navegación.** Sonnet 5.5, esfuerzo medio.
-  - `Route.CourseOverview(courseId, title)`, `ScreenCourseOverview` (título, `EnrollButton` e «Ir al
+  - `Route.CourseOverview(courseId)`, `ScreenCourseOverview` (texto genérico, `EnrollButton` e «Ir al
     camino», ver C-6); Buscar navega a ella; desde ella, al camino. «Ir al camino» vive en la página,
     no en `EnrollButton`: al sustituir la página se borra sin tocar el botón.
   - Tests mínimos (`app/src/androidTest`): sin inscripción se ven «Inscribirme» e «Ir al camino», los
@@ -245,7 +248,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   inexistente da `null` antes de mirar el acceso (también sin inscripción); `Locked.missing` son los
   prerrequisitos **directos** no dominados, en el orden de `requires`; lo dominado abre aunque falte un
   prerrequisito (regla 5). Para 9b: usar `tapModule` con `studyAccess(enrolled)`.
-- 2026-11-25: **9b revisado; falta la prueba en el emulador** (21 tests nuevos en `app/src/test`: `CourseViewModelGateTest`,
+- 2026-11-25: **9b hecho y revisado; probado en el emulador por los usuarios** (21 tests nuevos en `app/src/test`: `CourseViewModelGateTest`,
   `ExerciseViewModelGateTest`, `CourseNoticeMessagesTest`). `CourseViewModel` escucha `mastered` y
   `enrolled` con `combine` (sigue `Loading` hasta tener los dos) y decide el toque solo con `tapModule`.
   `CourseUiState.enrolled = false` por defecto. `ExerciseViewModel.access: StudyAccess?` se lee una vez
@@ -254,6 +257,16 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   almacén como `progressStore` y `enrollmentStore`. `ScreenCourse` sin cambios. Fuera del plan: el caso
   «dominado sin inscripción» usa un `ProgressStore` fijo de test (el almacén real no lo permite).
 
+- 2026-11-25: **10a hecho y revisado** (12 tests en `app/src/test`, 8 en `app/src/androidTest`, en verde;
+  previews claro/oscuro vistas). Ficheros nuevos: `ui/components/EnrollmentState.kt` y `EnrollButton.kt`,
+  `ui/screens/enrollment/EnrollmentViewModel.kt` y sus dos clases de test. `EnrollmentState`
+  (`Unknown`/`NotEnrolled`/`Enrolling`/`Enrolled`) vive en `components`. Dos toques: `onEnroll` solo actúa
+  en `NotEnrolled` y marca `Enrolling` antes de lanzar; `Enrolling` no se apaga al terminar, lo apaga el
+  `Flow` al emitir `true`. Fuera del plan: `kotlin.test` no está en el classpath de `app`, así que el
+  test de «sin sesión» usa `Assert.assertThrows` de JUnit con `runTest` dentro (sin trucos); no pude
+  comprobarlo por mutación (la edición de prueba fue denegada). Añadí tests de la factoría, de tocar en
+  `Unknown`/ya `Enrolled`, y de inscripción externa durante `Enrolling`.
+
 ## Siguiente paso
 
-Prueba de 9b en el emulador (usuarios); con ella, el orquestador marca 9b. Después, 10a.
+Paso 10b: abrir un chat nuevo (Sonnet 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
