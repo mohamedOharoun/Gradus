@@ -44,15 +44,16 @@ Paquete `course/progress/http/` (`internal`, traduce entre el modelo y el JSON; 
 | `decodeSyncResponse(body)` | Texto JSON de un 200 → `SyncResponse?` (`null` = no se puede leer; no lanza) | *Mapper*, función pura |
 | `HttpProgressGateway(client, baseUrl)` | Adaptador Ktor del puerto: `POST /api/progress/sync` con `Authorization: Bearer`. Solo HTTP: el JSON es de los mappers; las excepciones van por `callServer` | Adaptador (*Adapter*); `callServer` es una función de orden superior |
 
-Paquete `app/.../data/progress/` (Room, solo Android; desde 7a y 7b, **todavía sin conectar** a `AppContainer`: es 7d):
+Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, **todavía sin conectar** a `AppContainer`: es 7d):
 
 | Pieza | Qué es | Patrón |
 |---|---|---|
 | `EnrollmentEntity` | Tabla `enrollments(user_id, course_id, enrolled_at, pending)`, clave primaria `(user_id, course_id)` | Entidad de persistencia (fila de tabla) |
 | `MasteredModuleEntity` | Tabla `mastered_modules(user_id, course_id, module_id, mastered_at, pending)`, clave primaria `(user_id, course_id, module_id)` y clave foránea `(user_id, course_id)` → `enrollments` (sin `onDelete`: nunca se borra). La clave foránea es el principio de la clave primaria, así que el índice de la clave primaria la cubre (sin índice aparte ni avisos de Room) | Entidad de persistencia |
 | `InstantConverter` | `Instant` ↔ `Long` en nanosegundos desde 1970: exacto y conserva el orden (`MIN` = la más antigua). Rango: 1677-09-21T00:12:43.145224192Z a 2262-04-11T23:47:16.854775807Z; fuera, `IllegalArgumentException` | *Adapter* (*TypeConverter*), funciones puras |
-| `ProgressDao` | Insertar y leer (7a); `insert…IfAbsent` (`INSERT OR IGNORE`) y los `Flow` `watchEnrolled` / `watchMasteredIds` (7b). Nunca `DELETE`; lo de `ProgressSyncStore` llega en 7c | *DAO* (*Data Access Object*) |
-| `RoomProgressStore(dao, sessions, clock)` | Implementa `ProgressStore` y `EnrollmentStore` con Room, igual que `InMemoryProgressStore` (en 7c, también `ProgressSyncStore`) | *Adapter* de los puertos; *Interface Segregation*; inyección de dependencias (`ProgressDao`, `SessionStore`, `Clock`) |
+| `ProgressDao` | Insertar y leer (7a); `insert…IfAbsent` (`INSERT OR IGNORE`) y los `Flow` `watchEnrolled` / `watchMasteredIds` (7b); para sincronizar (7c), `pendingRows` y `settle`, dos métodos `@Transaction` con cuerpo que usan seis consultas (`enrollmentsToUpload`, `pendingModules`, `unqueue…`, `keepOlder…Date`). Nunca `DELETE` | *DAO* (*Data Access Object*); *Unit of Work* (`@Transaction`) |
+| `ProgressRows(enrollments, modules)`, `ProgressSnapshot.toRows(userId)` y `ProgressRows.toSnapshot()` | Las filas de las dos tablas y su traducción a la forma del contrato. `toRows` pone el usuario y `pending = false`; `toSnapshot` mete cada módulo en la inscripción de su mismo usuario y curso (un módulo sin ella se queda fuera) | *Mapper*, funciones puras |
+| `RoomProgressStore(dao, sessions, clock)` | Implementa **los tres puertos** (`ProgressStore`, `EnrollmentStore` y `ProgressSyncStore`) con Room, igual que `InMemoryProgressStore` | *Adapter* de los puertos; *Interface Segregation*; inyección de dependencias (`ProgressDao`, `SessionStore`, `Clock`) |
 | `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
@@ -78,7 +79,7 @@ Cómo está hecho `InMemoryProgressStore`:
 - `progressOf(userId)` es `internal` y de solo lectura: existe para que los tests vean todo el estado
   con sus fechas (los puertos no las exponen, y `pending` solo enseña lo pendiente). Se mantiene.
 
-Cómo está hecho `RoomProgressStore` (7b):
+Cómo está hecho `RoomProgressStore` (7b y 7c):
 
 - **Estado:** las tablas `enrollments` y `mastered_modules`; cada consulta filtra por
   `user_id = session.account.id`.
@@ -94,10 +95,31 @@ Cómo está hecho `RoomProgressStore` (7b):
   con ese `userId`. Sin sesión emite el vacío y termina sin abrir la consulta. Room vuelve a consultar
   con cualquier cambio en la tabla (otro curso, otro usuario): `distinctUntilChanged` no deja pasar el
   valor repetido.
+- **`pending(userId)`** (no lee la sesión: decisión 11) = `dao.pendingRows(userId).toSnapshot()`. Dos
+  lecturas en una transacción (las dos ven el mismo estado):
+  - las inscripciones del usuario con `pending = 1` **o** con `EXISTS` algún módulo suyo con `pending = 1`;
+  - los módulos del usuario con `pending = 1`.
+  Así un módulo pendiente va dentro de su inscripción aunque ya estuviera subida, y solo con los pendientes.
+- **`settle(userId, sent, remote)`** = `dao.settle(sent.toRows(userId), remote.toRows(userId))`, **una sola
+  transacción** (`@Transaction` en un método con cuerpo del DAO; sin `room-ktx`), en este orden:
+  1. por cada inscripción y cada módulo de `sent`, `UPDATE … SET pending = 0 WHERE` su clave (usuario,
+     curso; usuario, curso, módulo): por clave, nunca por fecha; si no existe, no cambia nada;
+  2. por cada inscripción de `remote` y **después** cada módulo (por la clave foránea), `INSERT OR IGNORE`
+     con `pending = 0` y `UPDATE … SET fecha = MIN(fecha, :remota) WHERE` su clave (la más antigua; el
+     `pending` de lo que ya estaba no cambia).
+  Nunca `DELETE`. Idempotente (repetir cada sentencia da lo mismo). Si algo lanza a mitad, se deshace
+  todo. Los `Flow` emiten lo fusionado porque Room avisa al terminar la transacción.
+- **Sin UPSERT** (`INSERT … ON CONFLICT DO UPDATE`): necesita SQLite 3.24 y Android 10 (`minSdk` 29) trae
+  la 3.22. Tampoco `@Upsert` de Room: reescribe la fila entera, `pending` incluido.
 - **Tests** (`app/src/androidTest/.../data/progress/`, base en memoria): `RoomEnrollmentTest`,
   `RoomMasteryTest`, `RoomMasteryRequiresEnrollmentTest`, `RoomNoSessionTest`, `RoomProgressPerUserTest`,
-  `RoomProgressFlowTest` y `ProgressDaoInsertIfAbsentTest`; soporte en `RoomProgressTestSupport.kt`
-  (`RoomProgressRule`, `TestClock`, `listenTo`). Los `Flow` se esperan con un `Channel` (`receive()`), sin
+  `RoomProgressFlowTest` y `ProgressDaoInsertIfAbsentTest` (7b); `RoomPendingTest`, `RoomSettleQueueTest`,
+  `RoomSettleMergeTest`, `RoomSettleFlowTest`, `RoomSettleAtomicityTest` y `RoomProgressSyncTest`
+  (`ProgressSync` con Room y `FakeProgressGateway`) (7c); soporte en `RoomProgressTestSupport.kt`
+  (`RoomProgressRule`, `TestClock`, `listenTo`) y `RoomSyncTestSupport.kt` (`snapshot`, `enrollment`,
+  `assertSameSnapshot`, `allRows`). En la JVM, `ProgressRowsTest` (`app/src/test`). El todo o nada se
+  prueba con una fecha remota de 2300 en el último módulo: `InstantConverter` lanza al guardarla, a mitad
+  de `settle` (quitando el `@Transaction`, esos tests fallan). Los `Flow` se esperan con un `Channel` (`receive()`), sin
   `delay`; «no avisa» se prueba cambiando otra cosa, esperando a un segundo oyente de esa otra cosa
   (barrera) y comprobando que lo siguiente que llega es lo propio.
 

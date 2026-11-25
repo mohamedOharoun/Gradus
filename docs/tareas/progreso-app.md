@@ -4,7 +4,7 @@ Parte C y D del seguimiento del progreso (índice común: `docs/tareas/seguimien
 Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`. Rama:
 `dev/course-progress-tracking`.
 
-Estado: **tareas 9 y 10 hechas; 7a y 7b hechos (2026-11-25).** Siguiente: 7c.
+Estado: **tareas 9 y 10 hechas; 7a, 7b y 7c hechos (2026-11-25).** Siguiente: 7d.
 
 ## Relevo
 
@@ -13,9 +13,10 @@ Se **reescribe** al final de cada sesión; no se acumula.
 - **Dónde estamos (2026-11-25):** tareas 9 y 10 hechas y revisadas; 10b probado de punta a punta en el
   emulador por los usuarios. La app vuelve a permitir inscribirse (página de relleno desde Buscar) y
   estudiar, todavía con `InMemoryProgressStore` (se pierde al cerrar la app).
-- **Paso que toca:** 7c (Opus 5.5, esfuerzo alto), mensaje preparado. 7a y 7b hechos y revisados:
-  esquema Room y `RoomProgressStore` (`ProgressStore` + `EnrollmentStore`) en `app/.../data/progress/`,
-  todavía sin conectar a `AppContainer` (es 7d). `courseId` comprobado (C-4, en la arquitectura).
+- **Paso que toca:** 7d (Sonnet 5.5, esfuerzo medio), mensaje preparado. 7a, 7b y 7c hechos y
+  revisados: `RoomProgressStore` implementa los tres puertos (`ProgressStore`, `EnrollmentStore`,
+  `ProgressSyncStore`) en `app/.../data/progress/`, todavía sin conectar a `AppContainer` (es 7d).
+  `courseId` comprobado (C-4, en la arquitectura).
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
@@ -23,10 +24,10 @@ Se **reescribe** al final de cada sesión; no se acumula.
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo.
   - Hasta D11 la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
     no hay sesión (el camino sale vacío e inscribirse lanzaría). Conocido y aceptado hasta D11.
-- **Qué mirar en la próxima revisión (7c):** el SQL de `pending` y de `settle` línea a línea contra
-  el comentario de `ProgressSyncStore` y los invariantes (por clave y nunca por fecha, unión con fecha
-  mínima, lo pendiente que llega del servidor sigue pendiente, nunca `DELETE`, idempotente, una sola
-  transacción); que los `Flow` emitan tras `settle`; `ProgressSync` con Room y `FakeProgressGateway`.
+- **Qué mirar en la próxima revisión (7d):** que `progressStore` y `enrollmentStore` sean el mismo
+  objeto Room; la línea del manifiesto y `GradusApplication`, mínimas; que ningún test ni preview
+  toque la base real; el emulador (lo dominado sobrevive a cerrar la app; otro usuario no lo ve);
+  «Qué cuidar al mergear» al día (ya no es `InMemoryProgressStore`).
 - **Tests instrumentados:** con el emulador caído, `connectedDebugAndroidTest` acaba en BUILD SUCCESSFUL
   sin ejecutar nada: mirar siempre el XML de `app/build/outputs/androidTest-results/connected/debug/`
   (un solo fichero con todas las clases; contar `testcase name` y mirar el `timestamp`).
@@ -196,7 +197,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
     sin sesión, leer da vacío/`false` y el `Flow` termina, y escribir lanza; `pending` solo al insertar;
     los `Flow` no avisan de cambios en otros cursos.
   - Revisión: completa, comparando con los invariantes de la arquitectura.
-- **[ ] 7c · `ProgressSyncStore`: `pending` y `settle`.** Opus 5.5, esfuerzo alto.
+- **[x] 7c · `ProgressSyncStore`: `pending` y `settle`.** Opus 5.5, esfuerzo alto.
   - `settle` en una sola transacción; nunca `DELETE`.
   - Tests mínimos: `pending` (módulo pendiente dentro de una inscripción ya subida, solo los módulos
     pendientes, vacío sin datos); `settle` (saca por clave sin mirar fechas, ignora lo que no existe, lo
@@ -300,6 +301,17 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   arregló con un arranque en frío (`-no-snapshot-load`). Ojo: con el sistema caído, `connectedDebugAndroidTest`
   da `BUILD SUCCESSFUL` sin ejecutar nada; comprobar siempre el XML.
 
+- 2026-11-25: **7c hecho y revisado** (el orquestador lo ejecutó dos veces: 97 de 97 en el emulador, 7 + 11 en la JVM). `RoomProgressStore` implementa también `ProgressSyncStore`.
+  `ProgressDao`: seis consultas y dos métodos `@Transaction` con cuerpo (`pendingRows` y `settle`; KSP los
+  acepta en la interfaz, sin plan B ni `room-ktx`). Fichero nuevo `ProgressRows.kt` (*Mapper*). Sin UPSERT
+  (SQLite 3.22 en Android 10). Tests: `ProgressRowsTest` (7, JVM) y 40 instrumentados en 6 clases (soporte:
+  `RoomSyncTestSupport.kt`); con los de 7a y 7b, 97 de 97 dos veces seguidas en `Pixel_9a` (XML comprobado);
+  `:app:compileDebugKotlin` y KSP (`--rerun`) sin avisos nuevos. Todo o nada: fecha remota de 2300 en el
+  último módulo; sin `@Transaction` fallan 2 de los 3 tests de `RoomSettleAtomicityTest` (comprobado y
+  restaurado). Fuera del plan: `toSnapshot` empareja por usuario y curso (test); tests de más: las fechas de
+  `sent` no se guardan, módulo enviado que no existe, `pending` no lee la sesión, tras un `settle` fallido
+  el siguiente funciona, `ProgressSync` deja salir el fallo del almacén; los tres desenlaces sin 200.
+
 ## Siguiente paso
 
-Paso 7c: abrir un chat nuevo (Opus 5.5, esfuerzo alto) con el mensaje que ha preparado el orquestador.
+Paso 7d: abrir un chat nuevo (Sonnet 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
