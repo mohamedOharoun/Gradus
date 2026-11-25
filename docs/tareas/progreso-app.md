@@ -4,7 +4,7 @@ Parte C y D del seguimiento del progreso (índice común: `docs/tareas/seguimien
 Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`. Rama:
 `dev/course-progress-tracking`.
 
-Estado: **tareas 9 y 10 hechas; 7a hecho (2026-11-25).** Siguiente: 7b.
+Estado: **tareas 9 y 10 hechas; 7a y 7b hechos (2026-11-25).** Siguiente: 7c.
 
 ## Relevo
 
@@ -13,8 +13,9 @@ Se **reescribe** al final de cada sesión; no se acumula.
 - **Dónde estamos (2026-11-25):** tareas 9 y 10 hechas y revisadas; 10b probado de punta a punta en el
   emulador por los usuarios. La app vuelve a permitir inscribirse (página de relleno desde Buscar) y
   estudiar, todavía con `InMemoryProgressStore` (se pierde al cerrar la app).
-- **Paso que toca:** 7b (Opus 5.5, esfuerzo alto), mensaje preparado. 7a hecho y revisado: Room 2.8.5 +
-  KSP 2.3.14 funcionan con Kotlin 2.4.21 y AGP 9.5; esquema en `app/.../data/progress/`, sin conectar.
+- **Paso que toca:** 7c (Opus 5.5, esfuerzo alto), mensaje preparado. 7a y 7b hechos y revisados:
+  esquema Room y `RoomProgressStore` (`ProgressStore` + `EnrollmentStore`) en `app/.../data/progress/`,
+  todavía sin conectar a `AppContainer` (es 7d). `courseId` comprobado (C-4, en la arquitectura).
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
@@ -22,11 +23,13 @@ Se **reescribe** al final de cada sesión; no se acumula.
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo.
   - Hasta D11 la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
     no hay sesión (el camino sale vacío e inscribirse lanzaría). Conocido y aceptado hasta D11.
-- **Qué mirar en la próxima revisión (7b):** cada invariante de la arquitectura contra su test (por
-  usuario, primera fecha, `pending` solo al insertar, sin inscripción lanza `IllegalStateException` y
-  no deja filas, sin sesión el `Flow` termina, no avisa de otros cursos, conserva su usuario); que los
-  tests con `Flow` de Room no dependan de tiempos (Room avisa desde otro hilo); de dónde sale el
-  `courseId` (C-4: lo comprueba el orquestador).
+- **Qué mirar en la próxima revisión (7c):** el SQL de `pending` y de `settle` línea a línea contra
+  el comentario de `ProgressSyncStore` y los invariantes (por clave y nunca por fecha, unión con fecha
+  mínima, lo pendiente que llega del servidor sigue pendiente, nunca `DELETE`, idempotente, una sola
+  transacción); que los `Flow` emitan tras `settle`; `ProgressSync` con Room y `FakeProgressGateway`.
+- **Tests instrumentados:** con el emulador caído, `connectedDebugAndroidTest` acaba en BUILD SUCCESSFUL
+  sin ejecutar nada: mirar siempre el XML de `app/build/outputs/androidTest-results/connected/debug/`
+  (un solo fichero con todas las clases; contar `testcase name` y mirar el `timestamp`).
 - **Comprobar los tests:** leer el XML con `read_file` o un `grep` que imprima `<`/`>` se cuelga en
   esta máquina; usar `grep -o 'tests="[0-9]*" … timestamp="[^"]*"'` (sin las etiquetas). Si Android
   Studio tiene un Gradle ocupado, lanzar `./gradlew` desacoplado (`setsid nohup … > /tmp/log &`) y
@@ -187,7 +190,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   - Entidades, DAO, base de datos y *TypeConverter* de `Instant` en `app/.../data/progress/`.
   - Tests mínimos (`androidTest`): la FK impide un dominado sin inscripción; la fecha vuelve exacta.
   - Revisión: completa (diff de Gradle, sin avisos nuevos de compilación ni de Room).
-- **[ ] 7b · `RoomProgressStore`: `ProgressStore` + `EnrollmentStore`.** Opus 5.5, esfuerzo alto.
+- **[x] 7b · `RoomProgressStore`: `ProgressStore` + `EnrollmentStore`.** Opus 5.5, esfuerzo alto.
   - Tests mínimos (`androidTest`, ficheros temáticos): por usuario; inscribirse dos veces conserva la
     primera fecha; dominar sin inscripción lanza y no deja filas; dominar dos veces conserva la fecha;
     sin sesión, leer da vacío/`false` y el `Flow` termina, y escribir lanza; `pending` solo al insertar;
@@ -285,6 +288,18 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   es el principio de la clave primaria. Fuera del plan: el converter lanza `IllegalArgumentException` fuera de
   1677–2262 (test); tests de más: inscrito en otro curso, inscripción inexistente = `null`, `pending` se guarda tal cual.
 
+- 2026-11-25: **7b hecho y revisado** (el orquestador lo ejecutó dos veces: 57 de 57 con los de 7a). `RoomProgressStore(dao, sessions, clock)` (nuevo, `ProgressStore` +
+  `EnrollmentStore`, sin conectar) y en `ProgressDao` cuatro consultas: `insertEnrollmentIfAbsent` y
+  `insertMasteredModuleIfAbsent` (`INSERT OR IGNORE`), `watchEnrolled` (`EXISTS`) y `watchMasteredIds` (`Flow`).
+  `markMastered` comprueba la inscripción con `dao.enrollment` antes de insertar; sin transacción (decisión 7).
+  48 tests en 7 clases de `app/src/androidTest/.../data/progress/` (soporte: `RoomProgressTestSupport.kt`), en
+  verde dos veces seguidas en `Pixel_9a`; `:app:compileDebugKotlin` y KSP sin avisos nuevos. Los `Flow` se
+  esperan con un `Channel`, sin `delay`; «no avisa» usa una barrera (segundo oyente). Fuera del plan:
+  `assertIsThePortFailure` compartido; `ProgressDaoInsertIfAbsentTest` prueba el comentario del DAO. Aviso:
+  el emulador `Pixel_9a` entró en bucle (el HAL de UWB caía y el Watchdog mataba `system_server`); se
+  arregló con un arranque en frío (`-no-snapshot-load`). Ojo: con el sistema caído, `connectedDebugAndroidTest`
+  da `BUILD SUCCESSFUL` sin ejecutar nada; comprobar siempre el XML.
+
 ## Siguiente paso
 
-Paso 7b: abrir un chat nuevo (Opus 5.5, esfuerzo alto) con el mensaje que ha preparado el orquestador.
+Paso 7c: abrir un chat nuevo (Opus 5.5, esfuerzo alto) con el mensaje que ha preparado el orquestador.

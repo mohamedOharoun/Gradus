@@ -44,14 +44,15 @@ Paquete `course/progress/http/` (`internal`, traduce entre el modelo y el JSON; 
 | `decodeSyncResponse(body)` | Texto JSON de un 200 → `SyncResponse?` (`null` = no se puede leer; no lanza) | *Mapper*, función pura |
 | `HttpProgressGateway(client, baseUrl)` | Adaptador Ktor del puerto: `POST /api/progress/sync` con `Authorization: Bearer`. Solo HTTP: el JSON es de los mappers; las excepciones van por `callServer` | Adaptador (*Adapter*); `callServer` es una función de orden superior |
 
-Paquete `app/.../data/progress/` (Room, solo Android; desde 7a, **todavía sin conectar** a `AppContainer`: es 7d):
+Paquete `app/.../data/progress/` (Room, solo Android; desde 7a y 7b, **todavía sin conectar** a `AppContainer`: es 7d):
 
 | Pieza | Qué es | Patrón |
 |---|---|---|
 | `EnrollmentEntity` | Tabla `enrollments(user_id, course_id, enrolled_at, pending)`, clave primaria `(user_id, course_id)` | Entidad de persistencia (fila de tabla) |
 | `MasteredModuleEntity` | Tabla `mastered_modules(user_id, course_id, module_id, mastered_at, pending)`, clave primaria `(user_id, course_id, module_id)` y clave foránea `(user_id, course_id)` → `enrollments` (sin `onDelete`: nunca se borra). La clave foránea es el principio de la clave primaria, así que el índice de la clave primaria la cubre (sin índice aparte ni avisos de Room) | Entidad de persistencia |
 | `InstantConverter` | `Instant` ↔ `Long` en nanosegundos desde 1970: exacto y conserva el orden (`MIN` = la más antigua). Rango: 1677-09-21T00:12:43.145224192Z a 2262-04-11T23:47:16.854775807Z; fuera, `IllegalArgumentException` | *Adapter* (*TypeConverter*), funciones puras |
-| `ProgressDao` | Por ahora solo insertar y leer (`suspend`); las consultas de los puertos llegan en 7b y 7c | *DAO* (*Data Access Object*) |
+| `ProgressDao` | Insertar y leer (7a); `insert…IfAbsent` (`INSERT OR IGNORE`) y los `Flow` `watchEnrolled` / `watchMasteredIds` (7b). Nunca `DELETE`; lo de `ProgressSyncStore` llega en 7c | *DAO* (*Data Access Object*) |
+| `RoomProgressStore(dao, sessions, clock)` | Implementa `ProgressStore` y `EnrollmentStore` con Room, igual que `InMemoryProgressStore` (en 7c, también `ProgressSyncStore`) | *Adapter* de los puertos; *Interface Segregation*; inyección de dependencias (`ProgressDao`, `SessionStore`, `Clock`) |
 | `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
@@ -76,6 +77,29 @@ Cómo está hecho `InMemoryProgressStore`:
   Como cambia el mismo `StateFlow`, quien escucha `mastered` o `enrolled` se entera de lo fusionado.
 - `progressOf(userId)` es `internal` y de solo lectura: existe para que los tests vean todo el estado
   con sus fechas (los puertos no las exponen, y `pending` solo enseña lo pendiente). Se mantiene.
+
+Cómo está hecho `RoomProgressStore` (7b):
+
+- **Estado:** las tablas `enrollments` y `mastered_modules`; cada consulta filtra por
+  `user_id = session.account.id`.
+- **Escribir:** se lee la sesión (sin sesión, `IllegalStateException` como en memoria) y después se
+  inserta con `INSERT OR IGNORE` y `pending = true`. Si la fila ya existía no se toca: se conservan la
+  primera fecha y su `pending`.
+- **`markMastered`** comprueba la inscripción (`dao.enrollment`) **antes** de insertar y lanza la
+  `IllegalStateException` del puerto (con el `courseId`, nunca el token). La clave foránea es la segunda
+  capa: `OR IGNORE` no ignora las violaciones de clave foránea, así que nunca queda un dominado suelto.
+- **Sin transacción:** no hay baja (decisión 7), así que la inscripción comprobada sigue ahí al
+  insertar; dos `INSERT OR IGNORE` de la misma fila a la vez dejan una sola.
+- **Leer:** un `flow { … }` que lee la sesión **al empezar a escuchar** y luego emite el `Flow` de Room
+  con ese `userId`. Sin sesión emite el vacío y termina sin abrir la consulta. Room vuelve a consultar
+  con cualquier cambio en la tabla (otro curso, otro usuario): `distinctUntilChanged` no deja pasar el
+  valor repetido.
+- **Tests** (`app/src/androidTest/.../data/progress/`, base en memoria): `RoomEnrollmentTest`,
+  `RoomMasteryTest`, `RoomMasteryRequiresEnrollmentTest`, `RoomNoSessionTest`, `RoomProgressPerUserTest`,
+  `RoomProgressFlowTest` y `ProgressDaoInsertIfAbsentTest`; soporte en `RoomProgressTestSupport.kt`
+  (`RoomProgressRule`, `TestClock`, `listenTo`). Los `Flow` se esperan con un `Channel` (`receive()`), sin
+  `delay`; «no avisa» se prueba cambiando otra cosa, esperando a un segundo oyente de esa otra cosa
+  (barrera) y comprobando que lo siguiente que llega es lo propio.
 
 Cómo está hecho `ProgressSync`:
 
@@ -296,5 +320,10 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   vale `false` por defecto (la preview de `ScreenCourse` no lo pasa).
 - **`courseId` en mayúsculas:** `settle` compara el `courseId` tal cual, y el servidor lo devuelve en
   minúsculas (forma canónica). Si los ids de curso que usa el móvil vinieran en mayúsculas, el mismo
-  curso aparecería dos veces tras sincronizar. La parte C debe comprobar que los ids del catálogo
-  llegan en minúsculas (o normalizarlos al guardar).
+  curso aparecería dos veces tras sincronizar. **Comprobado en C (2026-11-25):** el móvil no inventa
+  ids. La página de inscripción usa el `id` de la búsqueda (`CourseSummaryDto.id`) y el camino y la
+  práctica el de `GET /api/courses/{id}` (`CourseVersionDto.id` → `Course.id`); los dos son el UUID
+  que crea el servidor, que lo escribe en minúsculas. Que son el mismo id lo probó el 10b en el
+  emulador (inscribirse en la página abre la práctica en el camino). Por eso no se normaliza. **Si
+  algún día un id llega de otro sitio** (un enlace, un id escrito a mano), normalízalo antes de usarlo
+  con los puertos. El curso de ejemplo (`estructuras-de-datos`) también va en minúsculas.
