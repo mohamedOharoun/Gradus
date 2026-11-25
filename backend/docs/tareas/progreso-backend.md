@@ -7,8 +7,7 @@ Rama: `dev/course-progress-tracking`. Proyecto: `backend/` (Maven, Java 25, Java
 Docker). Tests con JUnit Jupiter y repositorios en memoria: `./gradus.sh test` (`mvn test`) no necesita
 la base de datos. Commits: `… (progress task N)`.
 
-Estado: **parte A terminada (tareas 1–3); contrato congelado** (2026-11-25). Solo falta que los usuarios
-repitan 200, 400 y 401 en Yaak para marcar la casilla de la tarea 3. Lo terminado y sus decisiones:
+Estado: **parte A terminada y cerrada (tareas 1–3); contrato congelado** (2026-11-25). Lo terminado y sus decisiones:
 `progreso-backend-historico.md` (no hace falta leerlo para continuar).
 
 ## Relevo
@@ -21,9 +20,8 @@ sesión; no se acumula.
   JDBC, lector estricto y DTO (`web/progress/`) y `ProgressController`. 764 tests en verde. Los 16
   escenarios reales de 3b dieron lo esperado y los adaptadores JDBC no fallaron. El contrato
   (`backend/docs/api-progreso.md`) está **congelado** y avisado en el Relevo general.
-- **Pendiente de los usuarios:** repetir en Yaak «Sincronizar progreso (200)», el 400 (quitando
-  `enrollments`) y el 401 (quitando `Authorization`). Escribe una inscripción y un módulo en
-  `autora.cursos@example.com`. Con eso, el revisor marca la casilla de la tarea 3.
+- **Yaak (2026-11-25):** los usuarios repitieron 200, 400 y 401 con «Sincronizar progreso (200)», y todo
+  salió bien. Esa petición escribe una inscripción y un módulo en `autora.cursos@example.com`.
 - **Base de desarrollo:** tiene la `006` (`schema_migrations` de la 001 a la 006; la 005 es de
   valoraciones, de otra rama). Datos de prueba de 3b, que se dejan a propósito: `progress-a@example.test`
   (2 inscripciones, 313 módulos) y `progress-b@example.test` (2 inscripciones, 4 módulos), sin
@@ -104,7 +102,7 @@ Para la **tarea 3** (web):
    2b. [x] **Adaptadores JDBC** (Sonnet, esfuerzo medio). `JdbcCourseExistence`,
    `JdbcEnrollmentRepository` y las funciones puras `EnrollmentWriteOrder` y `EnrollmentRows`, con sus
    tests; `NoConnectionDataSource` (ayuda de test) comprueba que la entrada vacía no pide conexión.
-3. [ ] **Ruta `POST /api/progress/sync`.** Partida en 3a, 3b y 3c (plan aprobado el 2026-11-24).
+3. [x] **Ruta `POST /api/progress/sync`.** Partida en 3a, 3b y 3c (plan aprobado el 2026-11-24).
    ✅ Criterio de la tarea: tests del lector y del DTO (forma del JSON, fechas ISO, orden de la
    respuesta); con Yaak: 200, 400 con cuerpo malformado, 401 sin token; una petición de Yaak nueva
    guardada en `yaak/`; contrato congelado y avisado en el Relevo general.
@@ -236,9 +234,11 @@ Para la **tarea 3** (web):
   (`.123456789Z` → `.123457Z`); el año `0001-01-01T00:00:00Z` vuelve igual.
 - 2026-11-25: **3c hecha.** Contrato congelado, con lo decidido y lo comprobado en 3a y 3b (413 en
   `text/plain`, microsegundos, año 0001–9999, UTF-8 sin BOM, clave repetida, campos desconocidos,
-  orden). Avisado en el Relevo general para la parte B (B5). Casilla de la tarea 3, pendiente de Yaak.
+  orden). Avisado en el Relevo general para la parte B (B5).
+- 2026-11-25: los usuarios repitieron 200, 400 y 401 en Yaak, y todo salió bien. **Tarea 3 hecha;
+  parte A cerrada.**
 
 ## Siguiente paso
 
-Los usuarios repiten 200, 400 y 401 en Yaak; el revisor marca entonces la casilla de la tarea 3. La
-parte A queda cerrada; lo siguiente es la parte B, con su propio orquestador.
+Ninguno en la parte A. Lo siguiente es la parte B (`docs/tareas/progreso-logica.md`), con su propio
+orquestador. Se vuelve aquí solo para un cambio de contrato o un fallo del backend.
