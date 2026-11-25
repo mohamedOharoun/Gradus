@@ -34,6 +34,10 @@ sealed interface Route {
 
     // ── Dentro del grafo Main, pero sin barra (docs/tareas/camino-curso-y-ejercicios.md) ──
 
+    // Página de relleno de un curso (inscribirse e ir al camino). Solo lleva el id: Buscar no tiene el título.
+    @Serializable
+    data class CourseOverview(val courseId: String) : Route
+
     // El camino de un curso. data class (no object) porque lleva un dato: qué curso abrir.
     @Serializable
     data class Course(val courseId: String) : Route

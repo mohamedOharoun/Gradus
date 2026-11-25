@@ -12,8 +12,9 @@ Se **reescribe** al final de cada sesión; no se acumula.
 
 - **Dónde estamos (2026-11-25):** tarea 9 hecha y en commits (9a, 9b; 9b probado en el emulador por los
   usuarios). La app ya no se cierra, pero nadie puede inscribirse (ni, por tanto, estudiar) hasta 10b.
-- **Paso que toca:** 10b (Sonnet 5.5, esfuerzo medio), mensaje preparado. 10a hecho y revisado
-  (`EnrollmentViewModel`, `EnrollButton`, `EnrollmentState`; todavía sin usar en ninguna pantalla).
+- **Paso que toca:** cerrar 10b: código revisado (con el arreglo del fondo y de los márgenes del
+  sistema); falta la prueba de punta a punta en el emulador (usuarios). Después, 7a (mensaje preparado:
+  Opus 5.5, esfuerzo medio). 10a hecho.
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
@@ -266,6 +267,15 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   test de «sin sesión» usa `Assert.assertThrows` de JUnit con `runTest` dentro (sin trucos); no pude
   comprobarlo por mutación (la edición de prueba fue denegada). Añadí tests de la factoría, de tocar en
   `Unknown`/ya `Enrolled`, y de inscripción externa durante `Enrolling`.
+
+- 2026-11-25: **10b pendiente de revisión (arreglado el fondo y los márgenes del sistema)** (11 tests nuevos en `app/src/androidTest/.../screens/enrollment/
+  ScreenCourseOverviewTest`, en verde en el emulador `Pixel_9a`; `:app:compileDebugKotlin` sin avisos nuevos;
+  previews claro/oscuro vistas con y sin inscripción). Ficheros: `Route.CourseOverview(courseId)`,
+  `ui/screens/enrollment/ScreenCourseOverview.kt` (nuevo) y `MainNavGraph` (Buscar navega a la página; entrada
+  nueva que crea el `EnrollmentViewModel`). «Ir al camino» es `OutlinedButton` sin inscripción y
+  `PrimaryButton` inscrito, siempre activo. **Falta el emulador de punta a punta** (necesita cuenta):
+  iniciar sesión → Buscar → curso → página → «Inscribirme» → «Ir al camino» → dominar un módulo frontera;
+  «Atrás» vuelve a la página (inscrito) y luego a Buscar.
 
 ## Siguiente paso
 

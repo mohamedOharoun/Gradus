@@ -270,8 +270,12 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   inscripción (`tapModule`), y la entrada de `Route.Exercise` en `MainNavGraph` vuelve atrás según
   `exerciseViewModel.access` antes de componer `ScreenExercise`. Por eso `markMastered` ya no lanza en
   uso normal (y no se captura: si lanzara, sería un fallo de programación). Al resolver conflictos en
-  ese bloque, conserva el `when (exerciseViewModel.access)`. Hasta 10b nadie puede inscribirse: la
-  app no se cierra, pero no se puede estudiar.
+  ese bloque, conserva el `when (exerciseViewModel.access)`. Desde 10b se puede inscribir desde la
+  página de relleno del curso.
+- **Buscar abre `Route.CourseOverview` (10b):** en `MainNavGraph`, la pestaña Buscar navega con
+  `Route.CourseOverview(id)` (no `Route.Course(id)`); desde esa página, «Ir al camino» navega a
+  `Route.Course(id)`. Si `dev/joel` toca la navegación de Buscar, que conserve esa ruta (si no, nadie
+  llega a inscribirse). El `EnrollmentViewModel` se crea dentro de la entrada `composable<Route.CourseOverview>`.
 - **`CourseViewModel` (`mastered` y `enrolled`):** escucha los dos con `combine`; sin sesión ve el
   progreso vacío y sin inscripción; la sesión se lee al empezar a escuchar. `CourseUiState.enrolled`
   vale `false` por defecto (la preview de `ScreenCourse` no lo pasa).
