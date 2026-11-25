@@ -43,8 +43,9 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
   - Sin sesión, `mastered`/`enrolled` emiten el vacío y el `Flow` **termina**: la interfaz debe volver a
     escuchar al cambiar de sesión.
   - `AppContainer.kt`: B4 cambió **solo** la línea de `InMemoryProgressStore` (ahora recibe `sessionStore`).
-  - `markMastered` sin inscripción lanza excepción: la app **se cierra al dominar un módulo hasta
-    C9/C10** (no se captura; es el invariante). La rama no sirve para enseñar la app hasta entonces.
+  - `markMastered` sin inscripción lanza excepción (no se captura; es el invariante). **Resuelto en
+    C9/C10 (2026-11-25):** la puerta impide llegar a la práctica sin inscripción y la página de
+    relleno (desde Buscar) permite inscribirse. La rama vuelve a servir para enseñar la app.
   - **C9** prueba que, sin inscripción, no se abre ni un módulo frontera ni uno dominado (en B solo se
     prueba `studyAccess`, que no recibe el estado del módulo).
   - **`courseId` en minúsculas:** `settle` compara el id tal cual y el servidor lo devuelve en minúsculas;
@@ -56,17 +57,17 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     `Synced | SessionExpired | Unreachable | ServerFailure` (los textos, en la interfaz); no lanza por la
     red; dos `sync` a la vez no hacen daño (B-11). Si D13 quiere ahorrar llamadas, que lo decida con
     `pending(...).isEmpty`.
-- **Siguiente:** la parte C (C7 Room, C8 sincronizar, C9 la puerta, C10 el botón), con su orquestador.
-  Falta el permiso para Room + KSP.
+- **Siguiente:** parte C en curso (`docs/tareas/progreso-app.md`): C9 y C10 hechas; faltan C7 (Room)
+  y C8 (sincronizar). Room + KSP aprobados (C-1).
 - **Dependencias entre partes:**
   - A y B: **terminadas**.
-  - C: lo que necesitaba de A y B está hecho; solo falta el permiso para Room + KSP.
+  - C: en curso; lo que necesitaba de A y B está hecho y Room + KSP están aprobados.
   - D necesita C. WorkManager (D13) necesita la sesión persistente (D11).
 - **Cambios de contrato:** quien necesite cambiar `api-progreso.md` lo propone a los usuarios, lo
   apunta aquí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador. Ningún
   orquestador cambia el contrato por su cuenta después de congelarlo.
 - **Abierto (común):**
-  - Dependencias sin aprobar: Room + KSP (C) y WorkManager (D).
+  - Dependencias: Room 2.8.5 + KSP 2.3.14 aprobados (C-1, 2026-11-25); WorkManager (D) sin aprobar.
   - Coordinación con otras ramas: la migración es la `006` (la `005` es de valoraciones), y la rama
     `dev/joel` toca `CourseViewModel`, `ScreenCourse`, `MainNavGraph`, `AppContainer`,
     `libs.versions.toml` y `build.gradle.kts`: tocarlos lo mínimo (decisión 5).

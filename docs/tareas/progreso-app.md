@@ -4,17 +4,17 @@ Parte C y D del seguimiento del progreso (índice común: `docs/tareas/seguimien
 Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`. Rama:
 `dev/course-progress-tracking`.
 
-Estado: **plan de la parte C aprobado; tarea 9 hecha; 10a hecho (2026-11-25).** Siguiente: 10b.
+Estado: **tareas 9 y 10 hechas (2026-11-25).** Siguiente: 7a (Room + KSP).
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-25):** tarea 9 hecha y en commits (9a, 9b; 9b probado en el emulador por los
-  usuarios). La app ya no se cierra, pero nadie puede inscribirse (ni, por tanto, estudiar) hasta 10b.
-- **Paso que toca:** cerrar 10b: código revisado (con el arreglo del fondo y de los márgenes del
-  sistema); falta la prueba de punta a punta en el emulador (usuarios). Después, 7a (mensaje preparado:
-  Opus 5.5, esfuerzo medio). 10a hecho.
+- **Dónde estamos (2026-11-25):** tareas 9 y 10 hechas y revisadas; 10b probado de punta a punta en el
+  emulador por los usuarios. La app vuelve a permitir inscribirse (página de relleno desde Buscar) y
+  estudiar, todavía con `InMemoryProgressStore` (se pierde al cerrar la app).
+- **Paso que toca:** 7a (Opus 5.5, esfuerzo medio), mensaje preparado: primero Gradle y compilar;
+  si KSP falla, se para y se decide con los usuarios.
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
@@ -24,10 +24,9 @@ Se **reescribe** al final de cada sesión; no se acumula.
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo.
   - Hasta D11 la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
     no hay sesión (el camino sale vacío e inscribirse lanzaría). Conocido y aceptado hasta D11.
-- **Qué mirar en la próxima revisión (10b):** que «Ir al camino» viva solo en la página (no en
-  `EnrollButton`) y esté siempre activo; que el `EnrollmentViewModel` se cree con la entrada de la
-  página; que Buscar navegue a la página y no al camino; cambios mínimos en `Routes` y `MainNavGraph`;
-  emulador de punta a punta (inscribirse, ir al camino, dominar, sin cierre).
+- **Qué mirar en la próxima revisión (7a):** el diff de Gradle (solo lo aprobado en C-1); que KSP
+  compile de verdad; esquema de C-4 (claves, clave foránea, columnas `pending`); el converter de
+  `Instant` (exacto y conservando el orden); sin avisos nuevos de Room; nada conectado a `AppContainer`.
 - **Comprobar los tests:** leer el XML con `read_file` o un `grep` que imprima `<`/`>` se cuelga en
   esta máquina; usar `grep -o 'tests="[0-9]*" … timestamp="[^"]*"'` (sin las etiquetas). Si Android
   Studio tiene un Gradle ocupado, lanzar `./gradlew` desacoplado (`setsid nohup … > /tmp/log &`) y
@@ -159,7 +158,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   - Revisión: completa (código, tests, `:app:compileDebugKotlin`, emulador).
   - Emulador: Buscar → curso → tocar un módulo frontera: aviso, sin práctica y sin cierre.
 
-### [ ] 10. Botón de inscribirse y página de relleno
+### [x] 10. Botón de inscribirse y página de relleno
 
 - **[x] 10a · `EnrollmentViewModel` + `EnrollButton`.** Sonnet 5.5, esfuerzo medio.
   - Ficheros propios: el ViewModel (`courseId`, `EnrollmentStore`) expone si está inscrito y si se está
@@ -170,7 +169,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
     inscripción (`app/src/test`); el botón llama a `onEnroll` y no se puede pulsar mientras se inscribe
     y que inscrito está desactivado (`app/src/androidTest`).
   - Revisión: normal (código, tests, previews).
-- **[ ] 10b · Página de relleno y navegación.** Sonnet 5.5, esfuerzo medio.
+- **[x] 10b · Página de relleno y navegación.** Sonnet 5.5, esfuerzo medio.
   - `Route.CourseOverview(courseId)`, `ScreenCourseOverview` (texto genérico, `EnrollButton` e «Ir al
     camino», ver C-6); Buscar navega a ella; desde ella, al camino. «Ir al camino» vive en la página,
     no en `EnrollButton`: al sustituir la página se borra sin tocar el botón.
@@ -268,7 +267,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   comprobarlo por mutación (la edición de prueba fue denegada). Añadí tests de la factoría, de tocar en
   `Unknown`/ya `Enrolled`, y de inscripción externa durante `Enrolling`.
 
-- 2026-11-25: **10b pendiente de revisión (arreglado el fondo y los márgenes del sistema)** (11 tests nuevos en `app/src/androidTest/.../screens/enrollment/
+- 2026-11-25: **10b hecho y revisado; probado de punta a punta en el emulador por los usuarios** (tras arreglar el fondo y los márgenes del sistema) (11 tests nuevos en `app/src/androidTest/.../screens/enrollment/
   ScreenCourseOverviewTest`, en verde en el emulador `Pixel_9a`; `:app:compileDebugKotlin` sin avisos nuevos;
   previews claro/oscuro vistas con y sin inscripción). Ficheros: `Route.CourseOverview(courseId)`,
   `ui/screens/enrollment/ScreenCourseOverview.kt` (nuevo) y `MainNavGraph` (Buscar navega a la página; entrada
@@ -279,4 +278,4 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
 
 ## Siguiente paso
 
-Paso 10b: abrir un chat nuevo (Sonnet 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
+Paso 7a: abrir un chat nuevo (Opus 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
