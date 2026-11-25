@@ -21,8 +21,11 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `MasteredModule(moduleId, masteredAt)` | Un módulo dominado y su fecha | *Value object* (`data class`) |
 | `EnrollmentStore` | Puerto: `enrolled(courseId): Flow<Boolean>` y `suspend enroll(courseId)` | *Strategy* (puerto con implementaciones intercambiables) |
 | `ProgressStore` | Puerto: `mastered(courseId): Flow<Set<String>>` y `suspend markMastered(courseId, moduleId)` | *Strategy* |
-| `InMemoryProgressStore(sessions, clock)` | Implementa **los dos puertos** con un solo `MutableStateFlow`; la parte C pondrá Room en su lugar | *Interface Segregation* (un objeto, dos puertos pequeños); inyección de dependencias (`SessionStore`, `Clock`) |
-| `UserProgress` → `CourseProgress` (`internal`) | El estado de un usuario: `courses: courseId → CourseProgress(enrollment, mastered)` | Valor inmutable con transformaciones puras (enfoque funcional) |
+| `ProgressSnapshot(enrollments)` → `EnrollmentSnapshot(enrollment, mastered)` | Lo que se envía o se recibe al sincronizar, con la forma del contrato (lo dominado dentro de su inscripción). Las listas no tienen orden garantizado; `isEmpty` = nada que enviar | *Value object* / DTO de dominio |
+| `ProgressSyncStore` | Puerto de la sincronización: `suspend pending(userId)` y `suspend settle(userId, sent, remote)`; el usuario va por parámetro (decisión 11) | *Strategy* |
+| `InMemoryProgressStore(sessions, clock)` | Implementa **los tres puertos** con un solo `MutableStateFlow`; la parte C pondrá Room en su lugar | *Interface Segregation* (un objeto, tres puertos pequeños); inyección de dependencias (`SessionStore`, `Clock`) |
+| `UserProgress` → `CourseProgress` (`internal`) | El estado de un usuario: `courses: courseId → CourseProgress(enrollment, mastered, enrollmentPending, pendingModules)` | Valor inmutable con transformaciones puras (enfoque funcional) |
+| `UserProgress.pending()` y `.settled(sent, remote)` (`internal`, `UserProgressSync.kt`) | Las transformaciones puras de la sincronización | Funciones puras (extensión) |
 
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
 (`Clock.System` por defecto); los tests usan un `FakeClock`.
@@ -38,10 +41,16 @@ Cómo está hecho `InMemoryProgressStore`:
 - **Leer** (`mastered`, `enrolled`): un `flow { … }` que lee la sesión **al empezar a escuchar**.
   Sin sesión emite el vacío (`emptySet()` / `false`) y termina. Con `distinctUntilChanged` no avisa
   de cambios en otros cursos.
-- `progressOf(userId)` es `internal` y de solo lectura: existe para que los tests vean las fechas,
-  que los puertos no exponen. En 4c se decidirá si lo sustituye el puerto de pendientes.
+- **Lo pendiente es estado interno**, no va en `Enrollment` ni en `MasteredModule`:
+  `CourseProgress.enrollmentPending` y `CourseProgress.pendingModules` (ids, siempre ⊆
+  `mastered.keys`). `enroll` y `markMastered` lo marcan; lo que llega del servidor entra sin marcar.
+  En Room serán una columna `pending` en la tabla de inscripciones y otra en la de dominados.
+- **`settle`** es `update { … settled(sent, remote) }`: una sola transformación pura, atómica.
+  Como cambia el mismo `StateFlow`, quien escucha `mastered` o `enrolled` se entera de lo fusionado.
+- `progressOf(userId)` es `internal` y de solo lectura: existe para que los tests vean todo el estado
+  con sus fechas (los puertos no las exponen, y `pending` solo enseña lo pendiente). Se mantiene.
 
-*Pendiente (4c y siguientes).*
+*Pendiente (tareas 5 y 6).*
 
 ## Flujo
 
@@ -54,7 +63,18 @@ Inscribirse → estudiar → dominar → sincronizar.
 3. **Dominar:** `ProgressStore.markMastered(courseId, moduleId)` guarda el módulo con la fecha del
    `Clock`. Dominar dos veces conserva la primera fecha. Sin inscripción o sin sesión lanza
    `IllegalStateException` y no escribe nada.
-4. **Sincronizar:** *pendiente (tareas 4c, 5 y 6).*
+4. **Sincronizar** (lo que toca al almacén; el gateway y el caso de uso son las tareas 5 y 6):
+   1. `sent = pending(userId)`: cada inscripción pendiente y cada módulo pendiente, este dentro de
+      su inscripción aunque ya estuviera subida (el contrato no admite módulos sueltos). Si
+      `sent.isEmpty`, no hay nada que enviar.
+   2. Se envía `sent` (tarea 5). Mientras viaja, el estudiante puede seguir inscribiéndose y dominando.
+   3. Tras un 200: `settle(userId, sent, remote)`, en una sola operación:
+      - todo lo de `sent` sale de la cola **por clave** (curso; curso + módulo), nunca por fecha. Lo
+        omitido por el servidor (`skipped`) también sale y se conserva en el móvil (B-8);
+      - `remote` (todo el progreso del usuario en el servidor) se fusiona: unión, gana la fecha más
+        antigua, lo nuevo no queda pendiente, nada local se borra.
+      Lo hecho mientras la petición viajaba no está en `sent`: sigue pendiente.
+   4. Si no hay 200, no se llama a `settle`: todo sigue pendiente.
 
 ## Invariantes
 
@@ -71,6 +91,17 @@ Reglas que nunca se rompen (p. ej. no hay módulo dominado sin inscripción).
   (fallo de programación, no un caso de usuario).
 - **La primera fecha se conserva:** inscribirse o dominar otra vez no cambia ninguna fecha.
 - **No hay baja** (decisión 7): por eso comprobar la inscripción y escribir después es seguro.
+- **Un módulo pendiente está dominado:** `pendingModules ⊆ mastered.keys` (los tests lo comprueban
+  donde se marca y donde se fusiona).
+- **La cola se vacía por clave, nunca por fecha** (el servidor redondea a microsegundos). Lo que
+  `sent` tenga y el móvil no, se ignora.
+- **La fusión es unión y gana la fecha más antigua**, en los dos sentidos. Nunca borra nada local ni
+  cambia la marca de pendiente de lo que ya estaba: lo pendiente que también llega del servidor sigue
+  pendiente (reenviarlo es inofensivo).
+- **Fechas en el futuro:** si el reloj del móvil va adelantado, su fecha es más tardía que la que el
+  servidor recorta a su hora (regla 8). Al fusionar gana la más antigua, así que el móvil se queda con
+  la del servidor: los dos acaban con la misma fecha.
+- **`settle` es idempotente:** dos veces con lo mismo deja el mismo estado.
 - **Quien escucha conserva su usuario:** `mastered` y `enrolled` leen la sesión al empezar; si luego
   entra otro usuario, quien ya escuchaba no se entera de lo suyo. La interfaz debe volver a escuchar
   al cambiar de sesión.
@@ -94,7 +125,18 @@ Cómo pasa cada campo y cada respuesta de `POST /api/progress/sync` al modelo de
   4. Nunca escribas lo dominado por otro camino que no sea `markMastered`.
 - **Otra forma de guardar el progreso (otra base de datos, otro servidor):** implementa
   `ProgressStore` y `EnrollmentStore` cumpliendo los invariantes de arriba (por usuario, nada escrito
-  si falla, primera fecha, sin sesión). *Pendiente: detalle de Room en la parte C.*
+  si falla, primera fecha, sin sesión). Para sincronizar, implementa también `ProgressSyncStore`:
+  - Guarda lo pendiente como una columna (`pending`) en cada fila de inscripción y de módulo
+    dominado, no en los *value objects*. `enroll` y `markMastered` ponen `pending = true` al insertar
+    (y no lo tocan si la fila ya existía).
+  - `pending(userId)`: las inscripciones con `pending` o con algún módulo `pending`, cada una con solo
+    sus módulos `pending`.
+  - `settle` en **una sola transacción** (`@Transaction`): poner `pending = false` por clave en lo de
+    `sent` (sin mirar fechas; lo que no exista, se ignora), y después, por cada fila de `remote`,
+    insertar con `pending = false` si no existe o, si existe, quedarse con la fecha mínima sin tocar
+    `pending`. Nunca `DELETE`.
+  - Los `Flow` de `mastered` y `enrolled` deben emitir tras `settle` (con Room, al leer de las mismas
+    tablas, sale solo).
 
 ## Qué cuidar al mergear
 
@@ -107,3 +149,7 @@ Cómo pasa cada campo y cada respuesta de `POST /api/progress/sync` al modelo de
   esta rama no sirve para enseñar la app.
 - **`CourseViewModel` (`mastered`):** sin sesión ve el progreso vacío; la sesión se lee al empezar a
   escuchar.
+- **`courseId` en mayúsculas:** `settle` compara el `courseId` tal cual, y el servidor lo devuelve en
+  minúsculas (forma canónica). Si los ids de curso que usa el móvil vinieran en mayúsculas, el mismo
+  curso aparecería dos veces tras sincronizar. La parte C debe comprobar que los ids del catálogo
+  llegan en minúsculas (o normalizarlos al guardar).

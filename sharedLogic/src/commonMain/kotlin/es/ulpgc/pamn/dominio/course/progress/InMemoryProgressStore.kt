@@ -11,14 +11,14 @@ import kotlinx.coroutines.flow.update
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-// ProgressStore y EnrollmentStore en memoria: el progreso dura mientras la app está abierta
-// (como InMemorySessionStore). Un solo objeto cumple los dos puertos.
+// ProgressStore, EnrollmentStore y ProgressSyncStore en memoria: el progreso dura mientras la app
+// está abierta (como InMemorySessionStore). Un solo objeto cumple los tres puertos.
 // Un solo MutableStateFlow con el progreso de cada usuario: id de la cuenta de la sesión →
 // UserProgress. La sesión y el reloj se inyectan (el reloj, para fijar las fechas en los tests).
 class InMemoryProgressStore(
     private val sessions: SessionStore,
     private val clock: Clock = Clock.System,
-) : ProgressStore, EnrollmentStore {
+) : ProgressStore, EnrollmentStore, ProgressSyncStore {
 
     private val progress = MutableStateFlow<Map<String, UserProgress>>(emptyMap())
 
@@ -36,8 +36,15 @@ class InMemoryProgressStore(
         change { user, now -> user.masteredIn(courseId, moduleId, now) }
     }
 
-    // Solo para los tests: deja ver las fechas, que los puertos no exponen. Solo lectura.
-    // En la tarea 4c se decidirá si lo sustituye el puerto de pendientes.
+    override suspend fun pending(userId: String): ProgressSnapshot = progressOf(userId).pending()
+
+    // settled es pura: una sola update aplica las dos partes de golpe (atómico).
+    override suspend fun settle(userId: String, sent: ProgressSnapshot, remote: ProgressSnapshot) {
+        progress.update { all -> all + (userId to (all[userId] ?: UserProgress()).settled(sent, remote)) }
+    }
+
+    // Todo el estado de un usuario, con sus fechas (solo lectura). Lo usan pending y los tests
+    // (que necesitan ver también lo ya subido).
     internal fun progressOf(userId: String): UserProgress = progress.value[userId] ?: UserProgress()
 
     // La sesión se lee al empezar a escuchar (el bloque de flow se ejecuta entonces): quien ya

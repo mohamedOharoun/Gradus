@@ -39,19 +39,27 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     tiene que aceptar los tres formatos.
   - `skipped` sin `moduleId` (clave ausente, no `null`) = inscripción entera omitida.
   - La app no depende del orden de `enrollments` ni de `skipped`.
-- **Parte B (2026-11-25):** arrancada; plan y decisiones B-1 a B-7 en `docs/tareas/progreso-logica.md`.
-  Lo que afecta a la parte C:
-  - B4 cambia **solo** la línea de `InMemoryProgressStore` en `AppContainer.kt` (para que compile).
-  - Desde B4, `markMastered` sin inscripción lanza excepción: la app **se cierra al dominar un módulo
-    hasta C9/C10** (no se captura; es el invariante). La rama no sirve para enseñar la app hasta entonces.
-  - El puerto de pendientes (para Room) se define en **B4c**: C7 necesita B4 entera.
+- **Parte B (2026-11-25): tarea 4 terminada; la parte C puede empezar.** Decisiones B-1 a B-8 en
+  `docs/tareas/progreso-logica.md`; cómo es y qué debe cumplir Room, en **`docs/arquitectura-progreso.md`**
+  («Otra forma de guardar el progreso» e «Invariantes»). Lo que afecta a la parte C:
+  - Puertos que Room implementa (en `course/progress/`): `ProgressStore` y `EnrollmentStore` (leen la
+    sesión de `SessionStore`) y `ProgressSyncStore` (`pending(userId)`, `settle(userId, sent, remote)` en
+    una transacción). Lo pendiente es una columna en cada tabla, no un campo del modelo.
+  - Sin sesión, `mastered`/`enrolled` emiten el vacío y el `Flow` **termina**: la interfaz debe volver a
+    escuchar al cambiar de sesión.
+  - `AppContainer.kt`: B4 cambió **solo** la línea de `InMemoryProgressStore` (ahora recibe `sessionStore`).
+  - `markMastered` sin inscripción lanza excepción: la app **se cierra al dominar un módulo hasta
+    C9/C10** (no se captura; es el invariante). La rama no sirve para enseñar la app hasta entonces.
   - **C9** prueba que, sin inscripción, no se abre ni un módulo frontera ni uno dominado (en B solo se
     prueba `studyAccess`, que no recibe el estado del módulo).
-- **Siguiente:** parte B en curso (paso 4a). Después, C y D.
+  - **`courseId` en minúsculas:** `settle` compara el id tal cual y el servidor lo devuelve en minúsculas;
+    C debe comprobar que los ids del catálogo llegan así (o normalizarlos al guardar).
+  - Lo omitido por el servidor (`skipped`) sale de la cola y el móvil lo conserva (B-8).
+- **Siguiente:** parte B sigue con la tarea 5 (gateway HTTP) y la 6 (`ProgressSync`). La parte C puede
+  arrancar C7 en paralelo (falta el permiso para Room + KSP).
 - **Dependencias entre partes:**
   - A y B: independientes; las une el contrato, **ya congelado**: B5 (gateway HTTP) puede empezar.
-  - C necesita B4 entera (puertos, incluido el de pendientes de 4c) y el permiso para Room + KSP.
-    C8 (sincronizar) necesita A3, B5 y B6.
+  - C necesita B4 (**hecha**) y el permiso para Room + KSP. C8 (sincronizar) necesita A3, B5 y B6.
   - D necesita C. WorkManager (D13) necesita la sesión persistente (D11).
 - **Cambios de contrato:** quien necesite cambiar `api-progreso.md` lo propone a los usuarios, lo
   apunta aquí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador. Ningún

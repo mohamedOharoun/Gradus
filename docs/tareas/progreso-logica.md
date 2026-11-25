@@ -29,11 +29,11 @@ llamar a estos casos de uso.
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-25):** 4a y 4b hechos y revisados. `InMemoryProgressStore(sessions, clock)` cumple
-  `ProgressStore` y `EnrollmentStore` por usuario, con lo dominado anidado en su inscripción
-  (`UserProgress` → `CourseProgress`). Detalle en `docs/arquitectura-progreso.md`.
-- **Toca:** paso **4c** (puerto de pendientes; mensaje al implementador preparado por el orquestador).
-  Cuando 4c esté hecho, B4 queda entera: reescribir el Relevo general (desbloquea la parte C).
+- **Estado (2026-11-25):** **tarea 4 terminada** (4a, 4b y 4c revisados; 76 tests de progreso).
+  `InMemoryProgressStore(sessions, clock)` cumple `ProgressStore`, `EnrollmentStore` y
+  `ProgressSyncStore`. Relevo general reescrito: la parte C puede empezar. Detalle en
+  `docs/arquitectura-progreso.md`.
+- **Toca:** paso **5a** (DTO y *mapper*; mensaje al implementador preparado por el orquestador).
 - **Riesgos:**
   - `ExerciseViewModel.markMastered` lanza la excepción en la app hasta C9/C10 (B-2, aceptado).
   - El servidor redondea las fechas a microsegundos: nada debe emparejar lo enviado con lo recibido
@@ -41,13 +41,10 @@ Se **reescribe** al final de cada sesión.
   - Gradle: `--rerun` a veces da `testAndroidHostTest NO-SOURCE` (no ejecuta nada). Orden fiable:
     `./gradlew :sharedLogic:compileAndroidHostTest --rerun :sharedLogic:testAndroidHostTest --rerun`;
     comprobar en los XML de `build/test-results/` que la hora es la de la ejecución.
-- **Qué mirar en la revisión de 4c:** el `pending` de cada inscripción y de cada módulo no está en los
-  *value objects* públicos (`Enrollment`, `MasteredModule`) sino en el estado interno; `settle` es una
-  sola transformación pura dentro de `update`; todo lo enviado sale de la cola, y lo marcado durante la
-  petición no; la fusión es unión con la fecha más antigua y avisa a quien escucha; el comentario del
-  puerto dice lo que Room tiene que cumplir (en una sola transacción).
-- **Abierto para 4c:** si `pending` sustituye a `progressOf` (se mantiene si los tests de fechas lo
-  necesitan); si `settle` necesita `skipped` (ver el mensaje de 4c).
+- **Qué mirar en la revisión de 5a:** cada punto de B-5 con su test (DTO de la petición sin valores por
+  defecto y `"mastered":[]` en el texto; fechas con 0, 3 y 6 decimales; `skipped` con y sin `moduleId`,
+  también `" "`); respuesta estricta en lo obligatorio y tolerante con lo desconocido; un cuerpo
+  ilegible da «no se puede leer», nunca una excepción hacia fuera; nada de HTTP (eso es 5b).
 
 ## Lo que ya hay y sirve de modelo
 
@@ -101,12 +98,16 @@ Se **reescribe** al final de cada sesión.
   **ahora** (no su historia): mapa de piezas y patrones, flujo, invariantes, contrato ↔ DTO, cómo
   extenderlo (p. ej. un tipo de ejercicio nuevo) y qué cuidar al mergear. Cada paso actualiza su
   sección; el orquestador la revisa con el código. C y D añaden las suyas.
+- **B-8. Lo omitido por el servidor (`skipped`) sale de la cola y el móvil lo conserva** (contrato: «el
+  móvil las quita de su cola de pendientes»; borrarlo sería una baja, decisión 7). Por tanto **todo lo
+  enviado sale de la cola** tras un 200, por clave; `settle` no necesita `skipped`, y la comparación sin
+  mayúsculas de B-5 ya no hace falta para la cola (el gateway sigue devolviendo `skipped`).
 
 ## Tareas
 
 La casilla la marca el orquestador de la parte tras revisar. Los tests nombrados son el mínimo.
 
-### [ ] 4. Modelo, puertos y `studyAccess`
+### [x] 4. Modelo, puertos y `studyAccess`
 
 Criterios de aceptación:
 - `studyAccess(enrolled)` devuelve `Allowed | NotEnrolled` (sellado), sin textos.
@@ -134,14 +135,18 @@ Pasos (cada uno: propuesta → OK → tests primero; actualiza su sección de la
   - Tests mínimos: por usuario; inscribirse dos veces conserva la primera fecha; dominar sin
     inscripción lanza y no deja filas; sin sesión, leer da vacío y escribir lanza; la fecha sale del
     `Clock`; inscrito y sin gateway (sin conexión) → `Allowed`.
-- [ ] **4c. Puerto de pendientes** · Opus 5.5, esfuerzo medio · revisión a fondo (de su forma depende
+- [x] **4c. Puerto de pendientes** · Opus 5.5, esfuerzo medio · revisión a fondo (de su forma depende
   el esquema Room de C7).
-  - `ProgressSnapshot`, `Skipped` (inscripción entera o módulo), `pending(userId)` y
-    `settle(userId, sent, remote, skipped)` atómico; versión en memoria. El usuario va por parámetro
-    (decisión 11); `ProgressStore` no cambia (decisión 8).
-  - Tests mínimos: marcar lo subido por clave; lo dominado durante la petición sigue pendiente; en la
-    fusión gana la fecha más antigua; lo omitido sale de la cola (inscripción entera o solo el módulo);
-    `courseId` sin distinguir mayúsculas.
+  - Modelo público con la forma del contrato: `ProgressSnapshot(enrollments: List<EnrollmentSnapshot>)`,
+    `EnrollmentSnapshot(enrollment, mastered: List<MasteredModule>)`. Puerto `ProgressSyncStore`:
+    `pending(userId)` y `settle(userId, sent, remote)` atómico (sin `skipped`: B-8). Lo pendiente es
+    estado interno de `CourseProgress` (`enrollmentPending`, `pendingModules` ⊆ `mastered.keys`), que en
+    Room será una columna en cada tabla. `settle` = quitar de la cola lo de `sent` por clave y después
+    fusionar `remote` (lo nuevo, no pendiente; lo que ya existía, fecha mínima y su marca intacta).
+    Versión en memoria; `progressOf` se mantiene. El usuario va por parámetro (decisión 11).
+  - Tests mínimos: los de la propuesta aprobada (`PendingProgressTest`, `SettleQueueTest`,
+    `SettleMergeTest`), más: una fecha futura del móvil queda sustituida por la recortada del servidor;
+    `isEmpty`; los tests no dependen del orden de las listas.
 
 ### [ ] 5. `ProgressGateway` HTTP
 
@@ -182,7 +187,11 @@ Tests añadidos a los mínimos: `ServerFailure` deja lo pendiente; un 200 sin ca
 - 2026-11-25: **4b hecho y revisado.** Fuera del plan, aprobado: `progressOf(userId)` `internal` para
   ver fechas en los tests; sin sesión, el `Flow` emite el vacío y **termina** (la interfaz debe volver a
   escuchar al cambiar de sesión). 48 tests de progreso en verde.
+- 2026-11-25: **4c hecho y revisado; tarea 4 terminada.** `progressOf` se mantiene (lo usan los tests
+  y `pending`). Lo pendiente que también llega del servidor sigue pendiente (reenviarlo es inofensivo).
+  Tests de «quien escucha» con `backgroundScope` + `yield()` (sin `UnconfinedTestDispatcher`, que pide
+  *opt-in*).
 
 ## Siguiente paso
 
-Paso 4c: abrir un chat nuevo con el mensaje del orquestador (Opus 5.5, esfuerzo medio).
+Paso 5a: abrir un chat nuevo con el mensaje del orquestador (Sonnet 5.5, esfuerzo medio).
