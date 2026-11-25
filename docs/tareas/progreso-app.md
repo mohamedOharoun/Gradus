@@ -4,7 +4,7 @@ Parte C y D del seguimiento del progreso (índice común: `docs/tareas/seguimien
 Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`. Rama:
 `dev/course-progress-tracking`.
 
-Estado: **tareas 9 y 10 hechas (2026-11-25).** Siguiente: 7a (Room + KSP).
+Estado: **tareas 9 y 10 hechas; 7a hecho (2026-11-25).** Siguiente: 7b.
 
 ## Relevo
 
@@ -13,20 +13,20 @@ Se **reescribe** al final de cada sesión; no se acumula.
 - **Dónde estamos (2026-11-25):** tareas 9 y 10 hechas y revisadas; 10b probado de punta a punta en el
   emulador por los usuarios. La app vuelve a permitir inscribirse (página de relleno desde Buscar) y
   estudiar, todavía con `InMemoryProgressStore` (se pierde al cerrar la app).
-- **Paso que toca:** 7a (Opus 5.5, esfuerzo medio), mensaje preparado: primero Gradle y compilar;
-  si KSP falla, se para y se decide con los usuarios.
+- **Paso que toca:** 7b (Opus 5.5, esfuerzo alto), mensaje preparado. 7a hecho y revisado: Room 2.8.5 +
+  KSP 2.3.14 funcionan con Kotlin 2.4.21 y AGP 9.5; esquema en `app/.../data/progress/`, sin conectar.
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
-  - KSP 2.3.14 con Kotlin 2.4.21 y el Kotlin integrado de AGP 9.5 no está comprobado: el paso 7a lo
-    comprueba antes de escribir código y, si falla, se para.
   - La rama `dev/joel` toca `AppContainer`, `CourseViewModel`, `ScreenCourse`, `MainNavGraph`,
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo.
   - Hasta D11 la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
     no hay sesión (el camino sale vacío e inscribirse lanzaría). Conocido y aceptado hasta D11.
-- **Qué mirar en la próxima revisión (7a):** el diff de Gradle (solo lo aprobado en C-1); que KSP
-  compile de verdad; esquema de C-4 (claves, clave foránea, columnas `pending`); el converter de
-  `Instant` (exacto y conservando el orden); sin avisos nuevos de Room; nada conectado a `AppContainer`.
+- **Qué mirar en la próxima revisión (7b):** cada invariante de la arquitectura contra su test (por
+  usuario, primera fecha, `pending` solo al insertar, sin inscripción lanza `IllegalStateException` y
+  no deja filas, sin sesión el `Flow` termina, no avisa de otros cursos, conserva su usuario); que los
+  tests con `Flow` de Room no dependan de tiempos (Room avisa desde otro hilo); de dónde sale el
+  `courseId` (C-4: lo comprueba el orquestador).
 - **Comprobar los tests:** leer el XML con `read_file` o un `grep` que imprima `<`/`>` se cuelga en
   esta máquina; usar `grep -o 'tests="[0-9]*" … timestamp="[^"]*"'` (sin las etiquetas). Si Android
   Studio tiene un Gradle ocupado, lanzar `./gradlew` desacoplado (`setsid nohup … > /tmp/log &`) y
@@ -182,7 +182,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
 
 ### [ ] 7. Room por usuario
 
-- **[ ] 7a · Dependencias y esquema.** Opus 5.5, esfuerzo medio.
+- **[x] 7a · Dependencias y esquema.** Opus 5.5, esfuerzo medio.
   - Primero: añadir Room + KSP (C-1), sincronizar y compilar `:app` vacío; si KSP falla, parar y avisar.
   - Entidades, DAO, base de datos y *TypeConverter* de `Instant` en `app/.../data/progress/`.
   - Tests mínimos (`androidTest`): la FK impide un dominado sin inscripción; la fecha vuelve exacta.
@@ -276,6 +276,15 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   iniciar sesión → Buscar → curso → página → «Inscribirme» → «Ir al camino» → dominar un módulo frontera;
   «Atrás» vuelve a la página (inscrito) y luego a Buscar.
 
+- 2026-11-25: **7a hecho y revisado.** KSP 2.3.14 funciona con Kotlin 2.4.21 y el Kotlin integrado de
+  AGP 9.5 (genera `ProgressDao_Impl` y `ProgressDatabase_Impl`); no hace falta `room-ktx` para los `suspend`.
+  Ficheros nuevos en `app/.../data/progress/`: `EnrollmentEntity`, `MasteredModuleEntity`, `InstantConverter`,
+  `ProgressDao` (solo insertar y leer), `ProgressDatabase` con `create(context, name = DATABASE_NAME)`. Tests:
+  `InstantConverterTest` (11, JVM) y `ProgressDatabaseTest` (9, emulador `Pixel_9a`), en verde;
+  `:app:compileDebugKotlin` sin avisos nuevos. El aviso de índice de la clave foránea no aparece: la clave foránea
+  es el principio de la clave primaria. Fuera del plan: el converter lanza `IllegalArgumentException` fuera de
+  1677–2262 (test); tests de más: inscrito en otro curso, inscripción inexistente = `null`, `pending` se guarda tal cual.
+
 ## Siguiente paso
 
-Paso 7a: abrir un chat nuevo (Opus 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
+Paso 7b: abrir un chat nuevo (Opus 5.5, esfuerzo alto) con el mensaje que ha preparado el orquestador.

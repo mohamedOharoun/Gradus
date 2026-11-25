@@ -44,6 +44,16 @@ Paquete `course/progress/http/` (`internal`, traduce entre el modelo y el JSON; 
 | `decodeSyncResponse(body)` | Texto JSON de un 200 → `SyncResponse?` (`null` = no se puede leer; no lanza) | *Mapper*, función pura |
 | `HttpProgressGateway(client, baseUrl)` | Adaptador Ktor del puerto: `POST /api/progress/sync` con `Authorization: Bearer`. Solo HTTP: el JSON es de los mappers; las excepciones van por `callServer` | Adaptador (*Adapter*); `callServer` es una función de orden superior |
 
+Paquete `app/.../data/progress/` (Room, solo Android; desde 7a, **todavía sin conectar** a `AppContainer`: es 7d):
+
+| Pieza | Qué es | Patrón |
+|---|---|---|
+| `EnrollmentEntity` | Tabla `enrollments(user_id, course_id, enrolled_at, pending)`, clave primaria `(user_id, course_id)` | Entidad de persistencia (fila de tabla) |
+| `MasteredModuleEntity` | Tabla `mastered_modules(user_id, course_id, module_id, mastered_at, pending)`, clave primaria `(user_id, course_id, module_id)` y clave foránea `(user_id, course_id)` → `enrollments` (sin `onDelete`: nunca se borra). La clave foránea es el principio de la clave primaria, así que el índice de la clave primaria la cubre (sin índice aparte ni avisos de Room) | Entidad de persistencia |
+| `InstantConverter` | `Instant` ↔ `Long` en nanosegundos desde 1970: exacto y conserva el orden (`MIN` = la más antigua). Rango: 1677-09-21T00:12:43.145224192Z a 2262-04-11T23:47:16.854775807Z; fuera, `IllegalArgumentException` | *Adapter* (*TypeConverter*), funciones puras |
+| `ProgressDao` | Por ahora solo insertar y leer (`suspend`); las consultas de los puertos llegan en 7b y 7c | *DAO* (*Data Access Object*) |
+| `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
+
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
 (`Clock.System` por defecto); los tests usan un `FakeClock`.
 
@@ -257,6 +267,11 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
 
 ## Qué cuidar al mergear
 
+- **Gradle con Room y KSP (7a):** `gradle/libs.versions.toml` (`room`, `ksp`, `androidx-room-runtime`,
+  `androidx-room-compiler` y el plugin `ksp`), el `build.gradle.kts` raíz (`alias(libs.plugins.ksp) apply false`)
+  y `app/build.gradle.kts` (el plugin, `room-runtime`, `ksp(room-compiler)` y `kotlinx-coroutines-test`
+  en `androidTestImplementation`). `dev/joel` también toca estos tres ficheros: al resolver conflictos,
+  conserva las líneas de los dos lados.
 - **`app/.../data/AppContainer.kt`, progreso (desde 9b):** un solo almacén con dos caras:
   `private val inMemoryProgress by lazy { InMemoryProgressStore(sessionStore) }` y, encima,
   `val progressStore: ProgressStore get() = inMemoryProgress` y
