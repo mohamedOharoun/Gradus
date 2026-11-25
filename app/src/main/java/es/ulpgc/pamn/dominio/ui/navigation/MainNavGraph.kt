@@ -16,6 +16,7 @@ import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.navigation
 import androidx.navigation.toRoute
+import es.ulpgc.pamn.dominio.course.progress.StudyAccess
 import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
@@ -70,7 +71,9 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         composable<Route.Course> { entry ->
             val route = entry.toRoute<Route.Course>()
             val courseViewModel: CourseViewModel = viewModel(
-                factory = CourseViewModel.factory(route.courseId, AppContainer.courseGateway, AppContainer.progressStore),
+                factory = CourseViewModel.factory(
+                    route.courseId, AppContainer.courseGateway, AppContainer.progressStore, AppContainer.enrollmentStore,
+                ),
             )
             // Módulo desbloqueado tocado: se abre su práctica y se borra el evento.
             val practiceToOpen = (courseViewModel.state as? CourseScreenState.Ready)?.ui?.practiceToOpen
@@ -102,8 +105,20 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                 return@composable
             }
             val exerciseViewModel: ExerciseViewModel = viewModel(
-                factory = ExerciseViewModel.factory(course, route.moduleId, AppContainer.progressStore),
+                factory = ExerciseViewModel.factory(
+                    course, route.moduleId, AppContainer.progressStore, AppContainer.enrollmentStore,
+                ),
             )
+            // La puerta la decide el ViewModel: mientras se comprueba no se enseña nada; sin inscripción
+            // se vuelve al camino sin componer la práctica (y así nunca se llega a markMastered).
+            when (exerciseViewModel.access) {
+                null -> return@composable
+                StudyAccess.NotEnrolled -> {
+                    LaunchedEffect(Unit) { navController.popBackStack() }
+                    return@composable
+                }
+                StudyAccess.Allowed -> Unit
+            }
             val study = exerciseViewModel.study
             if (study == null) {
                 LaunchedEffect(Unit) { navController.popBackStack() }

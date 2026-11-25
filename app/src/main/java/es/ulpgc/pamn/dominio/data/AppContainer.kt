@@ -6,6 +6,7 @@ import es.ulpgc.pamn.dominio.account.InMemorySessionStore
 import es.ulpgc.pamn.dominio.account.SessionStore
 import es.ulpgc.pamn.dominio.course.CachingCourseGateway
 import es.ulpgc.pamn.dominio.course.CourseGateways
+import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.InMemoryProgressStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 
@@ -28,8 +29,11 @@ object AppContainer {
     // práctica comparten el curso descargado sin volver a pedirlo.
     val courseGateway: CachingCourseGateway by lazy { CachingCourseGateway(CourseGateways.http(BASE_URL)) }
 
-    // Qué módulos ha dominado el usuario. De momento en memoria: se pierde al cerrar la app.
-    val progressStore: ProgressStore by lazy { InMemoryProgressStore(sessionStore) }
+    // Progreso e inscripciones. De momento en memoria: se pierde al cerrar la app. Un solo objeto con
+    // dos caras: el MISMO almacén como ProgressStore y como EnrollmentStore.
+    private val inMemoryProgress by lazy { InMemoryProgressStore(sessionStore) }
+    val progressStore: ProgressStore get() = inMemoryProgress
+    val enrollmentStore: EnrollmentStore get() = inMemoryProgress
 
     // La sesión iniciada. De momento en memoria: se pierde al cerrar la app (tarea 6: guardarla cifrada).
     val sessionStore: SessionStore by lazy { InMemorySessionStore() }

@@ -252,15 +252,24 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
 
 ## Qué cuidar al mergear
 
-- **`app/.../data/AppContainer.kt`, línea de `progressStore`:** debe ser
-  `InMemoryProgressStore(sessionStore)`. Sin el parámetro no compila. Si `dev/joel` también toca
-  `AppContainer`, conserva el `sessionStore` al resolver el conflicto (`sessionStore` está declarado
-  después, pero es `lazy`: no importa el orden).
-- **`ExerciseViewModel.markMastered` lanzará la excepción** al dominar un módulo hasta que la parte C
-  añada el botón de inscribirse (C9/C10). Está aceptado y no se arregla capturándola. Hasta entonces,
-  esta rama no sirve para enseñar la app.
-- **`CourseViewModel` (`mastered`):** sin sesión ve el progreso vacío; la sesión se lee al empezar a
-  escuchar.
+- **`app/.../data/AppContainer.kt`, progreso (desde 9b):** un solo almacén con dos caras:
+  `private val inMemoryProgress by lazy { InMemoryProgressStore(sessionStore) }` y, encima,
+  `val progressStore: ProgressStore get() = inMemoryProgress` y
+  `val enrollmentStore: EnrollmentStore get() = inMemoryProgress`. Tienen que ser **el mismo objeto**
+  (si fueran dos, inscribirse no abriría nada). Si `dev/joel` también toca `AppContainer`, conserva
+  las tres líneas y el `sessionStore` (declarado después, pero `lazy`: no importa el orden).
+- **Factorías con un parámetro más (9b):** `CourseViewModel.factory(…, progress, enrollment)` y
+  `ExerciseViewModel.factory(course, moduleId, progress, enrollment)`. Si `dev/joel` crea estos
+  ViewModel en otro sitio, tiene que pasar `AppContainer.enrollmentStore`.
+- **`ExerciseViewModel` ya no se alcanza sin inscripción (9b):** el camino no abre la práctica sin
+  inscripción (`tapModule`), y la entrada de `Route.Exercise` en `MainNavGraph` vuelve atrás según
+  `exerciseViewModel.access` antes de componer `ScreenExercise`. Por eso `markMastered` ya no lanza en
+  uso normal (y no se captura: si lanzara, sería un fallo de programación). Al resolver conflictos en
+  ese bloque, conserva el `when (exerciseViewModel.access)`. Hasta 10b nadie puede inscribirse: la
+  app no se cierra, pero no se puede estudiar.
+- **`CourseViewModel` (`mastered` y `enrolled`):** escucha los dos con `combine`; sin sesión ve el
+  progreso vacío y sin inscripción; la sesión se lee al empezar a escuchar. `CourseUiState.enrolled`
+  vale `false` por defecto (la preview de `ScreenCourse` no lo pasa).
 - **`courseId` en mayúsculas:** `settle` compara el `courseId` tal cual, y el servidor lo devuelve en
   minúsculas (forma canónica). Si los ids de curso que usa el móvil vinieran en mayúsculas, el mismo
   curso aparecería dos veces tras sincronizar. La parte C debe comprobar que los ids del catálogo

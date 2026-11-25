@@ -9,8 +9,12 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.exercise.ExerciseState
+import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
+import es.ulpgc.pamn.dominio.course.progress.StudyAccess
+import es.ulpgc.pamn.dominio.course.progress.studyAccess
 import es.ulpgc.pamn.dominio.course.study.ModuleStudy
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
@@ -22,17 +26,33 @@ class ExerciseViewModel(
     course: Course,
     moduleId: String,
     private val progress: ProgressStore,
+    enrollment: EnrollmentStore,
     private val random: Random,
 ) : ViewModel() {
 
     companion object {
-        fun factory(course: Course, moduleId: String, progress: ProgressStore, random: Random = Random.Default) =
-            viewModelFactory { initializer { ExerciseViewModel(course, moduleId, progress, random) } }
+        fun factory(
+            course: Course,
+            moduleId: String,
+            progress: ProgressStore,
+            enrollment: EnrollmentStore,
+            random: Random = Random.Default,
+        ) = viewModelFactory { initializer { ExerciseViewModel(course, moduleId, progress, enrollment, random) } }
     }
+
+    // La puerta: null mientras se lee la inscripción (no se enseña nada); NotEnrolled, la pantalla
+    // vuelve atrás sin componer la práctica; Allowed, se enseña. Basta con el primer valor: no hay
+    // «darse de baja» (decisión 7), así que quien está inscrito al abrir lo sigue estando.
+    var access by mutableStateOf<StudyAccess?>(null)
+        private set
 
     // null: el módulo no existe en el curso (la pantalla vuelve al camino).
     var study by mutableStateOf(ModuleStudy.start(course, moduleId, random))
         private set
+
+    init {
+        viewModelScope.launch { access = studyAccess(enrollment.enrolled(course.id).first()) }
+    }
 
     fun onChoose(option: Int) = update { it.choose(option) }
     fun onLeftClick(index: Int) = update { it.tapLeft(index) }

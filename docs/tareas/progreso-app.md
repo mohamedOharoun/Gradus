@@ -4,16 +4,16 @@ Parte C y D del seguimiento del progreso (índice común: `docs/tareas/seguimien
 Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`. Rama:
 `dev/course-progress-tracking`.
 
-Estado: **plan de la parte C aprobado; 9a hecho y revisado (2026-11-25).** Siguiente: paso 9b.
+Estado: **plan de la parte C aprobado; 9a hecho; 9b revisado, falta la prueba en el emulador (2026-11-25).**
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-25):** 9a hecho y revisado: `Course.tapModule` en `sharedLogic` (11 tests).
-  La app sigue con `InMemoryProgressStore` y **se cierra al dominar un módulo** hasta el paso 9b; tras
-  9b no se cierra, pero nadie puede inscribirse (ni, por tanto, estudiar) hasta 10b.
-- **Paso que toca:** 9b (mensaje preparado por el orquestador). Opus 5.5, esfuerzo medio.
+- **Dónde estamos (2026-11-25):** 9a hecho. 9b revisado (código y 21 tests); **falta la prueba en el
+  emulador** (la hacen los usuarios: el implementador no tenía cuenta). Con 9b la app ya no se cierra,
+  pero nadie puede inscribirse (ni, por tanto, estudiar) hasta 10b.
+- **Paso que toca:** cerrar 9b con la prueba en el emulador; después, 10a (Sonnet 5.5, esfuerzo medio).
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
@@ -23,12 +23,15 @@ Se **reescribe** al final de cada sesión; no se acumula.
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo.
   - Hasta D11 la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
     no hay sesión (el camino sale vacío e inscribirse lanzaría). Conocido y aceptado hasta D11.
-- **Qué mirar en la próxima revisión (9b):** que `onModuleClick` decida solo con `tapModule` (sin
-  reglas propias); que se conserven el aviso y la práctica pendiente al llegar cambios de progreso o de
-  inscripción; que la práctica no se enseñe antes de saber si hay inscripción; los cambios en
-  `AppContainer` y `MainNavGraph`, mínimos; «Qué cuidar al mergear» de la arquitectura al día.
+- **Qué mirar en la próxima revisión (10a):** que `EnrollButton` no navegue ni conozca la página; que
+  dos toques seguidos inscriban una sola vez; estados del botón (Inscribirme, inscribiéndose, Inscrito
+  desactivado); previews claro/oscuro y 48 dp.
 - **Comprobar los tests:** leer el XML con `read_file` o un `grep` que imprima `<`/`>` se cuelga en
-  esta máquina; usar `grep -o 'tests="[0-9]*" … timestamp="[^"]*"'` (sin las etiquetas).
+  esta máquina; usar `grep -o 'tests="[0-9]*" … timestamp="[^"]*"'` (sin las etiquetas). Si Android
+  Studio tiene un Gradle ocupado, lanzar `./gradlew` desacoplado (`setsid nohup … > /tmp/log &`) y
+  leer el log: la herramienta de shell corta las órdenes largas.
+- **Nombres de test con comas:** la regla del índice es por iOS; vale para `sharedLogic`. En `app`
+  (solo JVM) ya había nombres con comas y se aceptan.
 
 ## Objetivo
 
@@ -242,7 +245,15 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   inexistente da `null` antes de mirar el acceso (también sin inscripción); `Locked.missing` son los
   prerrequisitos **directos** no dominados, en el orden de `requires`; lo dominado abre aunque falte un
   prerrequisito (regla 5). Para 9b: usar `tapModule` con `studyAccess(enrolled)`.
+- 2026-11-25: **9b revisado; falta la prueba en el emulador** (21 tests nuevos en `app/src/test`: `CourseViewModelGateTest`,
+  `ExerciseViewModelGateTest`, `CourseNoticeMessagesTest`). `CourseViewModel` escucha `mastered` y
+  `enrolled` con `combine` (sigue `Loading` hasta tener los dos) y decide el toque solo con `tapModule`.
+  `CourseUiState.enrolled = false` por defecto. `ExerciseViewModel.access: StudyAccess?` se lee una vez
+  (`first()`, decisión 7); `MainNavGraph` no enseña nada mientras es `null` y vuelve atrás con
+  `NotEnrolled`. Las acciones de la práctica no se bloquean (decisión 3). `AppContainer`: el mismo
+  almacén como `progressStore` y `enrollmentStore`. `ScreenCourse` sin cambios. Fuera del plan: el caso
+  «dominado sin inscripción» usa un `ProgressStore` fijo de test (el almacén real no lo permite).
 
 ## Siguiente paso
 
-Paso 9b: abrir un chat nuevo (Opus 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
+Prueba de 9b en el emulador (usuarios); con ella, el orquestador marca 9b. Después, 10a.

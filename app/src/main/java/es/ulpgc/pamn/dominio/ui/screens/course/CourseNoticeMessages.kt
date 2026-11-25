@@ -8,4 +8,5 @@ fun CourseNotice.toMessage(): String = when (this) {
     is CourseNotice.Locked ->
         if (missing.isEmpty()) "«${module.title}» está bloqueado."
         else "Para desbloquear «${module.title}», domina antes ${missing.map { it.title }.joinedWithAnd()}."
+    CourseNotice.NotEnrolled -> "Inscríbete para empezar a estudiar"
 }
