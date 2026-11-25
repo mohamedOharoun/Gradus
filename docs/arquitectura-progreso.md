@@ -17,6 +17,7 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 |---|---|---|
 | `StudyAccess` (`Allowed \| NotEnrolled`) | Si se puede estudiar un curso | Jerarquía sellada (tipo suma): el `when` es exhaustivo |
 | `studyAccess(enrolled)` | Decide el acceso solo por la inscripción | Función pura |
+| `ModuleTap` (`OpenPractice \| Locked(missing) \| NotEnrolled`) y `Course.tapModule(moduleId, mastered, access): ModuleTap?` | Qué pasa al tocar un módulo del camino: combina `StudyAccess` con `ModuleState`. Sin inscripción gana `NotEnrolled` (C-6); `Locked` lleva los prerrequisitos directos que faltan (`missingFor`); `null` si el módulo no existe | Jerarquía sellada (tipo suma) y función pura (extensión) |
 | `Enrollment(courseId, enrolledAt)` | Una inscripción y su fecha | *Value object* (`data class`) |
 | `MasteredModule(moduleId, masteredAt)` | Un módulo dominado y su fecha | *Value object* (`data class`) |
 | `EnrollmentStore` | Puerto: `enrolled(courseId): Flow<Boolean>` y `suspend enroll(courseId)` | *Strategy* (puerto con implementaciones intercambiables) |
@@ -106,8 +107,9 @@ Inscribirse → estudiar → dominar → sincronizar.
 
 Reglas que nunca se rompen (p. ej. no hay módulo dominado sin inscripción).
 
-- `studyAccess` solo mira la inscripción; no recibe el estado del módulo (B-6). Combinarlo con
-  `ModuleState` es cosa de la interfaz (C9).
+- `studyAccess` solo mira la inscripción; no recibe el estado del módulo (B-6). La combinación con
+  `ModuleState` ya no es cosa de la interfaz: la hace `Course.tapModule` (C9a), donde «sin
+  inscripción» va antes que «bloqueado» (C-6).
 - **No existe un módulo dominado sin inscripción.** Lo impone la estructura (`CourseProgress`
   contiene lo dominado) y `UserProgress.masteredIn`, que lanza `IllegalStateException` si el curso
   no está inscrito. El mensaje lleva el `courseId`, nunca el token.
