@@ -36,6 +36,7 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `ProgressSync(store, gateway)` y `suspend sync(session): SyncOutcome` | Caso de uso de la sincronización: sube lo pendiente del usuario de la sesión, fusiona la respuesta y devuelve el desenlace del gateway tal cual | Caso de uso (*Interactor*) sobre dos puertos inyectados (*Strategy*) |
 | `SessionProgressSync(sessions, sync)` y `suspend run(): SessionSyncResult` (11a) | Sincroniza con la sesión **guardada**: sin sesión devuelve `NoSession` sin llamar; si no, `Finished(outcome)` con el desenlace tal cual. Con `SessionExpired` borra la sesión con `clearIfCurrent(session)` (la que se leyó al empezar). Es **el único sitio que trata el 401**; la interfaz solo reacciona a «la sesión se ha borrado». Lo usará el `Worker` (13b) | Caso de uso que compone dos puertos |
 | `SessionSyncResult` (`NoSession \| Finished(outcome)`) | Qué pasó al sincronizar con la sesión guardada | Jerarquía sellada (tipo suma) |
+| `BackgroundSyncDecision` (`Done \| Retry \| GiveUp`), `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` (13a) | Política de reintento del trabajo en segundo plano (sin acoplar a WorkManager): `NoSession` o `Synced` → `Done`; `Unreachable` → `Retry` siempre; `ServerFailure` → `Retry` en intentos `0..3` y `GiveUp` desde `4` (5.º intento, `runAttemptCount` 0-based); `SessionExpired` → `GiveUp`. `attempt < 0` lanza `IllegalArgumentException` | Jerarquía sellada (tipo suma) y función pura |
 
 Paquete `account/` (piezas de la sesión que usa el progreso; Kotlin puro, desde 11a):
 

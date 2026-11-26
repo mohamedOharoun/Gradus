@@ -39,14 +39,13 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     sesión, inscribirse y dominar. Probado de punta a punta por los usuarios (con `pm clear`, lo dominado
     vuelve del servidor). Detalle: `docs/tareas/progreso-app.md` y su histórico.
   - **Parte D en curso:** decisiones D-1 a D-5, criterios y pasos en `docs/tareas/progreso-app.md`. Orden
-    11 → 13 → 12. **Tarea 11 hecha y revisada en código (2026-11-26):** la sesión se guarda cifrada
-    (DataStore + Keystore) y la app abre en Inicio o en Bienvenida según haya sesión; falta la prueba de
-    los usuarios en el emulador para marcarla.
+    11 → 13 → 12. **Tarea 11 terminada (2026-11-26):** la sesión se guarda cifrada (DataStore + Keystore)
+    y la app abre en Inicio o en Bienvenida según haya sesión.
 - **Lo común que cambia con D:** `SessionStore` ya tiene una implementación cifrada en disco sin cambiar
   el puerto (D-2, hecho); la sincronización pasará a WorkManager y `ProgressSyncLauncher` se borrará (D-4);
   `ProgressDatabase` subirá a la versión 2 con la tabla `course_copies` (D-3). Lo nuevo de `sharedLogic`
   va en ficheros nuevos; los puertos de la parte B no cambian.
-- **Siguiente:** prueba de la tarea 11 en el emulador y, después, el paso 13a de la parte D.
+- **Siguiente:** commit de 13a y paso 13b de la parte D (WorkManager).
 - **Dependencias entre partes:**
   - A, B y C: **terminadas**.
   - D: lo que necesitaba de C está hecho. WorkManager (D13) necesita la sesión persistente (D11).
@@ -161,5 +160,5 @@ Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquesta
   `docs/arquitectura-progreso.md`. Lo que necesita la parte C, en el Relevo general.
 - 2026-11-26: **parte C terminada** (tareas 7–10 de `progreso-app.md`; lo terminado, en
   `progreso-app-historico.md`). Lo que necesita la parte D, en el Relevo general y en el de `progreso-app.md`.
-- 2026-11-26: parte D planificada (D-1 a D-5) y **tarea 11 hecha y revisada en código** (sesión guardada
-  cifrada y arranque según la sesión); pendiente de la prueba de los usuarios en el emulador.
+- 2026-11-26: parte D planificada (D-1 a D-5) y **tarea 11 terminada** (sesión guardada cifrada y arranque
+  según la sesión; probada parcialmente en el emulador sin fallos, se reconfirmará con 13b/12b).

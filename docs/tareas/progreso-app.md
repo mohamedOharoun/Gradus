@@ -5,30 +5,21 @@ Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`
 detalle (la parte C y los pasos de D ya revisados): `docs/tareas/progreso-app-historico.md` (no hace falta
 leerlo para continuar). Rama: `dev/course-progress-tracking`.
 
-Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 hecha y revisada en código (11a–11c-3,
-2026-11-26); falta que los usuarios la prueben en el emulador con sesión para marcarla. Siguiente paso:
-13a.**
+Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 y paso 13a terminados y revisados (2026-11-26). Siguiente paso: 13b.**
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-26):** parte C terminada y en commits (la app deja inscribirse, no deja
-  estudiar sin inscripción, guarda el progreso en Room por usuario y lo sincroniza tras iniciar sesión,
-  inscribirse y dominar con `ProgressSyncLauncher`). **Parte D:** decisiones D-1 a D-5, criterios de 11–13
-  y pasos aprobados (abajo, en «Tareas»). **Tarea 11 hecha y revisada en código** (11a, 11b, 11c-1, 11c-2 y
-  11c-3; los cuatro primeros en commits, 11c-3 a falta del commit de los usuarios): la sesión se guarda
-  cifrada (DataStore + Keystore) y la app abre en Inicio si hay sesión guardada o en Bienvenida si no;
-  sin sesión estando en `Main` va a Login con la pila `[Welcome, Login]`. Piezas, en la arquitectura.
-- **Antes de marcar la tarea 11 [x]:** los usuarios hacen en el emulador lo que escribe en la base de
-  desarrollo (iniciar sesión): (1) iniciar sesión, `adb shell am force-stop es.ulpgc.pamn.dominio`,
-  abrir → Inicio tras un instante de fondo; igual en modo avión; (2) abrir un camino con algo dominado,
-  mandar la app al fondo, `adb shell am kill es.ulpgc.pamn.dominio`, volver desde Recientes → el camino
-  con lo dominado. Ya comprobado por el implementador: `pm clear` → Bienvenida. Si algo falla, se abre
-  un paso de arreglo antes de 13a.
-- **Paso que toca:** 13a (`sharedLogic`, test primero; Sonnet 5.5 · bajo): `backgroundSyncDecision`, que
-  recibe el `SessionSyncResult` de 11a y el número de intento. El orquestador nuevo escribe su mensaje con
-  la plantilla de «Acuerdos de proceso» (los de 11 sirven de modelo: ver el histórico).
+- **Dónde estamos (2026-11-26):** parte C terminada y en commits. **Parte D:** decisiones D-1 a D-5,
+  criterios de 11–13 y pasos aprobados (abajo, en «Tareas»). **Tarea 11 terminada y en commits** (11a–11c-3:
+  sesión cifrada en DataStore + Keystore, arranque según sesión). **Paso 13a terminado y revisado** (a falta
+  del commit de los usuarios): `BackgroundSyncDecision` (`Done` | `Retry` | `GiveUp`),
+  `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` en `sharedLogic` (10 tests).
+- **Paso que toca:** 13b (`app` + Gradle: WorkManager 2.12.0 y `work-testing` 2.12.0, ya aprobados en D-1;
+  Gemini Carbon · medio): `ProgressSyncWorker`, `WorkSyncRequester`, conectar en `AppContainer` /
+  `MainActivity` / `MainNavGraph`, que `StartViewModel` pida sincronizar al arrancar con sesión, y borrar
+  `ProgressSyncLauncher` y `ProgressSyncLauncherTest`.
 - **Lo que hay que saber para seguir:**
   - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). 13 va antes que 12 porque necesita 11.
   - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`).
@@ -189,7 +180,7 @@ La casilla la marca el orquestador tras revisar. Los tests nombrados son el **m�
 
 Hechas y revisadas (2026-11-25/26). Pasos, modelos y detalle: `progreso-app-historico.md`.
 
-### [ ] 11. Sesión guardada cifrada (parte D)
+### [x] 11. Sesión guardada cifrada (parte D)
 
 La sesión sobrevive a cerrar la app, cifrada en el móvil. Requisito de 13. *Acepta si:*
 
@@ -226,7 +217,7 @@ Pasos:
   del almacén (guardar, sustituir, borrar, borrar sin sesión, otro `DataStore` sobre el mismo fichero
   tras cancelar el primero, fichero roto → `null` y luego guarda, sin token ni correo en claro, el `Flow`
   avisa).
-- [ ] **11c** (app; Sonnet 5.5 · alto). `AppContainer` con el almacén nuevo; `StartViewModel` (`Loading` |
+- [x] **11c** (app; Sonnet 5.5 · alto; revisado el 2026-11-26). `AppContainer` con el almacén nuevo; `StartViewModel` (`Loading` |
   `SignedIn` | `SignedOut` y el aviso de «sesión borrada»); `GradusNavHost` empieza según el estado.
   Tests: `StartViewModelTest` (`Loading` hasta el primer valor, con y sin sesión, con sesión → sin ella
   avisa una vez, sin sesión → con ella no avisa); `AppContainerTest` sigue en verde. Emulador: iniciar
@@ -288,7 +279,7 @@ Sincronización en segundo plano, también con la app cerrada. *Acepta si:*
 
 Pasos:
 
-- [ ] **13a** (`sharedLogic`, test primero; Sonnet 5.5 · bajo). `backgroundSyncDecision`. Tests: cada
+- [x] **13a** (`sharedLogic`, test primero; Gemini Hydrogen · bajo; revisado el 2026-11-26). `backgroundSyncDecision`. Tests: cada
   desenlace; `ServerFailure` en los intentos 0–3 reintenta y en el 4 (el 5.º) se rinde (`runAttemptCount`
   empieza en 0); `Unreachable` reintenta aunque sea el intento 100.
 - [ ] **13b** (app + Gradle: WorkManager; Opus 5.5 · medio). `ProgressSyncWorker`, `WorkSyncRequester`,
@@ -307,13 +298,17 @@ Pasos:
 - 2026-11-25/26: parte C terminada (detalle en `progreso-app-historico.md`).
 - 2026-11-26: parte D planificada: decisiones D-1 a D-5, criterios de 11–13 y pasos aprobados por los
   usuarios.
-- 2026-11-26: **tarea 11 hecha y revisada en código** (11a, 11b, 11c-1, 11c-2 y 11c-3; detalle de cada paso,
-  decisiones de revisión y modelos en `progreso-app-historico.md`). Última pasada del orquestador (11c-3):
-  JVM de `app` 300/300 (22 clases) e instrumentados `GradusNavHostStartTest` + `AppContainerTest` 14/14.
-  Falta la prueba de los usuarios en el emulador con sesión (ver el Relevo) para marcar la tarea 11.
+- 2026-11-26: **tarea 11 terminada** (11a, 11b, 11c-1, 11c-2 y 11c-3; detalle de cada paso, decisiones de
+  revisión y modelos en `progreso-app-historico.md`). Última pasada del orquestador (11c-3): JVM de `app`
+  300/300 (22 clases) e instrumentados `GradusNavHostStartTest` + `AppContainerTest` 14/14. Probada
+  parcialmente en el emulador por los usuarios sin fallos; se reconfirmará de punta a punta con modo avión
+  y `am kill` en 13b/12b.
+- 2026-11-26: **13a revisado y aprobado**: `BackgroundSyncDecision` (`Done` | `Retry` | `GiveUp`),
+  `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` en `sharedLogic` (con
+  `require(attempt >= 0)`). Revisión del orquestador: `:sharedLogic:testAndroidHostTest --rerun` en verde
+  (61 clases, 781 tests, 0 fallos; `BackgroundSyncDecisionTest` 10/10).
 
 ## Siguiente paso
 
-1. Los usuarios prueban la tarea 11 en el emulador con sesión (Relevo); si va bien, el orquestador marca
-   la tarea 11 [x].
-2. 13a: el orquestador escribe el mensaje para quien implemente; quien implemente propone y espera el OK.
+1. Commit de **13a** (por los usuarios).
+2. **13b**: el implementador propone el diseño de WorkManager (`ProgressSyncWorker`, `WorkSyncRequester`, `StartViewModel`, `AppContainer` y borrado de `ProgressSyncLauncher`) y espera el OK.
