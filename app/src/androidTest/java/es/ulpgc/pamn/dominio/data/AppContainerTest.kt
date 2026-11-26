@@ -54,4 +54,10 @@ class AppContainerTest {
     fun session_progress_sync_is_a_single_instance() {
         assertSame(AppContainer.sessionProgressSync, AppContainer.sessionProgressSync)
     }
+
+    // 12b-1: el catálogo envuelve Room (copia local) y caché en memoria en una sola instancia.
+    @Test
+    fun course_gateway_is_a_single_instance() {
+        assertSame(AppContainer.courseGateway, AppContainer.courseGateway)
+    }
 }

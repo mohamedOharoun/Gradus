@@ -8,10 +8,12 @@ import es.ulpgc.pamn.dominio.account.Session
 import es.ulpgc.pamn.dominio.account.SessionStore
 import es.ulpgc.pamn.dominio.course.CachingCourseGateway
 import es.ulpgc.pamn.dominio.course.CourseGateways
+import es.ulpgc.pamn.dominio.course.OfflineCourseGateway
 import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressGateways
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.SessionProgressSync
+import es.ulpgc.pamn.dominio.data.course.RoomCourseCopyStore
 import es.ulpgc.pamn.dominio.data.progress.ProgressDatabase
 import es.ulpgc.pamn.dominio.data.progress.ProgressModule
 import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
@@ -34,9 +36,12 @@ object AppContainer {
     // lazy: se crea la primera vez que alguien lo pide, y una sola vez para toda la app.
     val accountGateway: AccountGateway by lazy { AccountGateways.http(BASE_URL) }
 
-    // El catálogo de cursos (buscar y descargar). No necesita sesión. Con caché: el camino y la
-    // práctica comparten el curso descargado sin volver a pedirlo.
-    val courseGateway: CachingCourseGateway by lazy { CachingCourseGateway(CourseGateways.http(BASE_URL)) }
+    // El catálogo de cursos (buscar y descargar). No necesita sesión, pero guarda copias en Room
+    // (necesita init). Cadena Decorator: caché en memoria → copia local en Room → HTTP.
+    val courseGateway: CachingCourseGateway by lazy {
+        val copies = RoomCourseCopyStore(progressDatabase.courseCopyDao())
+        CachingCourseGateway(OfflineCourseGateway(CourseGateways.http(BASE_URL), copies))
+    }
 
     private var appContext: Context? = null
 
@@ -48,10 +53,16 @@ object AppContainer {
         if (appContext == null) appContext = context.applicationContext
     }
 
+    // Única instancia de la base Room compartida entre el progreso y las copias de cursos (12b-1),
+    // sin acoplar courseGateway a sessionStore.
+    private val progressDatabase: ProgressDatabase by lazy {
+        ProgressDatabase.create(requireContext())
+    }
+
     // Progreso e inscripciones, guardados en el móvil (Room). Un solo objeto Room con varias caras: el
     // MISMO almacén como ProgressStore y como EnrollmentStore.
     private val progress by lazy {
-        ProgressModule(ProgressDatabase.create(requireContext()), sessionStore, ProgressGateways.http(BASE_URL))
+        ProgressModule(progressDatabase, sessionStore, ProgressGateways.http(BASE_URL))
     }
     val progressStore: ProgressStore get() = progress.progressStore
     val enrollmentStore: EnrollmentStore get() = progress.enrollmentStore

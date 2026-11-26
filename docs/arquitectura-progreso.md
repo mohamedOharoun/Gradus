@@ -77,7 +77,15 @@ Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, conectado a
 | `ProgressSyncRequester` | `fun interface` con `requestSync()` (no `suspend`): pedir sincronizar sin esperar al resultado. Es lo que reciben los ViewModels (8b); en sus tests basta una lambda | *Command* |
 | `ProgressSyncWorker` (`CoroutineWorker`) (13b-1) | Ejecuta `sessionSync.run()` y traduce `backgroundSyncDecision(result, runAttemptCount)` a `Result` (`Done` → `success`, `Retry` → `retry`, `GiveUp` → `failure`). Constructor público de 2 argumentos usa `AppContainer.sessionProgressSync`; constructor `internal` + `ProgressSyncWorker.factory(sessionSync)` permiten probarlo sin `AppContainer`. No captura excepciones (errores de almacén pasan a `FAILED` en WorkManager; cancelación se propaga) | *Worker*; *Factory method* (`factory`) |
 | `WorkSyncRequester(workManager)` (13b-1) | Implementa `ProgressSyncRequester` encolando trabajo único `"progress-sync"` (`ExistingWorkPolicy.REPLACE`, `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL` de 30 s) | *Command*; *Adapter* sobre WorkManager |
-| `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
+| `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 2 (desde 12b-1: `enrollments`, `mastered_modules` y `course_copies`), `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4, D-3; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
+
+Paquete `app/.../data/course/` (copias locales de cursos en Room; solo Android, desde 12b-1):
+
+| Pieza | Qué es | Patrón |
+|---|---|---|
+| `CourseCopyEntity` | Tabla `course_copies(course_id, json)`, clave primaria `course_id`. Sin `user_id` ni clave foránea a `enrollments`: las copias son globales al dispositivo | Entidad de persistencia |
+| `CourseCopyDao` | `save(copy)` con `@Insert(onConflict = OnConflictStrategy.REPLACE)` (compatible con SQLite 3.22 / `minSdk` 29) y `loadJson(courseId): String?` | *DAO* |
+| `RoomCourseCopyStore(dao)` | Implementa `CourseCopyStore` sobre `CourseCopyDao`. En `AppContainer`, `courseGateway` es `CachingCourseGateway(OfflineCourseGateway(http, RoomCourseCopyStore))` | *Adapter* del puerto |
 
 Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, conectada a `AppContainer` en
 11c-1):
@@ -390,21 +398,23 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   `&& start == StartState.SignedIn` en la entrada de Login. Lo prueban `GradusNavHostStartTest` y
   `StartNavigationTest`.
 - **Gradle con DataStore (11b) y WorkManager (13b-1):** `datastore = "1.3.0"` (`androidx-datastore`), `work = "2.12.0"` (`androidx-work-runtime` y `androidx-work-testing`) en `gradle/libs.versions.toml`, e `implementation(libs.androidx.datastore)`, `implementation(libs.androidx.work.runtime)` y `androidTestImplementation(libs.androidx.work.testing)` en `app/build.gradle.kts`.
-- **`app/.../data/AppContainer.kt`, progreso (desde 7d; WorkManager desde 13b):**
+- **`app/.../data/AppContainer.kt`, progreso y copias (desde 7d; WorkManager 13b; copias 12b-1):**
   `private var appContext: Context?`, `private fun requireContext()` y `fun init(context)` (solo cuenta la
-  primera llamada). `private val progress by lazy { ProgressModule(ProgressDatabase.create(requireContext()),
-  sessionStore, ProgressGateways.http(BASE_URL)) }` y, encima, `val progressStore: ProgressStore`,
-  `val enrollmentStore: EnrollmentStore` y `val sessionProgressSync: SessionProgressSync`. Tienen que salir
-  del **mismo** `ProgressModule` (si fueran dos almacenes, inscribirse no abriría nada; lo comprueba
-  `AppContainerTest`). Desde 13b-2, `val progressSync: ProgressSyncRequester by lazy {
-  WorkSyncRequester(WorkManager.getInstance(requireContext())) }` sustituye a `progressSyncLauncher`
-  (borrado junto con `appScope`, que volverá en 12b). La sesión (desde 11c-1):
-  `private val sessions by lazy { DataStoreSessionStore.create(requireContext()) }` (**un solo objeto**:
-  DataStore no admite dos activos sobre el mismo fichero), `val sessionStore: SessionStore get() = sessions`
-  y `val sessionUpdates: Flow<Session?> get() = sessions.session` (solo para el arranque). Si `dev/joel`
-  también toca `AppContainer`, conserva `init`, `requireContext`, `progress` (con el gateway),
-  `progressStore`, `enrollmentStore`, `sessionProgressSync`, `progressSync`, `sessions`, `sessionStore` y
-  `sessionUpdates`. Todo ello necesita `init` (lo comprueban `AppContainerInitTest` y `AppContainerTest`).
+  primera llamada). `private val progressDatabase by lazy { ProgressDatabase.create(requireContext()) }` es
+  la **única** instancia de Room, compartida entre `progress` (`ProgressModule(progressDatabase, sessionStore,
+  ProgressGateways.http(BASE_URL))`) y `courseGateway` (`CachingCourseGateway(OfflineCourseGateway(
+  CourseGateways.http(BASE_URL), RoomCourseCopyStore(progressDatabase.courseCopyDao())))`) sin acoplar
+  `courseGateway` a `sessionStore`. Encima de `progress`: `val progressStore: ProgressStore`,
+  `val enrollmentStore: EnrollmentStore` y `val sessionProgressSync: SessionProgressSync` (tienen que salir
+  del **mismo** `ProgressModule`; lo comprueba `AppContainerTest`). Desde 13b-2, `val progressSync:
+  ProgressSyncRequester by lazy { WorkSyncRequester(WorkManager.getInstance(requireContext())) }`. La sesión
+  (desde 11c-1): `private val sessions by lazy { DataStoreSessionStore.create(requireContext()) }` (**un solo
+  objeto**: DataStore no admite dos activos sobre el mismo fichero), `val sessionStore: SessionStore get() =
+  sessions` y `val sessionUpdates: Flow<Session?> get() = sessions.session` (solo para el arranque). Si
+  `dev/joel` también toca `AppContainer`, conserva `init`, `requireContext`, `progressDatabase`,
+  `courseGateway` (con `OfflineCourseGateway`), `progress`, `progressStore`, `enrollmentStore`,
+  `sessionProgressSync`, `progressSync`, `sessions`, `sessionStore` y `sessionUpdates`. Todo ello (salvo
+  `accountGateway`) necesita `init` (lo comprueban `AppContainerInitTest` y `AppContainerTest`).
 - **`GradusApplication` y el manifiesto (7d):** `GradusApplication : Application` llama a
   `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
   en `<application>` (una sola línea añadida). Sin ella, usar el progreso o la sesión lanza

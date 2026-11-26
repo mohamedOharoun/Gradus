@@ -5,7 +5,7 @@ Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`
 detalle (la parte C y los pasos de D ya revisados): `docs/tareas/progreso-app-historico.md` (no hace falta
 leerlo para continuar). Rama: `dev/course-progress-tracking`.
 
-Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 terminada; tarea 13 hecha y revisada en código; paso 12a terminado y revisado (2026-11-26). Siguiente paso: 12b (último paso de código de D).**
+Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 terminada; tarea 13 hecha y revisada en código; paso 12a y subpaso 12b-1 terminados y revisados (2026-11-26). Siguiente paso: 12b-2 (último subpaso de código de D).**
 
 ## Relevo
 
@@ -13,15 +13,16 @@ Se **reescribe** al final de cada sesión; no se acumula.
 
 - **Dónde estamos (2026-11-26):** parte C terminada y en commits. **Parte D:** decisiones D-1 a D-5,
   criterios de 11–13 y pasos aprobados (abajo, en «Tareas»). **Tarea 11 terminada y en commits.**
-  **Tarea 13 hecha y revisada en código y en commits** (pruebas de emulador pospuestas al cierre de D).
-  **Paso 12a terminado y revisado** (a falta del commit de los usuarios): `encodeCourseVersion`
-  (`course/http/CourseDtoEncoder.kt`), puerto `CourseCopyStore` + `InMemoryCourseCopyStore` y *Decorator*
-  `OfflineCourseGateway` en `sharedLogic` (25 tests nuevos; 64 clases, 806 tests en verde).
-- **Paso que toca:** **12b** (`app`; Gemini Neon · alto): entidad y DAO de `course_copies`,
-  `RoomCourseCopyStore`, `ProgressDatabase` versión 2, cadena
-  `CachingCourseGateway(OfflineCourseGateway(http, roomCopies))` en `AppContainer` (con `appScope` de
-  vuelta para lanzar la descarga en segundo plano al inscribirse), `EnrollmentViewModel` recibe una
-  `fun interface` para pedir la descarga tras `enroll`, y tests instrumentados y JVM.
+  **Tarea 13 y paso 12a hechos, revisados y en commits.** **Subpaso 12b-1 terminado y revisado** (a falta
+  del commit de los usuarios): tabla `course_copies` (`CourseCopyEntity`, `CourseCopyDao`,
+  `RoomCourseCopyStore` en `app/.../data/course/`), `ProgressDatabase` v2 y cadena
+  `CachingCourseGateway(OfflineCourseGateway(http, RoomCourseCopyStore))` en `AppContainer` compartiendo
+  una única instancia `progressDatabase` (sin acoplar `courseGateway` a `sessionStore`).
+- **Paso que toca:** **12b-2** (propuesta ya aprobada; mismo chat o Gemini Neon · alto):
+  `CourseCopyRequester`, `CourseCopyLauncher` sobre `appScope` (relanza `CancellationException`, captura
+  `Exception` como precarga *best-effort*), `EnrollmentViewModel`, cableado quirúrgico en `MainNavGraph`,
+  tests (`CourseCopyLauncherTest`, `EnrollmentViewModelTest`, `AppContainerInitTest`, `AppContainerTest`) y
+  pasos de prueba en el emulador.
 - **Pruebas de emulador al cierre de D (tras 12b):** las dos de la tarea 13 (modo avión cerrando desde
   Recientes + 401 borrando la fila de sesión) y la de 12b (inscribirse, abrir camino, modo avión, fondo,
   `am kill`, volver → el camino sale de la copia y la práctica abre). Todas escriben en la base de
@@ -262,7 +263,13 @@ Pasos:
   `fun interface`). Tests: instrumentados del almacén (guardar, leer, sobrescribir, desconocido → `null`);
   `EnrollmentViewModelTest` (pide descargar tras `enroll`; no si no actúa ni si `enroll` lanza).
   Emulador: inscribirse, abrir el camino, modo avión, fondo, `am kill`, volver: el camino sale de la copia
-  y la práctica abre.
+  y la práctica abre. Partido en dos (aprobado el 2026-11-26):
+  - [x] **12b-1** (revisado el 2026-11-26) `CourseCopyEntity`, `CourseCopyDao` y `RoomCourseCopyStore` en `data/course/`,
+    `ProgressDatabase` versión 2, base única y cadena `CachingCourseGateway(OfflineCourseGateway(…))` en
+    `AppContainer`, y tests (`RoomCourseCopyStoreTest`, `AppContainerInitTest`, `AppContainerTest`).
+  - [ ] **12b-2** `CourseCopyRequester`, `CourseCopyLauncher` (sobre `appScope`, captura *best-effort* de
+    `Exception` relanzando `CancellationException`), `EnrollmentViewModel`, `MainNavGraph`, y tests
+    (`CourseCopyLauncherTest`, `EnrollmentViewModelTest`, `AppContainerInitTest`, `AppContainerTest`).
 
 ### [ ] 13. WorkManager (parte D)
 
@@ -340,9 +347,16 @@ Pasos:
   `OfflineCourseGateway(delegate, copies)`. Revisión del orquestador: `:sharedLogic:testAndroidHostTest --rerun`
   en verde (64 clases, 806 tests, 0 fallos; `CourseDtoEncoderTest` 8/8, `InMemoryCourseCopyStoreTest` 4/4,
   `OfflineCourseGatewayTest` 13/13).
+- 2026-11-26: **12b-1 revisado y aprobado:** tabla `course_copies` (`CourseCopyEntity`), `CourseCopyDao`
+  (`INSERT OR REPLACE`, SQLite 3.22 / `minSdk` 29) y `RoomCourseCopyStore` en `app/.../data/course/`;
+  `ProgressDatabase` sube a versión 2 con `courseCopyDao()`; `AppContainer` comparte una sola instancia
+  `progressDatabase` entre `progress` y `courseGateway = CachingCourseGateway(OfflineCourseGateway(http,
+  RoomCourseCopyStore(...)))` sin acoplar `courseGateway` a `sessionStore`. Revisión del orquestador:
+  `:app:testDebugUnitTest --rerun` 301/301 (21 clases, 0 fallos) e instrumentados `RoomCourseCopyStoreTest`
+  (8) + `AppContainerTest` (7) + `RoomProgressSyncTest` (6) = 21/21 (0 fallos).
 
 ## Siguiente paso
 
-1. Commit de **12a** (por los usuarios).
-2. **12b** (`app`): tabla `course_copies`, DAO, `RoomCourseCopyStore`, `ProgressDatabase` v2, cadena en
-   `AppContainer` y descarga del curso al inscribirse (`EnrollmentViewModel`).
+1. Commit de **12b-1** (por los usuarios).
+2. **12b-2** (propuesta ya aprobada): `CourseCopyRequester`, `CourseCopyLauncher` sobre `appScope`,
+   `EnrollmentViewModel`, `MainNavGraph`, tests y pasos de prueba en el emulador.

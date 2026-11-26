@@ -50,4 +50,12 @@ class AppContainerInitTest {
 
         assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
     }
+
+    // 12b-1: el catálogo guarda copias en Room, así que también necesita Context.
+    @Test
+    fun course_gateway_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.courseGateway }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
 }
