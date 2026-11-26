@@ -6,7 +6,7 @@ C, con su detalle: `docs/tareas/progreso-app-historico.md` (no hace falta leerlo
 `dev/course-progress-tracking`.
 
 Estado: **parte C terminada (tareas 7–10, 2026-11-26). Parte D (11–13) planificada y aprobada
-(2026-11-26); 11a, 11b y 11c-1 hechos; siguiente paso: 11c-2.**
+(2026-11-26); 11a, 11b, 11c-1 y 11c-2 hechos; siguiente paso: 11c-3.**
 
 ## Relevo
 
@@ -19,10 +19,10 @@ Se **reescribe** al final de cada sesión; no se acumula.
   de 11–13 escritos y pasos aprobados (abajo, en «Tareas»). **11a y 11b hechos y revisados**:
   `encodeSession` / `decodeSession`, `clearIfCurrent` (por token) y `SessionProgressSync` en `sharedLogic`;
   DataStore 1.3.0 y `DataStoreSessionStore` cifrado (Keystore, AES-256-GCM) en `app/.../data/session/`,
-  **todavía sin conectar** a `AppContainer` (piezas en la arquitectura).
-- **Paso que toca:** 11c-2 (`StartViewModel`), en el mismo chat que hizo 11c-1, con la propuesta ya
-  aprobada (ver los sub-pasos de 11c en «Tareas»). Después, 11c-3 (navegación y emulador). 11c-1 ya
-  conectó el almacén cifrado a `AppContainer` (`sessionStore` y `sessionUpdates`).
+  conectado a `AppContainer` en 11c-1 (`sessionStore` y `sessionUpdates`); `StartState` y `StartViewModel`
+  en `ui/navigation/` (11c-2), todavía sin usar en la interfaz (piezas en la arquitectura).
+- **Paso que toca:** 11c-3 (navegación, `GradusNavHost`, `MainActivity`, test de restauración y emulador),
+  en el mismo chat, con la propuesta ya aprobada (ver los sub-pasos de 11c en «Tareas»).
 - **Lo que hay que saber para seguir:**
   - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). 13 va antes que 12 porque necesita 11.
   - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`).
@@ -223,7 +223,7 @@ Pasos:
   fondo → `am kill` → volver: el camino con lo dominado. Partido en tres (aprobado el 2026-11-26):
   - [x] **11c-1** `AppContainer` con `DataStoreSessionStore` (`sessionStore` + `sessionUpdates`) y comentario
     de `SessionCipher` (revisado el 2026-11-26).
-  - [ ] **11c-2** `StartState` + `StartViewModel` en `ui/navigation/`: error al leer (`IOException` o
+  - [x] **11c-2** (revisado el 2026-11-26) `StartState` + `StartViewModel` en `ui/navigation/`: error al leer (`IOException` o
     `ProviderException`) → `SignedOut` y reintento cada 2 s; el resto de errores no se traga.
   - [ ] **11c-3** `StartNavigation.kt` (funciones puras), `GradusNavHost` y `MainActivity`. Regla sobre el
     estado: `SignedOut` estando en `Main` → `leaveMain()` deja la pila `[Welcome, Login]` (sin tocar
@@ -327,7 +327,17 @@ Pasos:
   del paquete `data`. Queda 11c-2 (`StartViewModel`, en `ui/navigation/`) y 11c-3 (navegación y emulador).
   Nota: Gradle desde el sandbox del agente no tiene `JAVA_HOME` ni `~/.gradle` escribible; se lanza con
   `JAVA_HOME=/usr/lib/jvm/java-21-openjdk` fuera del sandbox.
+- 2026-11-26: **11c-2 hecho y revisado** (orquestador: `StartViewModelTest` 18 en verde en esta pasada). Nuevo en
+  `app/.../ui/navigation/`: `StartState` (`Loading` | `SignedIn` | `SignedOut`, sin datos) y `StartViewModel(sessions:
+  Flow<Session?>, retryDelay = 2 s)` con `state: StateFlow<StartState>` (`Eagerly`, empieza en `Loading`).
+  Si leer la sesión lanza `IOException` (incluida `CorruptionException`) o `ProviderException`: `SignedOut` y se
+  vuelve a leer cada 2 s (sin reintento, el `Flow` muere y el estado se quedaría en `SignedOut` aunque se inicie
+  sesión); otro error no se traga. **Consecuencia documentada:** un error pasajero con la app ya en `Main` lleva a
+  Login aunque la sesión siga guardada; al leerse bien llega `SignedIn`, pero el usuario se queda en Login. Tests:
+  `StartViewModelTest` (18, JVM), comprobado con una mutación (tragarlo todo y 1 s de espera) que fallan los de
+  «no se traga», el predicado y los tiempos. Queda 11c-3 (reglas de navegación, `GradusNavHost`, `MainActivity`,
+  test instrumentado y emulador); `AppContainer.sessionUpdates` ya está listo para pasárselo.
 
 ## Siguiente paso
 
-11c-2 (`StartViewModel`): propuesta ya aprobada; tests primero.
+11c-3 (navegación y arranque): propuesta ya aprobada; tests primero; al final, el emulador.

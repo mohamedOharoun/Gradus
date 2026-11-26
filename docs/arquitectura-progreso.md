@@ -79,6 +79,13 @@ Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, conecta
 | `EncryptedSessionSerializer(cipher)` | `Serializer<Session?>` de DataStore: `encodeSession` + cifrar al escribir, descifrar + `decodeSession` al leer. «Sin sesión» = fichero vacío. No se puede descifrar o no es una sesión → `CorruptionException` con texto fijo (nunca el token). Una `IOException` del disco **sale tal cual** (no borra una sesión buena) | *Adapter* |
 | `DataStoreSessionStore(dataStore)` y `create(context, scope, fileName, cipher)` | Implementa `SessionStore` sin cambiar el puerto; además `session: Flow<Session?>` (cada cambio). Fichero `gradus-session.bin` en `noBackupFilesDir`; `ReplaceFileCorruptionHandler { null }`: fichero roto o clave perdida = sin sesión. **Un solo `DataStore` activo por fichero** (dos lanzan): la app crea uno; los tests cancelan el ámbito antes de abrir otro y usan alias propios, nunca `DEFAULT_ALIAS` | *Adapter* del puerto; *Factory method* |
 
+En `app/.../ui/navigation/` (11c-2; lo usa la navegación desde 11c-3):
+
+| Pieza | Qué es | Patrón |
+|---|---|---|
+| `StartState` (`Loading \| SignedIn \| SignedOut`) | Qué sabe la app de la sesión guardada. Sin datos: el token no puede salir por aquí | Jerarquía sellada (tipo suma) |
+| `StartViewModel(sessions: Flow<Session?>, retryDelay = 2 s)` | `state: StateFlow<StartState>` (`Eagerly`, empieza en `Loading`). Si leer lanza `IOException` (incluida `CorruptionException`) o `ProviderException`: `SignedOut` sin borrar nada y vuelve a leer cada 2 s (un `Flow` que falla muere). Otro error no se traga. **Consecuencia:** un error pasajero dentro de `Main` lleva a Login aunque la sesión siga guardada | *Observer* (`StateFlow`); `retryWhen` |
+
 Tests: `EncryptedSessionSerializerTest` (JVM, con `FakeSessionCipher`); `KeystoreSessionCipherTest`,
 `DataStoreSessionStoreTest`, `DataStoreSessionStoreFileTest` y `DataStoreSessionStoreFailureTest`
 (instrumentados, con `SessionStoreRule`).
