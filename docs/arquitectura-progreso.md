@@ -38,6 +38,14 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `SessionSyncResult` (`NoSession \| Finished(outcome)`) | Qué pasó al sincronizar con la sesión guardada | Jerarquía sellada (tipo suma) |
 | `BackgroundSyncDecision` (`Done \| Retry \| GiveUp`), `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` (13a) | Política de reintento del trabajo en segundo plano (sin acoplar a WorkManager): `NoSession` o `Synced` → `Done`; `Unreachable` → `Retry` siempre; `ServerFailure` → `Retry` en intentos `0..3` y `GiveUp` desde `4` (5.º intento, `runAttemptCount` 0-based); `SessionExpired` → `GiveUp`. `attempt < 0` lanza `IllegalArgumentException` | Jerarquía sellada (tipo suma) y función pura |
 
+Paquete `course/` y `course/http/` (copia local de cursos; Kotlin puro, desde 12a):
+
+| Pieza | Qué es | Patrón |
+|---|---|---|
+| `encodeCourseVersion(course)` (`course/http/CourseDtoEncoder.kt`) | Inverso de `decodeCourseVersion`: serializa un `Course` al JSON de `GET /api/courses/{id}` (`CourseVersionDto` + `CourseContentDto` con `formatVersion = 1`). Genera ids estables `"o$index"` para opciones y ordena `MultipleChoice.correct`; comparte `internal val courseJson` de `CourseDtoMappers.kt` | *Mapper*, funciones puras |
+| `CourseCopyStore` y `InMemoryCourseCopyStore` (`course/`) | Puerto local `save(courseId, json)` (sobrescribe) y `load(courseId): String?`, con implementación en memoria sobre `MutableStateFlow` para tests | *Strategy* (puerto hexagonal) |
+| `OfflineCourseGateway(delegate, copies)` (`course/`) | Red primero: en `Found` guarda la copia bajo el `id` pedido y la devuelve; en `Unreachable` carga y decodifica la copia (si falta o es `Malformed`/`UnsupportedFormat` devuelve `Unreachable` sin borrarla). `NotFound`, `UnsupportedFormat`, `ServerFailure` y `search` pasan tal cual sin tocar `copies`; fallos del almacén se propagan | *Decorator* sobre `CourseGateway` |
+
 Paquete `account/` (piezas de la sesión que usa el progreso; Kotlin puro, desde 11a):
 
 | Pieza | Qué es | Patrón |

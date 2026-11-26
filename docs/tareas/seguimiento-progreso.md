@@ -39,15 +39,14 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     sesión, inscribirse y dominar. Probado de punta a punta por los usuarios (con `pm clear`, lo dominado
     vuelve del servidor). Detalle: `docs/tareas/progreso-app.md` y su histórico.
   - **Parte D en curso:** decisiones D-1 a D-5, criterios y pasos en `docs/tareas/progreso-app.md`. Orden
-    11 → 13 → 12. **Tarea 11 terminada (2026-11-26):** sesión guardada cifrada y arranque según sesión.
-    **Tarea 13 hecha y revisada en código (2026-11-26):** sincronización en segundo plano con WorkManager
-    2.12.0 (`ProgressSyncWorker`, `WorkSyncRequester`, `StartViewModel` y borrado de `ProgressSyncLauncher`);
-    pendiente de pruebas de emulador de los usuarios.
+    11 → 13 → 12. **Tarea 11 terminada**; **tarea 13 hecha y revisada en código** (pruebas de emulador al
+    cierre de D); **paso 12a terminado y revisado (2026-11-26):** `encodeCourseVersion`, `CourseCopyStore`
+    y `OfflineCourseGateway` en `sharedLogic`.
 - **Lo común que cambia con D:** `SessionStore` ya tiene implementación cifrada en disco sin cambiar el
   puerto (D-2, hecho); la sincronización ya usa WorkManager y `ProgressSyncLauncher` está borrado (D-4,
-  hecho); falta subir `ProgressDatabase` a la versión 2 con la tabla `course_copies` (D-3, tarea 12). Lo
-  nuevo de `sharedLogic` va en ficheros nuevos; los puertos de la parte B no cambian.
-- **Siguiente:** commit de 13b-2, pruebas de emulador de 13 (si quieren) y paso 12a de la parte D.
+  hecho); falta solo 12b (`ProgressDatabase` v2 con `course_copies`, cadena en `AppContainer` y descarga al
+  inscribirse). Lo nuevo de `sharedLogic` va en ficheros nuevos; los puertos de la parte B no cambian.
+- **Siguiente:** commit de 12a y paso 12b (último paso de código de D; pruebas de emulador de D al cierre).
 - **Dependencias entre partes:**
   - A, B y C: **terminadas**.
   - D: lo que necesitaba de C está hecho. WorkManager (D13) necesita la sesión persistente (D11).

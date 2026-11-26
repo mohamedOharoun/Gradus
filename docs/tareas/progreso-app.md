@@ -5,7 +5,7 @@ Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`
 detalle (la parte C y los pasos de D ya revisados): `docs/tareas/progreso-app-historico.md` (no hace falta
 leerlo para continuar). Rama: `dev/course-progress-tracking`.
 
-Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 terminada; tarea 13 hecha y revisada en código (13a, 13b-1 y 13b-2, 2026-11-26), pendiente de pruebas de emulador de los usuarios. Siguiente paso: 12a.**
+Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 terminada; tarea 13 hecha y revisada en código; paso 12a terminado y revisado (2026-11-26). Siguiente paso: 12b (último paso de código de D).**
 
 ## Relevo
 
@@ -13,17 +13,19 @@ Se **reescribe** al final de cada sesión; no se acumula.
 
 - **Dónde estamos (2026-11-26):** parte C terminada y en commits. **Parte D:** decisiones D-1 a D-5,
   criterios de 11–13 y pasos aprobados (abajo, en «Tareas»). **Tarea 11 terminada y en commits.**
-  **Tarea 13 hecha y revisada en código** (13a y 13b-1 en commits; 13b-2 revisado a falta del commit de
-  los usuarios): la sincronización usa WorkManager 2.12.0 (`ProgressSyncWorker` + `WorkSyncRequester`,
-  trabajo único `progress-sync`, `REPLACE`, `NetworkType.CONNECTED`, backoff exponencial de 30 s,
-  `backgroundSyncDecision` con tope de 5 intentos en `ServerFailure`), `StartViewModel` pide sincronizar
-  una vez solo al arrancar con sesión guardada, y `ProgressSyncLauncher` + su test están borrados.
-- **Antes de marcar la tarea 13 [x]:** pruebas de emulador de los usuarios (escriben en la base de
-  desarrollo): (1) dominar en modo avión, cerrar desde **Recientes** (no `am force-stop`), quitar el modo
-  avión → sube solo (`dumpsys jobscheduler`; `pm clear` + iniciar sesión); (2) borrar la fila de la sesión
-  en PostgreSQL → abrir la app → 401 borra la sesión y lleva a Iniciar sesión.
-- **Paso que toca:** **12a** (`sharedLogic`, test primero; Gemini Neon · alto): `encodeCourseVersion`,
-  `CourseCopyStore` (+ implementación en memoria) y `OfflineCourseGateway` (*Decorator* de `CourseGateway`).
+  **Tarea 13 hecha y revisada en código y en commits** (pruebas de emulador pospuestas al cierre de D).
+  **Paso 12a terminado y revisado** (a falta del commit de los usuarios): `encodeCourseVersion`
+  (`course/http/CourseDtoEncoder.kt`), puerto `CourseCopyStore` + `InMemoryCourseCopyStore` y *Decorator*
+  `OfflineCourseGateway` en `sharedLogic` (25 tests nuevos; 64 clases, 806 tests en verde).
+- **Paso que toca:** **12b** (`app`; Gemini Neon · alto): entidad y DAO de `course_copies`,
+  `RoomCourseCopyStore`, `ProgressDatabase` versión 2, cadena
+  `CachingCourseGateway(OfflineCourseGateway(http, roomCopies))` en `AppContainer` (con `appScope` de
+  vuelta para lanzar la descarga en segundo plano al inscribirse), `EnrollmentViewModel` recibe una
+  `fun interface` para pedir la descarga tras `enroll`, y tests instrumentados y JVM.
+- **Pruebas de emulador al cierre de D (tras 12b):** las dos de la tarea 13 (modo avión cerrando desde
+  Recientes + 401 borrando la fila de sesión) y la de 12b (inscribirse, abrir camino, modo avión, fondo,
+  `am kill`, volver → el camino sale de la copia y la práctica abre). Todas escriben en la base de
+  desarrollo: las ejecutan los usuarios.
 - **Lo que hay que saber para seguir:**
   - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). Queda solo la tarea **12** (12a y 12b).
   - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`);
@@ -251,7 +253,7 @@ Sin red, el camino y la práctica abren desde la copia del curso. *Acepta si:*
 
 Pasos:
 
-- [ ] **12a** (`sharedLogic`, test primero; Sonnet 5.5 · alto). `encodeCourseVersion`, `CourseCopyStore` +
+- [x] **12a** (`sharedLogic`, test primero; Gemini Neon · alto; revisado el 2026-11-26). `encodeCourseVersion`, `CourseCopyStore` +
   versión en memoria y `OfflineCourseGateway`. Tests: ida y vuelta de cada tipo de paso y ejercicio y del
   curso de ejemplo; `Found` guarda y otro `Found` sustituye; `Unreachable` con copia → `Found` igual; sin
   copia o ilegible → `Unreachable`; los demás desenlaces pasan y no usan la copia; `search` se delega.
@@ -331,8 +333,16 @@ Pasos:
   `ProgressSyncWorkerTest` (10) + `WorkSyncRequesterTest` (8) = 34/34 en el mismo proceso (0 fallos).
   Pendientes las dos pruebas de emulador de los usuarios (modo avión cerrando desde recientes y 401 borrando
   la sesión en la base) para marcar la tarea 13 `[x]`.
+- 2026-11-26: **12a revisado y aprobado:** `encodeCourseVersion` en `course/http/CourseDtoEncoder.kt`
+  (compartiendo `internal val courseJson` desde `CourseDtoMappers.kt`; ids de opción `"o$index"` y
+  `MultipleChoice.correct.sorted()`, `formatVersion = 1` y `mastery` omitido cuando es `null`), puerto
+  `CourseCopyStore` + `InMemoryCourseCopyStore` (`MutableStateFlow`) y *Decorator*
+  `OfflineCourseGateway(delegate, copies)`. Revisión del orquestador: `:sharedLogic:testAndroidHostTest --rerun`
+  en verde (64 clases, 806 tests, 0 fallos; `CourseDtoEncoderTest` 8/8, `InMemoryCourseCopyStoreTest` 4/4,
+  `OfflineCourseGatewayTest` 13/13).
 
 ## Siguiente paso
 
-1. Commit de **13b-2** (por los usuarios) y, si quieren, las dos pruebas de emulador de la tarea 13.
-2. **12a** (`sharedLogic`, test primero): `encodeCourseVersion`, `CourseCopyStore` y `OfflineCourseGateway`.
+1. Commit de **12a** (por los usuarios).
+2. **12b** (`app`): tabla `course_copies`, DAO, `RoomCourseCopyStore`, `ProgressDatabase` v2, cadena en
+   `AppContainer` y descarga del curso al inscribirse (`EnrollmentViewModel`).

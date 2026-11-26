@@ -32,7 +32,7 @@ internal sealed interface CourseDecoding {
 
 internal const val SUPPORTED_FORMAT_VERSION = 1
 
-private val courseJson = Json { ignoreUnknownKeys = true }
+internal val courseJson = Json { ignoreUnknownKeys = true }
 
 // Lee la respuesta de GET /api/courses/{id}. En dos pasos: primero se mira formatVersion y solo
 // si es el 1 se lee el resto (un formato futuro puede tener otra forma).
