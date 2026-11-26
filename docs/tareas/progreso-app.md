@@ -5,15 +5,14 @@ Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`
 detalle (la parte C y los pasos de D ya revisados): `docs/tareas/progreso-app-historico.md` (no hace falta
 leerlo para continuar). Rama: `dev/course-progress-tracking`.
 
-Estado: **partes C (tareas 7–10) y D (tareas 11–13) terminadas y probadas en el emulador (2026-11-26). Siguiente: tarea 14 (cierre) en `docs/tareas/seguimiento-progreso.md`.**
+Estado: **partes C (tareas 7–10), D (tareas 11–13) y cierre (tarea 14) terminados (2026-11-26). Rama `dev/course-progress-tracking` lista para commit de cierre y merge.**
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-26):** **partes C y D terminadas** (a falta del commit de los usuarios para
-  `12b-2` + cierre de D). Todas las tareas 7–13 están implementadas, revisadas, probadas con tests
-  automáticos y verificadas de punta a punta en el emulador por los usuarios:
+- **Dónde estamos (2026-11-26):** **funcionalidad terminada y cerrada (partes A–D y tarea 14)**, a falta
+  del commit de los usuarios para la tarea 14.
   - **11 (sesión cifrada):** DataStore 1.3.0 + Keystore (AES-256-GCM en `noBackupFilesDir`), arranque según
     sesión (`StartViewModel`, `StartNavigation`, `GradusNavHost`) y `SessionProgressSync` para el 401.
   - **13 (WorkManager):** WorkManager 2.12.0 (`ProgressSyncWorker`, `WorkSyncRequester`,
@@ -22,26 +21,29 @@ Se **reescribe** al final de cada sesión; no se acumula.
   - **12 (copia local de cursos):** `encodeCourseVersion`, `CourseCopyStore`, `OfflineCourseGateway`, tabla
     `course_copies` en `ProgressDatabase` v2, cadena en `AppContainer` y precarga *best effort* en `appScope`
     tras inscribirse (`CourseCopyRequester`, `CourseCopyLauncher`, `EnrollmentViewModel`).
+  - **14 (cierre):** esquema de `ProgressDatabase` v2 congelado (`exportSchema = true` en `app/schemas/.../2.json`,
+    sin `fallbackToDestructiveMigration`), `docs/especificacion.md` actualizada (§4.4, §5 y §8) y batería
+    completa de tests en verde.
   - Detalle de todos los pasos de C y D: `docs/tareas/progreso-app-historico.md`. Referencia viva:
     `docs/arquitectura-progreso.md`.
-- **Tests en verde al cerrar D:** `sharedLogic` 64 clases / 806 tests (0 fallos); `app` JVM 22 clases / 316
-  tests (0 fallos); instrumentados de D verificados por paso + pruebas de punta a punta en el emulador.
-- **Siguiente (tarea 14 — cierre, coordinada desde `seguimiento-progreso.md`):**
-  1. Congelar el esquema de `ProgressDatabase` v2 (C-4): exportar el esquema (`exportSchema = true` + carpeta
-     de esquemas en Room/KSP) y quitar `fallbackToDestructiveMigration(dropAllTables = true)`.
-  2. Ejecutar la **batería completa** de tests (`:sharedLogic:testAndroidHostTest`, `:app:testDebugUnitTest`,
-     `:app:connectedDebugAndroidTest` sin filtro y `mvn test` en `backend/`).
-  3. Repaso final y actualizar `docs/especificacion.md` (§4.4 y §8).
+- **Tests completos en verde al cierre (2026-11-26):**
+  - `sharedLogic`: **64 clases, 806 tests** (0 fallos).
+  - `app` JVM: **22 clases, 316 tests** (0 fallos).
+  - `app` instrumentados (batería completa en `Pixel_9a(AVD) - 17`): **36 clases, 380 tests** (0 fallos).
+  - `backend/` (`mvn test`): **764 tests** (0 fallos).
 - **Lo que hay que saber al continuar o mergear:**
+  - `ProgressDatabase` está congelada en versión 2 (`app/schemas/es.ulpgc.pamn.dominio.data.progress.ProgressDatabase/2.json`,
+    sin borrado destructivo): cualquier cambio futuro exige una `Migration` de Room. Una instalación vieja
+    en v1 necesitaría `pm clear` o reinstalar una sola vez.
   - Al iniciar sesión, `GradusNavHost` espera a `start == SignedIn` antes de `enterHome()` (11c-3) y
     `StartViewModel` solo pide sincronizar si el primer estado tras `Loading` es `SignedIn` (13b-2):
     conservar ambos.
-  - Gradle: Room 2.8.5 + KSP 2.3.14 (C-1), DataStore 1.3.0 (11b) y WorkManager 2.12.0 + `work-testing`
-    2.12.0 (13b-1) ya están añadidos. Todo lo que hay que vigilar al mergear con `dev/joel` está en
+  - Gradle: Room 2.8.5 + KSP 2.3.14 (`room.schemaLocation`), DataStore 1.3.0 y WorkManager 2.12.0 +
+    `work-testing` 2.12.0 ya están añadidos. Todo lo que hay que vigilar al mergear con `dev/joel` está en
     `docs/arquitectura-progreso.md` («Qué cuidar al mergear»).
 - **Abierto (para después, no es de D):** inscribirse desde el camino (C-6); la página definitiva del
   curso; «Mis cursos» con los cursos inscritos (D-3: sin ella, la copia solo se usa cuando Android
-  restaura el camino); «cerrar sesión» (D-2); en la tarea 14, congelar el esquema de Room (C-4).
+  restaura el camino); «cerrar sesión» (D-2). *(El esquema de Room ya se congeló en la tarea 14.)*
 - **Riesgos:**
   - La rama `dev/joel` toca `AppContainer`, `CourseViewModel`, `ScreenCourse`, `MainNavGraph`,
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo. Lo que hay que conservar al
@@ -132,9 +134,9 @@ desde el camino (C-6); «cerrar sesión» y una lista de cursos inscritos en «M
   `android:name=".GradusApplication"`). En `Application` y no en `MainActivity` porque el `Worker` de
   D13 arranca sin Activity.
 - **C-4 Room por usuario:** tablas `enrollments` y `mastered_modules` con columna `pending`, clave
-  foránea al curso inscrito y fechas en nanosegundos (`InstantConverter`). En desarrollo, versión 1 y
-  `fallbackToDestructiveMigration(dropAllTables = true)`; **en la tarea 14 se congela** (exportar el
-  esquema y quitar el destructivo). `courseId` sin normalizar (comprobado; ver la arquitectura).
+  foránea al curso inscrito y fechas en nanosegundos (`InstantConverter`). Congelada en la tarea 14 en
+  versión 2 (con `course_copies`, `exportSchema = true` en `app/schemas/` y sin borrado destructivo).
+  `courseId` sin normalizar (comprobado; ver la arquitectura).
 - **C-5 Sincronizar:** tras iniciar sesión, tras inscribirse y tras dominar, con
   `ProgressSyncRequester` → `ProgressSyncLauncher` (ámbito de la app; sin sesión no llama).
   «Al volver la conexión» pasa a D13. Ningún desenlace enseña nada en C; **D11 lleva a iniciar sesión
@@ -319,9 +321,14 @@ Pasos:
   `progreso-app-historico.md`). Estado final de tests al cierre de D: `sharedLogic` 64 clases / 806 tests y
   `app` JVM 22 clases / 316 tests (0 fallos), más todos los instrumentados de D en verde.
 
+- 2026-11-26: **tarea 14 (cierre) terminada:** esquema de `ProgressDatabase` v2 congelado
+  (`exportSchema = true` → `app/schemas/es.ulpgc.pamn.dominio.data.progress.ProgressDatabase/2.json`,
+  `ksp { arg("room.schemaLocation", "$projectDir/schemas") }` y eliminado `fallbackToDestructiveMigration`);
+  actualizada `docs/especificacion.md` (§4.4, §5 y §8); batería completa en verde (`sharedLogic` 64/806,
+  `app` JVM 22/316, `app` instrumentados 36/380 y `backend` 764; 2 266 tests, 0 fallos).
+
 ## Siguiente paso
 
-1. Commit de **12b-2** + cierre de la parte D (por los usuarios).
-2. **Tarea 14 (cierre)** en `docs/tareas/seguimiento-progreso.md`: congelar el esquema de Room (C-4),
-   batería completa de tests (incluidos todos los instrumentados) y actualizar `docs/especificacion.md`
-   §4.4 y §8.
+1. Commit de la **tarea 14 (cierre)** por los usuarios.
+2. Merge de `dev/course-progress-tracking` cuidando los puntos de `docs/arquitectura-progreso.md` («Qué
+   cuidar al mergear»).

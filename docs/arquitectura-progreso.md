@@ -77,7 +77,7 @@ Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, conectado a
 | `ProgressSyncRequester` | `fun interface` con `requestSync()` (no `suspend`): pedir sincronizar sin esperar al resultado. Es lo que reciben los ViewModels (8b); en sus tests basta una lambda | *Command* |
 | `ProgressSyncWorker` (`CoroutineWorker`) (13b-1) | Ejecuta `sessionSync.run()` y traduce `backgroundSyncDecision(result, runAttemptCount)` a `Result` (`Done` → `success`, `Retry` → `retry`, `GiveUp` → `failure`). Constructor público de 2 argumentos usa `AppContainer.sessionProgressSync`; constructor `internal` + `ProgressSyncWorker.factory(sessionSync)` permiten probarlo sin `AppContainer`. No captura excepciones (errores de almacén pasan a `FAILED` en WorkManager; cancelación se propaga) | *Worker*; *Factory method* (`factory`) |
 | `WorkSyncRequester(workManager)` (13b-1) | Implementa `ProgressSyncRequester` encolando trabajo único `"progress-sync"` (`ExistingWorkPolicy.REPLACE`, `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL` de 30 s) | *Command*; *Adapter* sobre WorkManager |
-| `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 2 (desde 12b-1: `enrollments`, `mastered_modules` y `course_copies`), `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4, D-3; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
+| `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 2 (`enrollments`, `mastered_modules` y `course_copies`), **esquema congelado** (tarea 14, C-4): `exportSchema = true` (`app/schemas/es.ulpgc.pamn.dominio.data.progress.ProgressDatabase/2.json`) y sin borrado destructivo (futuros cambios exigen `Migration`). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
 Paquete `app/.../data/course/` (copias locales de cursos en Room; solo Android, desde 12b-1):
 
@@ -389,11 +389,12 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
 
 ## Qué cuidar al mergear
 
-- **Gradle con Room y KSP (7a):** `gradle/libs.versions.toml` (`room`, `ksp`, `androidx-room-runtime`,
-  `androidx-room-compiler` y el plugin `ksp`), el `build.gradle.kts` raíz (`alias(libs.plugins.ksp) apply false`)
-  y `app/build.gradle.kts` (el plugin, `room-runtime`, `ksp(room-compiler)` y `kotlinx-coroutines-test`
-  en `androidTestImplementation`). `dev/joel` también toca estos tres ficheros: al resolver conflictos,
-  conserva las líneas de los dos lados.
+- **Gradle con Room y KSP (7a y 14):** `gradle/libs.versions.toml` (`room`, `ksp`, `androidx-room-runtime`,
+  `androidx-room-compiler` y el plugin `ksp`), el `build.gradle.kts` raíz (`alias(libs.plugins.ksp) apply false`),
+  `app/build.gradle.kts` (el plugin, `ksp { arg("room.schemaLocation", "$projectDir/schemas") }`, `room-runtime`,
+  `ksp(room-compiler)` y `kotlinx-coroutines-test` en `androidTestImplementation`) y el esquema exportado
+  `app/schemas/es.ulpgc.pamn.dominio.data.progress.ProgressDatabase/2.json`. `dev/joel` también toca los tres
+  ficheros de Gradle: al resolver conflictos, conserva las líneas de los dos lados.
 - **Arranque según la sesión (11c-3):** `GradusNavHost` tiene un primer parámetro `start: StartState` y ya
   no empieza siempre en `Route.Welcome`; `MainActivity` crea el `StartViewModel`. Si otra rama toca
   `GradusNavHost` o `MainActivity`, conservar: el `Box` de `Loading` con su `return`, la ruta inicial con

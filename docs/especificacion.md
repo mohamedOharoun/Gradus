@@ -40,10 +40,11 @@ desbloquea cuando se dominan sus prerrequisitos, y los repasos espaciados evitan
    (con un valor por defecto y, si hace falta, uno propio por módulo); ver §2.6 y §5 de
    `backend/docs/especificacion-cursos-v1.md`. El modelo va detrás de una interfaz para poder
    cambiarlo más adelante (por ejemplo, por BKT).
-4. Cada respuesta se guarda como una fila nueva (pregunta, acierto, fecha) y nunca se modifica.
-   El estado de dominio se calcula a partir de ese registro.
-   *(Hoy, mientras no exista Room: el progreso se guarda en memoria, solo qué módulos se han
-   dominado, y se pierde al cerrar la app. Ver `tareas/cursos-backend-app.md`.)*
+4. Hoy se guardan por cuenta en Room (`ProgressDatabase` v2) las inscripciones y el **hecho**
+   «módulo dominado en la fecha Y» (no se recalcula si el autor cambia `minCorrect`), sincronizados
+   con el servidor mediante `POST /api/progress/sync` y WorkManager en segundo plano. Más adelante
+   se añadirá el registro inmutable de cada respuesta individual (pregunta, acierto, fecha) para
+   programar los repasos SM-2 (ver `tareas/seguimiento-progreso.md`).
 5. Si se falla el repaso de un módulo dominado, se marca como «necesita repaso», pero **no** se
    vuelven a bloquear los módulos que dependen de él. *(Decisión provisional.)*
 6. Las tarjetas autoevaluadas (cuando existan, ver §7) cuentan para los repasos, pero no para
@@ -90,9 +91,15 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
 `tareas/camino-curso-y-ejercicios.md` y `tareas/cursos-backend-app.md`):
 
 - **Camino del curso:**
-  - El curso se descarga del servidor al abrirlo. Mientras, una rueda; si falla, el motivo
-    (no existe, sin conexión, formato más nuevo que la app o fallo del servidor) y, si sirve,
-    «Reintentar».
+  - Para empezar a estudiar hace falta inscribirse explícitamente en el curso. Hoy, desde Buscar se
+    entra primero en una página de relleno del curso con «Inscribirse» e «Ir al camino» y, sin
+    inscripción, el camino solo sirve de vista previa (tocar un módulo avisa y no abre la práctica).
+    *(Decisión provisional a reconsiderar cuando se diseñe la página definitiva del curso o se valore
+    permitir inscribirse desde el propio camino; ver `tareas/progreso-app.md`, C-6.)*
+  - El curso se descarga del servidor al abrirlo (y en segundo plano al inscribirse) y se guarda una
+    copia local en Room; con red siempre prevalece el servidor, y sin conexión se abre desde la copia.
+    Mientras carga, una rueda; si falla y no hay copia, el motivo (no existe, sin conexión, formato
+    más nuevo que la app o fallo del servidor) y, si sirve, «Reintentar».
   - Los módulos, de arriba abajo, unidos por líneas a sus prerrequisitos. Si una fila solo
     tiene un módulo, el camino hace zigzag; como mucho caben 3 por fila.
   - Cada módulo tiene color e icono según su estado: dominado (morado, ✓), frontera (naranja, ▶)
@@ -159,8 +166,8 @@ Previstos para versiones posteriores del formato:
 |---|---|
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
 | API del dispositivo | Cámara para fotografiar apuntes y asociarlos a módulos |
-| SQLite | Room: cursos descargados, registro de respuestas y notas (fotos como ficheros, solo su ruta en la base de datos) |
-| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` |
+| SQLite | Room (`ProgressDatabase` v2): inscripciones y módulos dominados por cuenta, y copias locales de cursos para estudiar sin conexión; pendientes el registro de respuestas y las notas con cámara (fotos como ficheros, solo su ruta en la base de datos). Además, la sesión se guarda cifrada con DataStore y Android Keystore |
+| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga, valoraciones y sincronización del progreso (`POST /api/progress/sync`). La app lo llama con Ktor Client desde `sharedLogic` y sincroniza en segundo plano con WorkManager |
 
 ## 9. Plan por anillos
 

@@ -39,6 +39,11 @@ android {
     }
 }
 
+ksp {
+    // Esquema de Room congelado (tarea 14, C-4): exporta cada versión en JSON para futuras migraciones.
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     // Lógica en Kotlin puro (validaciones, formularios, modelo): compartible con iOS.
     implementation(project(":sharedLogic"))

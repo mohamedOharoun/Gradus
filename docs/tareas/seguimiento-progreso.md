@@ -6,8 +6,8 @@ Que un usuario se **inscriba** en un curso, estudie (también sin conexión) y s
 Este documento es el **índice común**: decisiones, contrato, reparto en partes y acuerdos. El detalle
 de cada parte vive en su propio documento, para que cada orquestador lea solo lo suyo.
 
-Estado: **partes A (backend), B (`sharedLogic`), C (app) y D (sin conexión) terminadas; contrato congelado** (2026-11-26).
-Siguiente: tarea 14 (cierre). Rama: `dev/course-progress-tracking`.
+Estado: **terminado (partes A, B, C, D y tarea 14 de cierre completadas; contrato congelado)** (2026-11-26).
+Rama: `dev/course-progress-tracking` (lista para commit de cierre y merge).
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -42,15 +42,20 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     (sincronización con WorkManager 2.12.0) y 12 (copia local de cursos en `ProgressDatabase` v2 y precarga
     al inscribirse) terminadas, revisadas y probadas de punta a punta en el emulador por los usuarios.
     Detalle en `docs/tareas/progreso-app-historico.md` y referencia viva en `docs/arquitectura-progreso.md`.
-- **Lo común que cambió con D (hecho):** `SessionStore` cifrado en disco sin cambiar el puerto (D-2);
-  sincronización con WorkManager 2.12.0 y `ProgressSyncLauncher` borrado (D-4); `ProgressDatabase` en
-  versión 2 con `course_copies` y precarga al inscribirse (D-3). Los puertos de la parte B y el contrato
-  siguen intactos.
-- **Siguiente:** commit de `12b-2` + cierre de D (por los usuarios) y **tarea 14 (cierre)**: congelar el
-  esquema de Room (C-4), pasar la batería completa de tests (`sharedLogic`, `app` JVM + todos los
-  instrumentados y `backend`), repaso final y actualizar `docs/especificacion.md` §4.4 y §8.
+  - **Cierre terminado (tarea 14, 2026-11-26):** esquema de `ProgressDatabase` v2 congelado
+    (`exportSchema = true` en `app/schemas/es.ulpgc.pamn.dominio.data.progress.ProgressDatabase/2.json`,
+    `ksp { arg("room.schemaLocation", "$projectDir/schemas") }`, sin borrado destructivo);
+    `docs/especificacion.md` actualizada (§4.4, §5 y §8); batería completa en verde sin avisos nuevos:
+    `sharedLogic` **806** (64 clases), `app` JVM **316** (22 clases), `app` instrumentados **380** (36
+    clases) y `backend` **764** (**2 266 tests**, 0 fallos, 0 omitidos).
+- **Lo común que cambió con D y el cierre (hecho):** `SessionStore` cifrado en disco sin cambiar el puerto
+  (D-2); sincronización con WorkManager 2.12.0 y `ProgressSyncLauncher` borrado (D-4); `ProgressDatabase`
+  congelada en versión 2 con `course_copies`, esquema exportado y precarga al inscribirse (D-3, C-4). Los
+  puertos de la parte B y el contrato siguen intactos.
+- **Siguiente:** commit de la tarea 14 (por los usuarios) y merge de `dev/course-progress-tracking`
+  revisando «Qué cuidar al mergear» en `docs/arquitectura-progreso.md`.
 - **Dependencias entre partes:**
-  - A, B, C y D: **terminadas**. Solo queda el cierre (tarea 14).
+  - A, B, C, D y cierre (tarea 14): **terminadas**.
 - **Cambios de contrato:** quien necesite cambiar `api-progreso.md` lo propone a los usuarios, lo
   apunta aquí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador. Ningún
   orquestador cambia el contrato por su cuenta después de congelarlo.
@@ -92,11 +97,11 @@ La casilla ✅ la marca el revisor (el orquestador de la parte), no quien implem
 
 | Parte | Tareas | Documento | Orquestador |
 |---|---|---|---|
-| **A · Backend** | 1 `SyncProgress` (dominio y caso de uso) · 2 SQL + JDBC · 3 ruta y contrato | `backend/docs/tareas/progreso-backend.md` | Propio |
-| **B · `sharedLogic`** | 4 modelo, puertos y `studyAccess` · 5 `ProgressGateway` HTTP · 6 `ProgressSync` | `docs/tareas/progreso-logica.md` | Propio |
-| **C · `app`** | 7 Room · 8 sincronizar con la app abierta · 9 la puerta en la interfaz · 10 botón de inscribirse | `docs/tareas/progreso-app.md` | Propio (C y D juntos) |
-| **D · Sin conexión** | 11 sesión persistente · 12 copia local del curso · 13 WorkManager | `docs/tareas/progreso-app.md` | El de C |
-| **Cierre** | 14 repaso final, `especificacion.md` §4.4 y §8 | Este documento | El último que termine |
+| **A · Backend** ✅ | 1 `SyncProgress` (dominio y caso de uso) · 2 SQL + JDBC · 3 ruta y contrato | `backend/docs/tareas/progreso-backend.md` | Propio |
+| **B · `sharedLogic`** ✅ | 4 modelo, puertos y `studyAccess` · 5 `ProgressGateway` HTTP · 6 `ProgressSync` | `docs/tareas/progreso-logica.md` | Propio |
+| **C · `app`** ✅ | 7 Room · 8 sincronizar con la app abierta · 9 la puerta en la interfaz · 10 botón de inscribirse | `docs/tareas/progreso-app.md` | Propio (C y D juntos) |
+| **D · Sin conexión** ✅ | 11 sesión persistente · 12 copia local del curso · 13 WorkManager | `docs/tareas/progreso-app.md` | El de C |
+| **Cierre** ✅ | 14 repaso final, esquema Room congelado, batería completa y `especificacion.md` §4.4, §5 y §8 | Este documento | El último que termine |
 
 Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquestador en su documento):
 
@@ -163,4 +168,7 @@ Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquesta
   `progreso-app-historico.md`). Lo que necesita la parte D, en el Relevo general y en el de `progreso-app.md`.
 - 2026-11-26: **parte D terminada** (tareas 11, 13 y 12: sesión cifrada, WorkManager 2.12.0 y copia local
   de cursos en Room v2; detalle en `progreso-app-historico.md`). Probada en el emulador por los usuarios.
-  Siguiente: tarea 14 (cierre).
+- 2026-11-26: **tarea 14 (cierre) terminada:** esquema de `ProgressDatabase` v2 congelado y exportado
+  (`app/schemas/.../2.json`, sin borrado destructivo), `docs/especificacion.md` actualizada (§4.4, §5 y §8)
+  y batería completa en verde (`sharedLogic` 806, `app` JVM 316, `app` instrumentados 380, `backend` 764;
+  2 266 tests, 0 fallos). Funcionalidad cerrada y lista para merge.
