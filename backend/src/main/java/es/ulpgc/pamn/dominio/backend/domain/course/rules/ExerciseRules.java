@@ -8,6 +8,7 @@ import es.ulpgc.pamn.dominio.backend.domain.course.Matching;
 import es.ulpgc.pamn.dominio.backend.domain.course.MatchingPair;
 import es.ulpgc.pamn.dominio.backend.domain.course.MultipleChoice;
 import es.ulpgc.pamn.dominio.backend.domain.course.Option;
+import es.ulpgc.pamn.dominio.backend.domain.course.PhotoExercise;
 import es.ulpgc.pamn.dominio.backend.domain.course.SingleChoice;
 import es.ulpgc.pamn.dominio.backend.domain.course.TextNormalizer;
 
@@ -53,6 +54,7 @@ public final class ExerciseRules {
                 case SingleChoice single -> Stream.of(new Located<>(located.path().key("answer"), single.answer()));
                 case MultipleChoice multiple -> Locations.indexed(multiple.correct(), located.path().key("correct")).stream();
                 case Matching matching -> Stream.empty();
+                case PhotoExercise photo -> Stream.empty();
             };
             return references
                     .filter(reference -> !ids.contains(reference.value()))
@@ -95,6 +97,22 @@ public final class ExerciseRules {
                                 + side.apply(repeat.repeated().value()) + "» ya aparece en "
                                 + repeat.first().path() + ". Cada lado debe aparecer una sola vez para que "
                                 + "solo haya una forma de unir las parejas."));
+    }
+
+    /**
+     * {@code PHOTO_IN_REVIEW}: un ejercicio con foto en la reserva. La prueba de dominio se corrige al
+     * momento y una foto la revisa el profesor más tarde, así que solo puede ir en {@code steps}.
+     * Va en la capa 3 para que el validador pare antes del dominio: si no, además saldría un
+     * {@code MASTERY_GUESSABLE} (la foto cuenta como acierto seguro) que solo despistaría.
+     */
+    public static Stream<Issue> photosInReview(CourseDocument course) {
+        return Locations.modules(course).stream()
+                .flatMap(module -> Locations.indexed(module.value().review(), module.path().key("review")).stream())
+                .filter(located -> located.value() instanceof PhotoExercise)
+                .map(located -> Issue.at(located.path(), CourseIssueCode.PHOTO_IN_REVIEW,
+                        "El ejercicio «" + located.value().id() + "» es de foto: lo revisa el profesor más "
+                                + "tarde, así que no puede ir en la prueba de dominio (review), que se corrige "
+                                + "al momento. Muévelo a los steps del módulo."));
     }
 
     /** Message factory de las reglas de opciones repetidas: recibe el ejercicio y la repetición. */

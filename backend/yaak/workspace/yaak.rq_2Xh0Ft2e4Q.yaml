@@ -1,0 +1,40 @@
+type: http_request
+model: http_request
+id: rq_2Xh0Ft2e4Q
+createdAt: 2026-11-25T17:00:00.000000000
+updatedAt: 2026-11-25T17:00:00.000000000
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_ei3GYikdgC
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: "Falta ?courseId=…: código REQUIRED en «courseId»."
+headers:
+- enabled: true
+  name: Authorization
+  value: "Bearer ${[ response.body.path(request='rq_ta4QvZtty8', path='$.token') ]}"
+  id: null
+method: GET
+name: "Mis entregas sin courseId (400)"
+sortPriority: 9.0
+url: "${[ baseUrl ]}/api/submissions/mine"
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

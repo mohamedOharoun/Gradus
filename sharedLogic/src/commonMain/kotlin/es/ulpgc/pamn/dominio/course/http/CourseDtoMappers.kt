@@ -6,6 +6,7 @@ import es.ulpgc.pamn.dominio.course.CoursePage
 import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.course.Mastery
 import es.ulpgc.pamn.dominio.course.Module
+import es.ulpgc.pamn.dominio.course.Publication
 import es.ulpgc.pamn.dominio.course.Step
 import es.ulpgc.pamn.dominio.course.exercise.MatchPair
 import es.ulpgc.pamn.dominio.course.exercise.Matching
@@ -43,7 +44,7 @@ internal fun decodeCourseVersion(body: String): CourseDecoding = try {
         CourseDecoding.UnsupportedFormat(format)
     } else {
         val content = courseJson.decodeFromJsonElement(CourseContentDto.serializer(), version.content)
-        CourseDecoding.Decoded(content.toCourse(id = version.id))
+        CourseDecoding.Decoded(content.toCourse(id = version.id, publication = version.toPublication()))
     }
 } catch (e: IllegalArgumentException) {
     // SerializationException (JSON mal formado, campo que falta, tipo desconocido) hereda de
@@ -77,8 +78,16 @@ internal fun CourseSummaryDto.toCourseSummary() = CourseSummary(
 
 // ── Contenido ──
 
-// El contenido no trae id: es el de los metadatos de la versión.
-internal fun CourseContentDto.toCourse(id: String) = Course(
+// Los datos de la publicación, solo si llegan los tres.
+private fun CourseVersionDto.toPublication(): Publication? {
+    val author = author ?: return null
+    val version = version ?: return null
+    val publishedAt = publishedAt ?: return null
+    return Publication(Author(id = author.id, name = author.name), version, publishedAt)
+}
+
+// El contenido no trae id ni publicación: vienen en los metadatos de la versión.
+internal fun CourseContentDto.toCourse(id: String, publication: Publication? = null) = Course(
     id = id,
     title = title,
     modules = modules.map { it.toModule() },
@@ -86,6 +95,7 @@ internal fun CourseContentDto.toCourse(id: String) = Course(
     language = language,
     tags = tags,
     defaultMastery = defaults.mastery.toMastery(),
+    publication = publication,
 )
 
 private fun MasteryDto.toMastery() = Mastery(questions = questions, minCorrect = minCorrect)
@@ -102,6 +112,7 @@ private fun ModuleDto.toModule() = Module(
 private fun StepDto.toStep(): Step = when (this) {
     is LessonDto -> Step.Lesson(id = id, text = text)
     is ExerciseDto -> Step.Exercise(toQuestion())
+    is PhotoDto -> Step.Photo(id = id, prompt = prompt, explanation = explanation)
 }
 
 // En el JSON las opciones se nombran por id ("answer": "a"); en la app, por su posición.

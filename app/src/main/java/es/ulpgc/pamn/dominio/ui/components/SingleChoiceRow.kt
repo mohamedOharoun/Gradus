@@ -26,6 +26,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import es.ulpgc.pamn.dominio.ui.screens.search.publishedLabel
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 private val OptionShape = RoundedCornerShape(12.dp)
@@ -41,7 +42,8 @@ private val OptionShape = RoundedCornerShape(12.dp)
 fun <T> SingleChoiceRow(
     options: List<T>,
     selected: T,
-    label: (T) -> String,
+    // @Composable: así el texto puede salir de strings.xml (ajustes.md, paso 9c).
+    label: @Composable (T) -> String,
     onSelect: (T) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -95,7 +97,7 @@ private fun SingleChoiceRowPreview() {
                     SingleChoiceRow(
                         options = PublishedWithin.entries,
                         selected = selected,
-                        label = ::publishedLabel,
+                        label = { publishedLabel(it).asString() },
                         onSelect = {},
                     )
                 }

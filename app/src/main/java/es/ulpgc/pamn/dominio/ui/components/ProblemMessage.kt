@@ -12,11 +12,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Un aviso centrado: título, texto (opcional) y «Reintentar» (solo si se pasa onRetry).
@@ -53,7 +55,7 @@ fun ProblemMessage(
 @Composable
 fun RetryButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     OutlinedButton(onClick = onClick, modifier = modifier.heightIn(min = 48.dp)) {
-        Text("Reintentar")
+        Text(stringResource(R.string.action_retry))
     }
 }
 

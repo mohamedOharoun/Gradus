@@ -2,6 +2,7 @@
 package es.ulpgc.pamn.dominio.ui.components
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -27,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -59,6 +61,7 @@ fun AnswerOption(
     enabled: Boolean = true,
 ) {
     val style = answerOptionStyle(selected, mark)
+    val markText = mark.label()?.let { stringResource(it) }
     // Toda la tarjeta es la zona táctil (y TalkBack la lee como «radio» o «casilla», con su estado).
     val interaction = when (kind) {
         AnswerOptionKind.SINGLE -> Modifier.selectable(selected, enabled, Role.RadioButton, onClick = onClick)
@@ -70,7 +73,7 @@ fun AnswerOption(
             .heightIn(min = 56.dp)
             .clip(Shape)
             .then(interaction)
-            .semantics { mark.label()?.let { stateDescription = it } },
+            .semantics { markText?.let { stateDescription = it } },
         shape = Shape,
         color = style.container,
         contentColor = style.content,
@@ -130,10 +133,11 @@ private fun answerOptionStyle(selected: Boolean, mark: OptionMark): AnswerOption
     }
 }
 
-private fun OptionMark.label(): String? = when (this) {
+@StringRes
+private fun OptionMark.label(): Int? = when (this) {
     OptionMark.NONE -> null
-    OptionMark.CORRECT -> "correcta"
-    OptionMark.WRONG -> "incorrecta"
+    OptionMark.CORRECT -> R.string.option_correct
+    OptionMark.WRONG -> R.string.option_wrong
 }
 
 @LightDarkPreviews

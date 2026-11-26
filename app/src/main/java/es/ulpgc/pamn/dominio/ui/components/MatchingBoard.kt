@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.exercise.MatchPair
 import es.ulpgc.pamn.dominio.course.exercise.Matching
 import es.ulpgc.pamn.dominio.course.exercise.MatchingDraft
@@ -78,7 +80,8 @@ fun MatchingBoard(
                 MatchingCard(
                     text = pair.left,
                     look = cardLook(selected = draft.pendingLeft == left, partner != null, checked, partner?.let { question.isRightFor(left, it) }),
-                    description = partner?.let { "unido con ${pairs[it].right}" } ?: "sin unir",
+                    description = partner?.let { stringResource(R.string.matching_joined_with, pairs[it].right) }
+                        ?: stringResource(R.string.matching_not_joined),
                     enabled = !checked,
                     onClick = { onLeftClick(left) },
                 )
@@ -88,7 +91,8 @@ fun MatchingBoard(
                 MatchingCard(
                     text = pairs[right].right,
                     look = cardLook(selected = draft.pendingRight == right, partner != null, checked, partner?.let { question.isRightFor(it, right) }),
-                    description = partner?.let { "unido con ${pairs[it].left}" } ?: "sin unir",
+                    description = partner?.let { stringResource(R.string.matching_joined_with, pairs[it].left) }
+                        ?: stringResource(R.string.matching_not_joined),
                     enabled = !checked,
                     onClick = { onRightClick(right) },
                 )

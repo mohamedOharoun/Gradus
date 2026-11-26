@@ -3,7 +3,7 @@ package es.ulpgc.pamn.dominio.data
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.data.course.CourseCopyLauncher
 import es.ulpgc.pamn.dominio.data.progress.WorkSyncRequester
-import es.ulpgc.pamn.dominio.data.session.DataStoreSessionStore
+import es.ulpgc.pamn.dominio.data.session.SessionMonitor
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -24,10 +24,11 @@ class AppContainerTest {
         assertSame(AppContainer.progressStore, AppContainer.enrollmentStore)
     }
 
-    // 11c: la sesión ya no está en memoria, se guarda cifrada en el móvil.
+    // 11c + salida unificada: la sesión pasa por un único SessionMonitor sobre DataStoreSessionStore.
     @Test
-    fun session_store_is_the_persistent_one() {
-        assertTrue(AppContainer.sessionStore is DataStoreSessionStore)
+    fun session_store_and_session_sign_out_are_the_same_session_monitor() {
+        assertTrue(AppContainer.sessionStore is SessionMonitor)
+        assertSame(AppContainer.sessionStore, AppContainer.sessionSignOut)
     }
 
     // DataStore no admite dos activos sobre el mismo fichero: tiene que ser un solo objeto.
@@ -36,11 +37,11 @@ class AppContainerTest {
         assertSame(AppContainer.sessionStore, AppContainer.sessionStore)
     }
 
-    // El Flow que usa el arranque sale del mismo DataStore que ve el resto de la app.
+    // El Flow que usa el arranque sale del mismo SessionMonitor (y DataStore) que ve el resto de la app.
     @Test
-    fun session_updates_come_from_the_same_store_as_the_session_store() {
-        val store = AppContainer.sessionStore as DataStoreSessionStore
-        assertSame(store.session, AppContainer.sessionUpdates)
+    fun session_updates_come_from_the_same_monitor_as_the_session_store() {
+        val monitor = AppContainer.sessionStore as SessionMonitor
+        assertSame(monitor.updates, AppContainer.sessionUpdates)
     }
 
     // 13b: la sincronización pasa por WorkManager y es una sola instancia en la app.
@@ -67,5 +68,12 @@ class AppContainerTest {
     fun course_copy_is_course_copy_launcher_single_instance() {
         assertTrue(AppContainer.courseCopy is CourseCopyLauncher)
         assertSame(AppContainer.courseCopy, AppContainer.courseCopy)
+    }
+
+    // Las notas con cámara (GradusDatabase separada) y los ajustes también son instancias únicas.
+    @Test
+    fun notes_store_and_settings_store_are_single_instances() {
+        assertSame(AppContainer.notesStore, AppContainer.notesStore)
+        assertSame(AppContainer.settingsStore, AppContainer.settingsStore)
     }
 }

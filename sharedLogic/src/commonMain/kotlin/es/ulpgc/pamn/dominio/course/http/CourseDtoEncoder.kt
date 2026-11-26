@@ -14,7 +14,15 @@ import kotlinx.serialization.json.jsonObject
 // forma de GET /api/courses/{id} para guardar copias locales. Funciones puras.
 internal fun encodeCourseVersion(course: Course): String {
     val content = courseJson.encodeToJsonElement(CourseContentDto.serializer(), course.toContentDto()).jsonObject
-    return courseJson.encodeToString(CourseVersionDto.serializer(), CourseVersionDto(id = course.id, content = content))
+    val publication = course.publication
+    val dto = CourseVersionDto(
+        id = course.id,
+        content = content,
+        version = publication?.version,
+        author = publication?.author?.let { AuthorDto(id = it.id, name = it.name) },
+        publishedAt = publication?.publishedAt,
+    )
+    return courseJson.encodeToString(CourseVersionDto.serializer(), dto)
 }
 
 private fun Course.toContentDto() = CourseContentDto(
@@ -41,6 +49,7 @@ private fun Module.toDto() = ModuleDto(
 private fun Step.toDto(): StepDto = when (this) {
     is Step.Lesson -> LessonDto(id = id, text = text)
     is Step.Exercise -> question.toDto()
+    is Step.Photo -> PhotoDto(id = id, prompt = prompt, explanation = explanation)
 }
 
 // En la app las opciones se referencian por posición; en el JSON necesitan un id estable ("o0", "o1"…).

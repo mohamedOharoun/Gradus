@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -36,7 +37,7 @@ class FilterChipsTest {
     @get:Rule
     val composeRule = createComposeRule()
 
-    private fun show(content: @Composable () -> Unit) = composeRule.setContent { GradusTheme { content() } }
+    private fun show(content: @Composable () -> Unit) = composeRule.setContentInSpanish { GradusTheme { content() } }
 
     private fun role(role: Role) = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
 

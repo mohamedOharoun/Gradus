@@ -16,4 +16,14 @@ public record User(UUID id, UserName name, Email email, PasswordHash passwordHas
         Objects.requireNonNull(createdAt, "createdAt");
         Objects.requireNonNull(termsAcceptance, "termsAcceptance");
     }
+
+    /** Este usuario con otro nombre (Ajustes). El resto no cambia; el original tampoco (es inmutable). */
+    public User withName(UserName newName) {
+        return new User(id, newName, email, passwordHash, createdAt, termsAcceptance);
+    }
+
+    /** Este usuario con otra contraseña (ya hasheada). El resto no cambia. */
+    public User withPasswordHash(PasswordHash newHash) {
+        return new User(id, name, email, newHash, createdAt, termsAcceptance);
+    }
 }

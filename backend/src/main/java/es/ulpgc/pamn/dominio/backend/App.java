@@ -1,10 +1,13 @@
 package es.ulpgc.pamn.dominio.backend;
 
 import es.ulpgc.pamn.dominio.backend.application.Authenticate;
+import es.ulpgc.pamn.dominio.backend.application.ChangePassword;
+import es.ulpgc.pamn.dominio.backend.application.DeleteAccount;
 import es.ulpgc.pamn.dominio.backend.application.LogIn;
 import es.ulpgc.pamn.dominio.backend.application.LogOut;
 import es.ulpgc.pamn.dominio.backend.application.PasswordHasher;
 import es.ulpgc.pamn.dominio.backend.application.RegisterUser;
+import es.ulpgc.pamn.dominio.backend.application.RenameUser;
 import es.ulpgc.pamn.dominio.backend.application.SessionRepository;
 import es.ulpgc.pamn.dominio.backend.application.UserRepository;
 import es.ulpgc.pamn.dominio.backend.application.course.CourseInspector;
@@ -16,6 +19,10 @@ import es.ulpgc.pamn.dominio.backend.application.course.PublishCourse;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourseVersion;
 import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourse;
 import es.ulpgc.pamn.dominio.backend.application.progress.SyncProgress;
+import es.ulpgc.pamn.dominio.backend.application.submission.DownloadSubmissionPhoto;
+import es.ulpgc.pamn.dominio.backend.application.submission.ListMySubmissions;
+import es.ulpgc.pamn.dominio.backend.application.submission.SubmissionRepository;
+import es.ulpgc.pamn.dominio.backend.application.submission.SubmitPhoto;
 import es.ulpgc.pamn.dominio.backend.config.DatabaseConfig;
 import es.ulpgc.pamn.dominio.backend.config.HttpConfig;
 import es.ulpgc.pamn.dominio.backend.domain.session.SessionPolicy;
@@ -28,6 +35,7 @@ import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcCourseExiste
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcCourseRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcEnrollmentRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcSessionRepository;
+import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcSubmissionRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.persistence.JdbcUserRepository;
 import es.ulpgc.pamn.dominio.backend.infrastructure.security.Pbkdf2PasswordHasher;
 import com.fasterxml.jackson.core.JacksonException;
@@ -39,7 +47,12 @@ import es.ulpgc.pamn.dominio.backend.web.course.CourseCatalogController;
 import es.ulpgc.pamn.dominio.backend.web.course.CoursePublicationController;
 import es.ulpgc.pamn.dominio.backend.web.progress.ProgressController;
 import es.ulpgc.pamn.dominio.backend.web.progress.ProgressRequestReader;
+import es.ulpgc.pamn.dominio.backend.web.submission.MultipartErrors;
+import es.ulpgc.pamn.dominio.backend.web.submission.SubmissionController;
+import es.ulpgc.pamn.dominio.backend.web.submission.UploadLimit;
 import io.javalin.Javalin;
+import io.javalin.config.SizeUnit;
+import jakarta.servlet.ServletException;
 
 import javax.sql.DataSource;
 import java.time.Clock;
@@ -64,7 +77,10 @@ public final class App {
         Clock clock = Clock.systemUTC();
 
         UserController users = new UserController(
-                new RegisterUser(userRepository, hasher, clock, UUID::randomUUID));
+                new RegisterUser(userRepository, hasher, clock, UUID::randomUUID),
+                new RenameUser(userRepository),
+                new ChangePassword(userRepository, sessionRepository, hasher),
+                new DeleteAccount(userRepository, hasher));
         SessionController sessions = new SessionController(
                 new LogIn(userRepository, sessionRepository, hasher, SessionPolicy.STANDARD, clock,
                         UUID::randomUUID, SessionToken::generate),
@@ -87,24 +103,44 @@ public final class App {
         ProgressController progress = new ProgressController(new ProgressRequestReader(),
                 new SyncProgress(new JdbcEnrollmentRepository(dataSource), new JdbcCourseExistence(dataSource), clock));
 
+        // Entregas con foto (docs/tareas/ejercicio-foto.md): comparten el lector de cursos y el repositorio.
+        SubmissionRepository submissionRepository = new JdbcSubmissionRepository(dataSource);
+        SubmissionController submissions = new SubmissionController(
+                new SubmitPhoto(courseRepository, courseReader, submissionRepository, clock, UUID::randomUUID),
+                new ListMySubmissions(submissionRepository),
+                new DownloadSubmissionPhoto(submissionRepository));
+
         Javalin.create(config -> {
             config.jetty.port = http.port();
             // 2 MiB (§4.7). Javalin trae 1 000 000 bytes por defecto: sin esto, rechazaría los cursos más grandes.
             config.http.maxRequestSize = CourseContent.MAX_SIZE_BYTES;
+            // maxRequestSize no limita el multipart, que por defecto no tiene límite (decisión N). En memoria,
+            // no en el disco temporal: cabe de sobra.
+            config.jetty.multipartConfig.maxTotalRequestSize(UploadLimit.MAX_REQUEST_BYTES, SizeUnit.BYTES);
+            config.jetty.multipartConfig.maxFileSize(UploadLimit.MAX_REQUEST_BYTES, SizeUnit.BYTES);
+            config.jetty.multipartConfig.maxInMemoryFileSize(UploadLimit.MAX_REQUEST_BYTES, SizeUnit.BYTES);
             config.routes.post("/api/users", users::register);
             config.routes.post("/api/sessions", sessions::logIn);
             // Rutas protegidas: sin un token válido responden 401 sin llegar al controlador.
             config.routes.get("/api/users/me", requireSession.around(users::me));
+            config.routes.patch("/api/users/me", requireSession.around(users::rename));
+            config.routes.put("/api/users/me/password", requireSession.around(users::changePassword));
+            config.routes.delete("/api/users/me", requireSession.around(users::deleteAccount));
             config.routes.delete("/api/sessions/current", requireSession.around(sessions::logOut));
             config.routes.post("/api/courses/validate", requireSession.around(coursePublication::validate));
             config.routes.post("/api/courses", requireSession.around(coursePublication::publish));
             config.routes.post("/api/courses/{id}/versions", requireSession.around(coursePublication::publishVersion));
             config.routes.post("/api/progress/sync", requireSession.around(progress::sync));
+            config.routes.post("/api/courses/{id}/exercises/{exerciseId}/submissions",
+                    requireSession.around(submissions::submit));
+            config.routes.get("/api/submissions/mine", requireSession.around(submissions::mine));
+            config.routes.get("/api/submissions/{id}/photo", requireSession.around(submissions::photo));
             // Consulta pública: buscar y descargar cursos no necesita sesión.
             config.routes.get("/api/courses", courseCatalog::search);
             config.routes.get("/api/courses/{id}", courseCatalog::latest);
             config.routes.get("/api/courses/{id}/versions/{version}", courseCatalog::version);
             config.routes.exception(JacksonException.class, ExceptionHandlers::invalidJson);
+            config.routes.exception(ServletException.class, MultipartErrors::unreadable);
         }).start();
     }
 }

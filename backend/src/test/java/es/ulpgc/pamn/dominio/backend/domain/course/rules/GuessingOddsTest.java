@@ -8,6 +8,7 @@ import java.util.List;
 
 import static es.ulpgc.pamn.dominio.backend.domain.course.TestCourses.matching;
 import static es.ulpgc.pamn.dominio.backend.domain.course.TestCourses.multipleChoice;
+import static es.ulpgc.pamn.dominio.backend.domain.course.TestCourses.photo;
 import static es.ulpgc.pamn.dominio.backend.domain.course.TestCourses.singleChoice;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -31,6 +32,13 @@ class GuessingOddsTest {
     @Test
     void needingEveryAnswerIsTheProbabilityToTheQuestions() {
         assertEquals(1.0 / 32, GuessingOdds.passBound(5, 5, 0.5), TOLERANCE);
+    }
+
+    @Test
+    void aPhotoExerciseCountsAsAlwaysPassed() {
+        // No se corrige solo: en una prueba de dominio sería un acierto seguro. La regla
+        // PHOTO_IN_REVIEW (tarea 2) lo prohíbe en la reserva; aquí solo se evita subestimar la cota.
+        assertEquals(1.0, GuessingOdds.guessProbability(photo("f")), TOLERANCE);
     }
 
     @Test

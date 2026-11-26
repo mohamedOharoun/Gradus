@@ -154,9 +154,18 @@ Todos los pasos y ejercicios llevan `type` e `id`.
 | `singleChoice` | `options` (2–6), `answer` (id de una opción) | se elige exactamente la opción `answer` |
 | `multipleChoice` | `options` (3–6), `correct` (1–5 ids, sin repetir) | el conjunto elegido es exactamente `correct` |
 | `matching` | `pairs` (2–8 pares `{ "left", "right" }`) | se reconstruyen todos los pares |
+| `photo` | ninguno | no se corrige al momento: el alumno lo resuelve en papel y entrega una foto, que revisa el profesor más tarde. Solo puede ir en `steps` (`PHOTO_IN_REVIEW`) |
 
 - Una opción es `{ "id", "text" }`, con `text` en Markdown de hasta 300 caracteres.
 - Cada lado de un par es Markdown de hasta 200 caracteres.
+- En `photo`, `explanation` es la solución: la app la enseña al entregar la foto y es la referencia
+  del profesor al revisarla. Ejemplo:
+
+  ```json
+  { "type": "photo", "id": "bfs-a-mano",
+    "prompt": "Recorre en anchura el grafo empezando por **A**. Escribe el orden de visita.",
+    "explanation": "Orden: A, B, C, D, E." }
+  ```
 
 Estas representaciones están elegidas para que ciertos errores **no se puedan escribir**:
 
@@ -247,6 +256,7 @@ Detalles de implementación de la capa 1:
 | `UNKNOWN_OPTION` | 3 | error | `answer`, o un elemento de `correct`, no es id de ninguna opción del ejercicio. | ese campo o elemento |
 | `ALL_OPTIONS_CORRECT` | 3 | error | En `multipleChoice`, `correct` incluye todas las opciones: marcarlo todo siempre acertaría. | `…/correct` |
 | `DUPLICATE_MATCHING_SIDE` | 3 | error | En `matching`, dos izquierdas o dos derechas tienen el mismo texto normalizado: deja de ser biyección. | segundo par repetido |
+| `PHOTO_IN_REVIEW` | 3 | error | Un ejercicio `photo` está en `review`: lo revisa el profesor más tarde y la prueba de dominio se corrige al momento. Está en la capa 3 para que no salga además un `MASTERY_GUESSABLE`. | `/modules/i/review/j` |
 | `UNKNOWN_PREREQUISITE` | 3 | error | Un id de `requires` no es un módulo del curso. | `/modules/i/requires/j` |
 | `SELF_PREREQUISITE` | 3 | error | Un módulo se requiere a sí mismo. | `/modules/i/requires/j` |
 | `DUPLICATE_TAG` | 3 | aviso | Dos etiquetas coinciden tras normalizar (§3.4). | segunda etiqueta |
@@ -302,6 +312,8 @@ Para cada módulo cuya prueba efectiva no tenga errores, con q = `questions` y k
    - `singleChoice` con n opciones: 1/n.
    - `multipleChoice` con n opciones: 1/(2ⁿ − 1), porque la app exige marcar al menos una (§5).
    - `matching` con m pares: 1/m!, porque la app exige completar todas las parejas (§5).
+   - `photo`: 1 (no se corrige solo). En la práctica no llega aquí: `PHOTO_IN_REVIEW` lo impide
+     en la reserva y para el validador antes de la capa 5.
 2. p = el **máximo** de esos valores en la reserva.
 3. Cota = P(X ≥ k) con X ~ Binomial(q, p):
 
@@ -535,6 +547,10 @@ Se documenta porque la cota de §3.6 depende de ello. La app debe:
 - **Barajar** las opciones y la columna derecha de los `matching` en cada intento. El orden del fichero no significa nada.
 - En `multipleChoice`, **exigir al menos una opción marcada**.
 - En `matching`, **exigir completar todas las parejas**.
+- En `photo`, **no dar el paso por corregido**: la app sube la foto como entrega pendiente de
+  revisión, enseña `explanation` al entregar y deja continuar sin esperar a la revisión. También se
+  puede dejar «para más tarde» sin bloquear el módulo (`docs/tareas/ejercicio-foto.md` en la raíz del
+  repositorio; rutas en `api-entregas.md`).
 - Sortear la prueba de dominio **sin reemplazo**, priorizando los ejercicios que no salieron en el intento anterior.
 
 ---

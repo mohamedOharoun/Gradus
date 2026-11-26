@@ -20,7 +20,7 @@ import java.util.UUID;
  * Repositorio falso para tests. Los métodos {@code synchronized} hacen el papel del {@code FOR UPDATE}:
  * comprobar e insertar ocurren de una vez, sin que otra publicación se cuele en medio.
  */
-final class InMemoryCourseRepository implements CourseRepository {
+public final class InMemoryCourseRepository implements CourseRepository {
 
     /** Las versiones de cada curso, en orden: la de la posición i es la versión i + 1. */
     private final Map<UUID, List<CourseVersion>> versionsByCourse = new HashMap<>();

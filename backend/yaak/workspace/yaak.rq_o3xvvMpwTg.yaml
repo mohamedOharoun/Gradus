@@ -1,0 +1,40 @@
+type: http_request
+model: http_request
+id: rq_o3xvvMpwTg
+createdAt: 2026-11-25T17:00:00.000000000
+updatedAt: 2026-11-25T17:00:00.000000000
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_ei3GYikdgC
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: "Código SUBMISSION_NOT_FOUND."
+headers:
+- enabled: true
+  name: Authorization
+  value: "Bearer ${[ response.body.path(request='rq_ta4QvZtty8', path='$.token') ]}"
+  id: null
+method: GET
+name: "Descargar una entrega que no existe (404)"
+sortPriority: 12.0
+url: "${[ baseUrl ]}/api/submissions/00000000-0000-0000-0000-000000000000/photo"
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

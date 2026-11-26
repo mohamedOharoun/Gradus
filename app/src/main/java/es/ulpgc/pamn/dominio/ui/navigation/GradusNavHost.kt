@@ -52,10 +52,17 @@ fun GradusNavHost(
         Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
         return
     }
-    // Sin sesión estando en Main (con la app abierta o restaurada): a Login, sin poder volver a Main.
+    // Única fuente de navegación al perder la sesión estando en Main (app abierta o restaurada):
+    // cierre voluntario / cuenta eliminada → [Welcome]; sesión caducada (401) o ausente → [Welcome, Login].
     val inMain = navController.currentBackStackEntryAsState().value?.destination.isInMain()
-    val leaveMain = start.mustLeaveMain(inMain)
-    LaunchedEffect(leaveMain) { if (leaveMain) navController.leaveMain() }
+    val exit = start.mainExit(inMain)
+    LaunchedEffect(exit) {
+        when (exit) {
+            MainExit.ToWelcome -> navController.leaveToWelcome()
+            MainExit.ToLogin -> navController.leaveMain()
+            null -> Unit
+        }
+    }
 
     NavHost(navController = navController, startDestination = startRoute, modifier = modifier) {
         composable<Route.Welcome> {

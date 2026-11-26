@@ -38,6 +38,27 @@ class AppContainerInitTest {
     }
 
     @Test
+    fun session_sign_out_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.sessionSignOut }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
+
+    @Test
+    fun notes_store_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.notesStore }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
+
+    @Test
+    fun settings_store_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.settingsStore }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
+
+    @Test
     fun progress_sync_before_init_fails_saying_what_to_call() {
         val failure = assertThrows(IllegalStateException::class.java) { AppContainer.progressSync }
 

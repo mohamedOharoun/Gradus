@@ -21,6 +21,7 @@ public final class CourseValidator {
             ExerciseRules::unknownOptions,
             ExerciseRules::allOptionsCorrect,
             ExerciseRules::duplicateMatchingSides,
+            ExerciseRules::photosInReview,
             PrerequisiteRules::unknownPrerequisites,
             PrerequisiteRules::selfPrerequisites,
             IdentityRules::duplicateTags);

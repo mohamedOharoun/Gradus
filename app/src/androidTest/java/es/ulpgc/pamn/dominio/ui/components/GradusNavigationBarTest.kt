@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.ui.navigation.TopLevelDestination
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -31,12 +32,19 @@ class GradusNavigationBarTest {
 
     @Test
     fun every_tab_is_announced_as_a_tab_with_its_name_and_only_the_current_one_is_selected() {
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme { GradusNavigationBar(selected = TopLevelDestination.SEARCH, onSelect = {}) }
         }
 
+        // En español (setContentInSpanish): cada pestaña con su nombre.
+        val names = mapOf(
+            TopLevelDestination.HOME to "Inicio",
+            TopLevelDestination.SEARCH to "Buscar",
+            TopLevelDestination.MY_COURSES to "Mis cursos",
+            TopLevelDestination.SETTINGS to "Ajustes",
+        )
         TopLevelDestination.entries.forEach { destination ->
-            val tab = composeRule.onNodeWithText(destination.label)
+            val tab = composeRule.onNodeWithText(names.getValue(destination))
                 .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
                 .assertWidthIsAtLeast(48.dp)
                 .assertHeightIsAtLeast(48.dp)
@@ -47,7 +55,7 @@ class GradusNavigationBarTest {
     @Test
     fun tapping_a_tab_reports_which_one() {
         var tapped: TopLevelDestination? = null
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme { GradusNavigationBar(selected = TopLevelDestination.HOME, onSelect = { tapped = it }) }
         }
 

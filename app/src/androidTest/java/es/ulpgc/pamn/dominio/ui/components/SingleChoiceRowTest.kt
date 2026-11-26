@@ -22,6 +22,9 @@ import es.ulpgc.pamn.dominio.ui.screens.search.publishedLabel
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import es.ulpgc.pamn.dominio.ui.testing.inSpanish
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
+import es.ulpgc.pamn.dominio.ui.text.asString
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,13 +42,13 @@ class SingleChoiceRowTest {
     private fun showDates(
         selected: PublishedWithin = PublishedWithin.ANY,
         onSelect: (PublishedWithin) -> Unit = {},
-    ) = composeRule.setContent {
+    ) = composeRule.setContentInSpanish {
         GradusTheme {
-            SingleChoiceRow(PublishedWithin.entries, selected, ::publishedLabel, onSelect)
+            SingleChoiceRow(PublishedWithin.entries, selected, { publishedLabel(it).asString() }, onSelect)
         }
     }
 
-    private fun option(within: PublishedWithin) = composeRule.onNodeWithText(publishedLabel(within))
+    private fun option(within: PublishedWithin) = composeRule.onNodeWithText(publishedLabel(within).inSpanish())
 
     @Test
     fun every_option_is_shown() {
@@ -96,8 +99,8 @@ class SingleChoiceRowTest {
     @Test
     fun it_follows_the_selection_when_the_owner_changes_it() {
         var selected by mutableStateOf(PublishedWithin.ANY)
-        composeRule.setContent {
-            GradusTheme { SingleChoiceRow(PublishedWithin.entries, selected, ::publishedLabel, {}) }
+        composeRule.setContentInSpanish {
+            GradusTheme { SingleChoiceRow(PublishedWithin.entries, selected, { publishedLabel(it).asString() }, {}) }
         }
 
         composeRule.runOnIdle { selected = PublishedWithin.LAST_YEAR }
@@ -136,7 +139,7 @@ class SingleChoiceRowTest {
     @Test
     fun it_works_with_any_type_of_option() {
         val received = mutableListOf<Size>()
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme {
                 SingleChoiceRow(Size.entries, Size.SMALL, { it.name.lowercase() }, { received += it })
             }

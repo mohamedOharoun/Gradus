@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.screens.search.FILTERS_LABEL
 import es.ulpgc.pamn.dominio.ui.screens.search.filtersButtonDescription
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Los tres chips de los filtros de Buscar (Figma «3 · Buscar» y «4 · Buscar con filtros»).
@@ -46,6 +47,8 @@ import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 // TalkBack lo lee como un solo botón: «Filtros, 2 activos».
 @Composable
 fun FiltersButton(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    // Fuera de semantics {}: ahí no se puede leer strings.xml.
+    val description = filtersButtonDescription(count).asString()
     Surface(
         onClick = onClick,
         // `minimumInteractiveComponentSize` agranda la zona táctil a 48 dp sin agrandar lo que se ve.
@@ -53,7 +56,7 @@ fun FiltersButton(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier
             .minimumInteractiveComponentSize()
             .semantics {
                 role = Role.Button
-                contentDescription = filtersButtonDescription(count)
+                contentDescription = description
             },
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
@@ -67,7 +70,7 @@ fun FiltersButton(count: Int, onClick: () -> Unit, modifier: Modifier = Modifier
         ) {
             // Decorativo: el botón ya dice «Filtros».
             Icon(painterResource(R.drawable.ic_tune), contentDescription = null, modifier = Modifier.size(20.dp))
-            Text(FILTERS_LABEL, style = MaterialTheme.typography.labelLarge)
+            Text(FILTERS_LABEL.asString(), style = MaterialTheme.typography.labelLarge)
             if (count > 0) CountBadge(count)
         }
     }

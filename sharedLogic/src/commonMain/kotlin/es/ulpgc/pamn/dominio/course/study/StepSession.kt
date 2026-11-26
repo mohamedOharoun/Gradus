@@ -5,7 +5,8 @@ import es.ulpgc.pamn.dominio.course.exercise.ExerciseState
 import es.ulpgc.pamn.dominio.course.exercise.startExercise
 import kotlin.random.Random
 
-// Un paso de la parte formativa mientras se estudia: una lección que se lee o un ejercicio que se responde.
+// Un paso de la parte formativa mientras se estudia: una lección que se lee, un ejercicio que se
+// responde o una foto que se entrega.
 sealed interface StepState {
     // ¿Se puede pasar al siguiente? Una lección, siempre; un ejercicio, una vez comprobado.
     val isDone: Boolean
@@ -16,6 +17,11 @@ sealed interface StepState {
 
     data class Answering(val exercise: ExerciseState) : StepState {
         override val isDone: Boolean get() = exercise.isChecked
+    }
+
+    // Una tarea con foto: hecha al entregarla o al dejarla para más tarde (PhotoStep).
+    data class Photo(val step: PhotoStep) : StepState {
+        override val isDone: Boolean get() = step.isDone
     }
 }
 
@@ -29,6 +35,7 @@ data class StepSession(val steps: List<StepState>, val index: Int = 0) {
                 when (step) {
                     is Step.Lesson -> StepState.Reading(step)
                     is Step.Exercise -> StepState.Answering(step.question.startExercise(random))
+                    is Step.Photo -> StepState.Photo(PhotoStep(step))
                 }
             },
         )
@@ -45,6 +52,20 @@ data class StepSession(val steps: List<StepState>, val index: Int = 0) {
         val answering = current as? StepState.Answering ?: return this
         return copy(steps = steps.mapIndexed { i, step -> if (i == index) StepState.Answering(change(answering.exercise)) else step })
     }
+
+    // «Entregar más tarde» en la tarea con foto actual; en otro paso, o mientras se entrega, nada.
+    fun submitPhotoLater(): StepSession {
+        val photo = current as? StepState.Photo ?: return this
+        return updatePhoto(photo.step.photo.id) { it.leaveForLater() }
+    }
+
+    // Cambia la tarea con foto de ese id, esté o no en pantalla: la respuesta de la red va a su paso.
+    // Si no hay ninguna con ese id, no hace nada.
+    fun updatePhoto(stepId: String, change: (PhotoStep) -> PhotoStep): StepSession = copy(
+        steps = steps.map { step ->
+            if (step is StepState.Photo && step.step.photo.id == stepId) StepState.Photo(change(step.step)) else step
+        },
+    )
 
     fun next(): StepSession = if (canContinue) copy(index = index + 1) else this
 }

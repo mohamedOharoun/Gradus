@@ -51,3 +51,18 @@ internal data class ErrorResponseDto(val errors: List<FieldErrorDto>)
 
 @Serializable
 internal data class FieldErrorDto(val field: String, val code: String)
+
+// Ajustes, fase 2 (backend/.../web/RenameUserRequest, ChangePasswordRequest y DeleteAccountRequest).
+
+@Serializable
+internal data class RenameRequestDto(val name: String)
+
+@Serializable
+internal data class ChangePasswordRequestDto(val currentPassword: String, val newPassword: String) {
+    override fun toString() = "ChangePasswordRequestDto(currentPassword=****, newPassword=****)"
+}
+
+@Serializable
+internal data class DeleteAccountRequestDto(val password: String) {
+    override fun toString() = "DeleteAccountRequestDto(password=****)"
+}

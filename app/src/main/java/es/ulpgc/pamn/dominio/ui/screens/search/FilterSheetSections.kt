@@ -31,6 +31,7 @@ import es.ulpgc.pamn.dominio.course.search.FilterSheetState
 import es.ulpgc.pamn.dominio.course.search.PublishedWithin
 import es.ulpgc.pamn.dominio.ui.components.SelectableTagChip
 import es.ulpgc.pamn.dominio.ui.components.SingleChoiceRow
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // Las tres secciones de la hoja de filtros (Figma «4 · Buscar con filtros»): Etiquetas, Creador y
 // Fecha de publicación. Aparte de FilterSheetContent para que ese fichero solo tenga la cabecera y
@@ -62,10 +63,10 @@ fun SectionTitle(title: String, modifier: Modifier = Modifier, hint: String? = n
 @Composable
 fun TagsSection(state: FilterSheetState, actions: SearchActions, modifier: Modifier = Modifier) {
     Column(modifier) {
-        SectionTitle(title = TAGS_SECTION_TITLE, hint = TAGS_SECTION_HINT)
+        SectionTitle(title = TAGS_SECTION_TITLE.asString(), hint = TAGS_SECTION_HINT.asString())
         if (state.visibleTags.isEmpty()) {
             Text(
-                text = NO_TAGS_TEXT,
+                text = NO_TAGS_TEXT.asString(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 12.dp),
@@ -99,7 +100,7 @@ fun TagsSection(state: FilterSheetState, actions: SearchActions, modifier: Modif
 @Composable
 fun CreatorSection(state: FilterSheetState, actions: SearchActions, modifier: Modifier = Modifier) {
     Column(modifier) {
-        SectionTitle(title = CREATOR_FIELD_DESCRIPTION)
+        SectionTitle(title = CREATOR_FIELD_DESCRIPTION.asString())
         CreatorField(value = state.draft.author, onValueChange = actions.onAuthorChange)
     }
 }
@@ -108,11 +109,11 @@ fun CreatorSection(state: FilterSheetState, actions: SearchActions, modifier: Mo
 @Composable
 fun PublishedSection(state: FilterSheetState, actions: SearchActions, modifier: Modifier = Modifier) {
     Column(modifier) {
-        SectionTitle(title = PUBLISHED_SECTION_TITLE)
+        SectionTitle(title = PUBLISHED_SECTION_TITLE.asString())
         SingleChoiceRow(
             options = PublishedWithin.entries,
             selected = state.draft.published,
-            label = ::publishedLabel,
+            label = { publishedLabel(it).asString() },
             onSelect = actions.onPublishedChange,
         )
     }
@@ -135,7 +136,7 @@ private fun ShowAllChip(onClick: () -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier.height(32.dp).dashedBorder(color).padding(horizontal = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(SHOW_ALL_TAGS_TEXT, style = MaterialTheme.typography.labelLarge)
+            Text(SHOW_ALL_TAGS_TEXT.asString(), style = MaterialTheme.typography.labelLarge)
         }
     }
 }

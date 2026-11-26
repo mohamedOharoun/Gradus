@@ -23,8 +23,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
-// La puerta en el camino (9b): el toque lo decide tapModule con lo dominado y la inscripción, y el
-// camino escucha las dos cosas. Curso A → B → C (GateTestFixtures).
+// La puerta en el camino (9b) combinada con la hoja del módulo (ModuleSheet):
+// - sin inscripción: tocar cualquier módulo saca NotEnrolled y no abre hoja ni práctica;
+// - con inscripción: tocar un módulo desbloqueado abre su hoja y «Estudiar» abre la práctica.
+// Curso A → B → C (GateTestFixtures).
 @OptIn(ExperimentalCoroutinesApi::class)
 class CourseViewModelGateTest {
 
@@ -38,24 +40,26 @@ class CourseViewModelGateTest {
         Dispatchers.resetMain()
     }
 
-    // --- Sin inscripción: ningún módulo abre la práctica ---
+    // --- Sin inscripción: ningún módulo abre la hoja ni la práctica ---
 
     @Test
-    fun `not enrolled, tapping a frontier module gives the not enrolled notice and no practice`() = runTest {
+    fun `not enrolled, tapping a frontier module gives the not enrolled notice and opens neither sheet nor practice`() = runTest {
         val viewModel = openPath(loggedInStore())
         assertEquals(ModuleState.FRONTIER, viewModel.ui().states.getValue("a"))
         viewModel.onModuleClick("a")
         assertEquals(CourseNotice.NotEnrolled, viewModel.ui().notice)
+        assertNull(viewModel.ui().sheet)
         assertNull(viewModel.ui().practiceToOpen)
     }
 
     // El almacén real no deja dominar sin inscripción: lo dominado se fija desde fuera.
     @Test
-    fun `not enrolled, tapping a mastered module gives the not enrolled notice and no practice`() = runTest {
+    fun `not enrolled, tapping a mastered module gives the not enrolled notice and opens neither sheet nor practice`() = runTest {
         val viewModel = openPath(progress = FixedMasteredStore(setOf("a")), enrollment = loggedInStore())
         assertEquals(ModuleState.MASTERED, viewModel.ui().states.getValue("a"))
         viewModel.onModuleClick("a")
         assertEquals(CourseNotice.NotEnrolled, viewModel.ui().notice)
+        assertNull(viewModel.ui().sheet)
         assertNull(viewModel.ui().practiceToOpen)
     }
 
@@ -64,6 +68,7 @@ class CourseViewModelGateTest {
         val viewModel = openPath(loggedInStore())
         viewModel.onModuleClick("c")
         assertEquals(CourseNotice.NotEnrolled, viewModel.ui().notice)
+        assertNull(viewModel.ui().sheet)
         assertNull(viewModel.ui().practiceToOpen)
     }
 
@@ -73,25 +78,36 @@ class CourseViewModelGateTest {
         assertFalse(viewModel.ui().enrolled)
         viewModel.onModuleClick("a")
         assertEquals(CourseNotice.NotEnrolled, viewModel.ui().notice)
+        assertNull(viewModel.ui().sheet)
         assertNull(viewModel.ui().practiceToOpen)
     }
 
-    // --- Inscrito: como antes de la puerta ---
+    // --- Inscrito: abre la hoja del módulo y desde ahí la práctica ---
 
     @Test
-    fun `enrolled, tapping a frontier module opens its practice`() = runTest {
+    fun `enrolled, tapping a frontier module opens its sheet and study opens its practice`() = runTest {
         val viewModel = openPath(enrolledWithNodesMastered())
         viewModel.onModuleClick("b")
-        assertEquals("b", viewModel.ui().practiceToOpen)
+        assertEquals("b", viewModel.ui().sheet)
+        assertNull(viewModel.ui().practiceToOpen)
         assertNull(viewModel.ui().notice)
+
+        viewModel.onStudy()
+        assertNull(viewModel.ui().sheet)
+        assertEquals("b", viewModel.ui().practiceToOpen)
     }
 
     @Test
-    fun `enrolled, tapping a mastered module opens its practice`() = runTest {
+    fun `enrolled, tapping a mastered module opens its sheet and study opens its practice`() = runTest {
         val viewModel = openPath(enrolledWithNodesMastered())
         viewModel.onModuleClick("a")
-        assertEquals("a", viewModel.ui().practiceToOpen)
+        assertEquals("a", viewModel.ui().sheet)
+        assertNull(viewModel.ui().practiceToOpen)
         assertNull(viewModel.ui().notice)
+
+        viewModel.onStudy()
+        assertNull(viewModel.ui().sheet)
+        assertEquals("a", viewModel.ui().practiceToOpen)
     }
 
     @Test
@@ -99,6 +115,7 @@ class CourseViewModelGateTest {
         val viewModel = openPath(enrolledWithNodesMastered())
         viewModel.onModuleClick("c")
         assertEquals(CourseNotice.Locked(paths, listOf(edges)), viewModel.ui().notice)
+        assertNull(viewModel.ui().sheet)
         assertNull(viewModel.ui().practiceToOpen)
     }
 
@@ -113,7 +130,7 @@ class CourseViewModelGateTest {
     // --- El camino escucha la inscripción ---
 
     @Test
-    fun `enrolling with the path open makes the next tap open the practice`() = runTest {
+    fun `enrolling with the path open makes the next tap open the sheet`() = runTest {
         val store = loggedInStore()
         val viewModel = openPath(store)
         assertFalse(viewModel.ui().enrolled)
@@ -121,7 +138,7 @@ class CourseViewModelGateTest {
         runCurrent()
         assertTrue(viewModel.ui().enrolled)
         viewModel.onModuleClick("a")
-        assertEquals("a", viewModel.ui().practiceToOpen)
+        assertEquals("a", viewModel.ui().sheet)
     }
 
     @Test
@@ -163,6 +180,7 @@ class CourseViewModelGateTest {
         store.enroll(gateCourse.id)
         val viewModel = openPath(store)
         viewModel.onModuleClick("a")
+        viewModel.onStudy()
         store.markMastered(gateCourse.id, "a")
         runCurrent()
         assertEquals(setOf("a"), viewModel.ui().mastered)

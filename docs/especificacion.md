@@ -107,21 +107,50 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
     uno bloqueado, discontinuas y grises.
   - Cabecera con el título y el progreso («3 de 10 dominados»).
   - Tocar un módulo bloqueado dice qué falta para desbloquearlo. Tocar uno de la frontera o
-    dominado abre su estudio. Al dominar un módulo, el camino se actualiza solo.
+    dominado abre su **hoja**: su título, su estado, «Estudiar» (o «Repasar» si ya está dominado) y
+    «Mis notas · N». Al dominar un módulo o guardar una nota, el camino se actualiza solo.
 - **Estudiar un módulo:**
   - **Parte formativa:** sus pasos en orden, con una barra de progreso («Paso 2 de 5»).
     - Lección: texto en Markdown básico (negrita, cursiva, código, párrafos y listas) y «Continuar».
     - Ejercicio: «Comprobar»; después, el resultado (con la solución si se falla), la
       **explicación** del autor y «Continuar». Fallar aquí no impide seguir.
+    - Tarea con foto: se resuelve en papel y se entrega una foto (ver «Ejercicio con foto» abajo).
   - **Prueba de dominio:** una pantalla dice cuántas preguntas hay y cuántas hay que acertar
     («Empezar la prueba» o «Ahora no»). Las preguntas se sortean de la reserva y se responden igual
     que los ejercicios.
   - **Resultado:** «¡Módulo dominado!» (y se desbloquea lo que dependía de él) o «Te faltó 1 para
     aprobar», con «Repetir la prueba» (otro sorteo, sin repetir las lecciones) y «Volver al camino».
   - Un módulo sin reserva termina tras sus pasos, sin prueba.
-  - Tipos de ejercicio: opción única, selección múltiple y emparejar (§7).
+  - Tipos de ejercicio: opción única, selección múltiple, emparejar y, solo en la parte formativa,
+    la tarea con foto (§7).
 
-**Pendientes de diseñar:** repasos y notas con cámara.
+- **Notas con cámara** (`tareas/notas-camara.md`): fotos de los apuntes de papel, guardadas junto al
+  módulo al que pertenecen.
+  - «Mis notas» de un módulo: las fotos en cuadrícula, la más reciente primero, con su fecha
+    («24 nov»). «Hacer foto» y «De la galería» (el selector de fotos de Android, sin permisos).
+  - Hacer foto: la cámara dentro de la app (CameraX). El permiso se pide al pulsar; si se deniega,
+    se explica para qué hace falta y, si ya no se puede volver a pedir, se ofrece abrir los ajustes.
+    Después se revisa la foto: «Repetir» o «Guardar», con un pie opcional de hasta 100 caracteres.
+  - Ver una nota: a pantalla completa, con zoom (pellizcar o doble toque), su fecha y su pie.
+    «Eliminar» pide confirmación; no hay papelera.
+  - Las fotos se quedan en el móvil (no se suben al servidor) y son del móvil, no de la cuenta.
+    TalkBack lee cada foto con su fecha y su pie.
+
+- **Ejercicio con foto** (`tareas/ejercicio-foto.md`; contrato en `backend/docs/api-entregas.md`): un
+  paso del módulo que se resuelve en papel; el alumno le hace una foto y la **entrega** al servidor,
+  donde queda **pendiente de revisión** (la revisión por el autor del curso es la fase 2).
+  - «Hacer foto» (la cámara de la app, sin pie: «Repetir» o «Usar foto») o «De la galería». La foto se
+    endereza, se reduce a 2000 px de lado y se envía en JPEG; antes de entregarla se puede cambiar o quitar.
+  - «Entregar»: al entregarla se ve «Entregada · pendiente de revisión» y la **solución** del autor, y
+    se sigue sin esperar a la revisión. «Entregar otra vez» hace una entrega nueva (cuenta la última).
+  - Sin conexión: aviso y «Reintentar» con la misma foto. Si la sesión ha caducado, se pide volver a
+    iniciar sesión. Una foto que el servidor no acepta pide otra.
+  - «Entregar más tarde»: no bloquea el módulo (sin sesión, sin cámara o en un curso que no está en el
+    servidor). La prueba de dominio no depende de la foto: nunca incluye tareas con foto.
+  - Las fotos son temporales en el móvil: se borran al entregarlas o al salir del paso. En el servidor
+    solo las puede ver quien las subió y se borran con su cuenta.
+
+**Pendiente de diseñar:** repasos.
 
 ## 6. Formato de los cursos
 
@@ -151,6 +180,9 @@ Formato v1:
   (`matching`). En la app, unir parejas se hace tocando uno de cada lado (aparece una flecha entre
   los dos), sin arrastrar; solo es correcta si están bien todas las parejas. Ver
   `tareas/camino-curso-y-ejercicios.md`.
+- **Tarea con foto** (`photo`): no se corrige en la app; se entrega como foto pendiente de revisión.
+  Solo en la parte formativa (`steps`): en la reserva el validador la rechaza (`PHOTO_IN_REVIEW`). Ver
+  `tareas/ejercicio-foto.md`.
 
 Previstos para versiones posteriores del formato:
 
@@ -165,9 +197,9 @@ Previstos para versiones posteriores del formato:
 | Requisito | Cómo lo cumple Gradus |
 |---|---|
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
-| API del dispositivo | Cámara para fotografiar apuntes y asociarlos a módulos |
-| SQLite | Room (`ProgressDatabase` v2): inscripciones y módulos dominados por cuenta, y copias locales de cursos para estudiar sin conexión; pendientes el registro de respuestas y las notas con cámara (fotos como ficheros, solo su ruta en la base de datos). Además, la sesión se guarda cifrada con DataStore y Android Keystore |
-| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga, valoraciones y sincronización del progreso (`POST /api/progress/sync`). La app lo llama con Ktor Client desde `sharedLogic` y sincroniza en segundo plano con WorkManager |
+| API del dispositivo | Cámara (CameraX, dentro de la app) para fotografiar apuntes y asociarlos a módulos, y para entregar los ejercicios con foto |
+| SQLite | Room: `ProgressDatabase` v2 (`gradus-progress.db`) para inscripciones, módulos dominados por cuenta y copias locales de cursos sin conexión, y `GradusDatabase` (`gradus.db`) para las notas con cámara (fotos como ficheros; en la base de datos, su ruta, curso, módulo, fecha y pie). Pendiente: registro de respuestas. Además, la sesión se guarda cifrada con DataStore y Android Keystore |
+| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga, entregas con foto, sincronización del progreso (`POST /api/progress/sync`) y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` y sincroniza en segundo plano con WorkManager |
 
 ## 9. Plan por anillos
 

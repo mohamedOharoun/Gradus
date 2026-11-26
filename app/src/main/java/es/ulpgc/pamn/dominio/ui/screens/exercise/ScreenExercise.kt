@@ -14,9 +14,11 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.Step
 import es.ulpgc.pamn.dominio.course.exercise.ExerciseState
 import es.ulpgc.pamn.dominio.course.exercise.Matching
@@ -32,6 +34,7 @@ import es.ulpgc.pamn.dominio.ui.components.AnswerOption
 import es.ulpgc.pamn.dominio.ui.components.AnswerOptionKind
 import es.ulpgc.pamn.dominio.ui.components.MarkdownText
 import es.ulpgc.pamn.dominio.ui.components.MatchingBoard
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // Lo que la pantalla avisa hacia fuera (objeto de parámetros, como RegisterActions).
 data class ExerciseActions(
@@ -42,52 +45,65 @@ data class ExerciseActions(
     val onContinue: () -> Unit = {},
     val onStartTest: () -> Unit = {},
     val onRetry: () -> Unit = {},
+    // Tarea con foto (docs/tareas/ejercicio-foto.md). `onTakePhoto` null: sin cámara en el móvil.
+    val onTakePhoto: (() -> Unit)? = {},
+    val onPickPhoto: () -> Unit = {},
+    val onDiscardPhoto: () -> Unit = {},
+    val onSubmitPhoto: () -> Unit = {},
+    val onSubmitAgain: () -> Unit = {},
+    val onSubmitPhotoLater: () -> Unit = {},
     val onClose: () -> Unit = {},
 )
 
 // Estudiar un módulo: sus lecciones y ejercicios, la prueba de dominio y su resultado.
 // Sin estado: pinta la etapa de ModuleStudy en la que se esté. Las previews están en ScreenExercisePreviews.kt.
 @Composable
-fun ScreenExercise(study: ModuleStudy, actions: ExerciseActions, modifier: Modifier = Modifier) {
+fun ScreenExercise(
+    study: ModuleStudy,
+    actions: ExerciseActions,
+    modifier: Modifier = Modifier,
+    photo: PhotoStepUi = PhotoStepUi(),
+) {
     val title = study.module.title
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { StudyTopBar(study.stage, actions.onClose) },
-        bottomBar = { StudyBottomBar(study, actions) },
+        bottomBar = { StudyBottomBar(study, actions, photo) },
     ) { innerPadding ->
         val content = Modifier.padding(innerPadding).consumeWindowInsets(innerPadding)
         when (val stage = study.stage) {
             is StudyStage.Learning -> when (val step = stage.steps.current) {
                 is StepState.Reading -> Centered(content) { LessonContent(title, step.lesson) }
                 is StepState.Answering -> Centered(content) { QuestionContent(title, step.exercise, actions) }
+                is StepState.Photo -> Centered(content) { PhotoStepContent(title, step.step, photo, actions) }
                 null -> Unit
             }
             is StudyStage.TestIntro -> StudyMessage(
-                title = "Prueba de dominio",
-                body = testIntroText(title, stage.test),
-                primaryText = "Empezar la prueba",
+                title = stringResource(R.string.test_title),
+                body = testIntroText(title, stage.test).asString(),
+                primaryText = stringResource(R.string.test_start),
                 onPrimary = actions.onStartTest,
                 modifier = content,
-                secondaryText = "Ahora no",
+                secondaryText = stringResource(R.string.test_not_now),
                 onSecondary = actions.onClose,
             )
             is StudyStage.Testing -> stage.practice.current?.let { exercise ->
-                Centered(content) { QuestionContent("Prueba de dominio · $title", exercise, actions) }
+                Centered(content) { QuestionContent(stringResource(R.string.test_label, title), exercise, actions) }
             }
             is StudyStage.Finished -> StudyMessage(
-                title = stage.title(),
-                body = stage.body(title),
-                primaryText = if (study.isPassed) "Volver al camino" else "Repetir la prueba",
+                title = stage.title().asString(),
+                body = stage.body(title).asString(),
+                primaryText = if (study.isPassed) stringResource(R.string.back_to_path) else stringResource(R.string.test_retry),
                 onPrimary = if (study.isPassed) actions.onClose else actions.onRetry,
                 modifier = content,
-                secondaryText = if (study.isPassed) null else "Volver al camino",
+                secondaryText = if (study.isPassed) null else stringResource(R.string.back_to_path),
                 onSecondary = actions.onClose,
             )
             StudyStage.Done -> StudyMessage(
-                title = "Has terminado «$title»",
-                body = "Este módulo todavía no tiene prueba de dominio.",
-                primaryText = "Volver al camino",
+                title = stringResource(R.string.module_done_title, title),
+                body = stringResource(R.string.module_done_body),
+                primaryText = stringResource(R.string.back_to_path),
                 onPrimary = actions.onClose,
                 modifier = content,
             )
@@ -100,23 +116,25 @@ fun ScreenExercise(study: ModuleStudy, actions: ExerciseActions, modifier: Modif
 private fun StudyTopBar(stage: StudyStage, onClose: () -> Unit) {
     when (stage) {
         is StudyStage.Learning ->
-            ExerciseTopBar(stage.steps.index, stage.steps.position, stage.steps.total, onClose, itemLabel = "Paso")
+            ExerciseTopBar(stage.steps.index, stage.steps.position, stage.steps.total, onClose, itemOf = R.string.exercise_step_of)
         is StudyStage.Testing ->
             ExerciseTopBar(stage.practice.completedCount, stage.practice.position, stage.practice.total, onClose)
         else -> CloseBar(onClose)
     }
 }
 
-// Abajo: «Continuar» en una lección; «Comprobar» y la explicación en un ejercicio.
+// Abajo: «Continuar» en una lección; «Comprobar» y la explicación en un ejercicio; «Entregar» y lo que
+// toque en una tarea con foto.
 @Composable
-private fun StudyBottomBar(study: ModuleStudy, actions: ExerciseActions) {
+private fun StudyBottomBar(study: ModuleStudy, actions: ExerciseActions, photo: PhotoStepUi) {
     val stage = study.stage
     val exercise = study.currentExercise
     when {
         stage is StudyStage.Learning && stage.steps.current is StepState.Reading -> ContinueBar(actions.onContinue)
+        study.currentPhoto != null -> PhotoStepBottomBar(study.currentPhoto!!, photo, actions)
         exercise != null -> {
             val isLastTestQuestion = stage is StudyStage.Testing && stage.practice.position == stage.practice.total
-            ExerciseBottomBar(exercise, if (isLastTestQuestion) "Ver resultado" else "Continuar", actions.onCheck, actions.onContinue)
+            ExerciseBottomBar(exercise, if (isLastTestQuestion) stringResource(R.string.test_see_result) else stringResource(R.string.action_continue), actions.onCheck, actions.onContinue)
         }
     }
 }
@@ -152,7 +170,7 @@ private fun QuestionContent(label: String, exercise: ExerciseState, actions: Exe
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         Text(question.prompt, style = MaterialTheme.typography.headlineSmall, modifier = Modifier.semantics { heading() })
-        Text(question.hint(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(question.hint().asString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         when (question) {
             is SingleChoice -> Options(question.options, AnswerOptionKind.SINGLE, exercise, actions.onChoose)
             is MultipleChoice -> Options(question.options, AnswerOptionKind.MULTIPLE, exercise, actions.onChoose)

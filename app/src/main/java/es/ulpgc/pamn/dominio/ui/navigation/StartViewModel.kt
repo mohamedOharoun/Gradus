@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
-import es.ulpgc.pamn.dominio.account.Session
 import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
+import es.ulpgc.pamn.dominio.data.session.SessionUpdate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,7 +23,7 @@ import kotlin.time.Duration.Companion.seconds
 // Recibe el Flow por constructor: no sabe que detrás hay DataStore ni Keystore.
 //
 // Si leer la sesión falla (isSessionReadFailure):
-// - el estado es SignedOut, sin borrar el fichero y sin cerrar la app, y
+// - el estado es SignedOut(MainExit.ToLogin), sin borrar el fichero y sin cerrar la app, y
 // - se vuelve a leer cada `retryDelay`. Hace falta: un Flow que falla se termina, y el estado se
 //   quedaría para siempre en SignedOut aunque el usuario iniciara sesión (entraría en Main y la regla de
 //   «sin sesión en Main» lo echaría a Login una y otra vez).
@@ -32,14 +32,14 @@ import kotlin.time.Duration.Companion.seconds
 // Login: no entra solo. Si inicia sesión antes del siguiente reintento, puede ver un parpadeo de Login.
 // Cualquier otro error (un fallo de programación) no se traga: cierra la app.
 class StartViewModel(
-    sessions: Flow<Session?>,
+    sessions: Flow<SessionUpdate>,
     progressSync: ProgressSyncRequester,
     retryDelay: Duration = 2.seconds,
 ) : ViewModel() {
 
     companion object {
         // Android crea los ViewModel por su cuenta: la factory le dice cómo pasarle el Flow y el requester.
-        fun factory(sessions: Flow<Session?>, progressSync: ProgressSyncRequester) =
+        fun factory(sessions: Flow<SessionUpdate>, progressSync: ProgressSyncRequester) =
             viewModelFactory { initializer { StartViewModel(sessions, progressSync) } }
     }
 
@@ -53,7 +53,7 @@ class StartViewModel(
             .map { it.toStartState() }
             .retryWhen { cause, _ ->
                 if (!cause.isSessionReadFailure()) return@retryWhen false
-                emit(StartState.SignedOut)
+                emit(StartState.SignedOut())
                 delay(retryDelay)
                 true
             }

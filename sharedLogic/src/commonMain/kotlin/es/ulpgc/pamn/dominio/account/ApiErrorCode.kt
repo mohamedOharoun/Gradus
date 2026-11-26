@@ -19,6 +19,15 @@ enum class ApiErrorCode {
     COURSE_NOT_FOUND,
     NOT_COURSE_AUTHOR,
     IDENTICAL_TO_LATEST,
+    // Ajustes (docs/tareas/ajustes.md, fase 2).
+    WRONG_PASSWORD,
+    AUTHOR_OF_COURSES,
+    // Entregas con foto (docs/tareas/ejercicio-foto.md, decisión P).
+    INVALID_PHOTO,
+    PHOTO_TOO_LARGE,
+    EXERCISE_NOT_FOUND,
+    SUBMISSION_NOT_FOUND,
+    NOT_SUBMISSION_OWNER,
     UNKNOWN;
 
     companion object {

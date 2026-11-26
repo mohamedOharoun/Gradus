@@ -47,6 +47,17 @@ data class ModuleStudy(val course: Course, val module: Module, val stage: StudyS
             else -> null
         }
 
+    // La tarea con foto que se ve ahora (null en cualquier otro paso o etapa).
+    val currentPhoto: PhotoStep?
+        get() = ((stage as? StudyStage.Learning)?.steps?.current as? StepState.Photo)?.step
+
+    // Los ficheros de foto que aún hacen falta en la parte formativa. La app borra los que dejan de
+    // estar aquí (decisión K): al entregarla, cambiarla, descartarla, dejarla para más tarde o acabar los pasos.
+    val photoPaths: Set<String>
+        get() = (stage as? StudyStage.Learning)?.steps?.steps.orEmpty()
+            .mapNotNull { (it as? StepState.Photo)?.step?.photoPath }
+            .toSet()
+
     val canContinue: Boolean
         get() = when (stage) {
             is StudyStage.Learning -> stage.steps.canContinue
@@ -61,6 +72,14 @@ data class ModuleStudy(val course: Course, val module: Module, val stage: StudyS
         is StudyStage.Testing -> copy(stage = stage.copy(practice = stage.practice.update(change)))
         else -> this
     }
+
+    // «Entregar más tarde» (decisión S): solo en una tarea con foto de la parte formativa.
+    fun submitPhotoLater(): ModuleStudy =
+        if (stage is StudyStage.Learning) copy(stage = stage.copy(steps = stage.steps.submitPhotoLater())) else this
+
+    // Cambia la tarea con foto `stepId` (hacer la foto, entregar, la respuesta…). Solo en la parte formativa.
+    fun updatePhoto(stepId: String, change: (PhotoStep) -> PhotoStep): ModuleStudy =
+        if (stage is StudyStage.Learning) copy(stage = stage.copy(steps = stage.steps.updatePhoto(stepId, change))) else this
 
     // «Continuar»: al siguiente paso o pregunta. Al acabar los pasos se sortea la prueba; al acabar
     // la prueba, se da el resultado.

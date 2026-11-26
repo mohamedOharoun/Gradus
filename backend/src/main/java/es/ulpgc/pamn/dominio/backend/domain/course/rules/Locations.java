@@ -7,6 +7,7 @@ import es.ulpgc.pamn.dominio.backend.domain.course.Matching;
 import es.ulpgc.pamn.dominio.backend.domain.course.Module;
 import es.ulpgc.pamn.dominio.backend.domain.course.MultipleChoice;
 import es.ulpgc.pamn.dominio.backend.domain.course.Option;
+import es.ulpgc.pamn.dominio.backend.domain.course.PhotoExercise;
 import es.ulpgc.pamn.dominio.backend.domain.course.SingleChoice;
 
 import java.util.List;
@@ -60,12 +61,13 @@ final class Locations {
                 indexed(module.value().review(), module.path().key("review")).stream()));
     }
 
-    /** Las opciones de un ejercicio de elección; un {@code matching} no tiene. */
+    /** Las opciones de un ejercicio de elección; un {@code matching} o un {@code photo} no tienen. */
     static List<Option> options(Exercise exercise) {
         return switch (exercise) {
             case SingleChoice single -> single.options();
             case MultipleChoice multiple -> multiple.options();
             case Matching matching -> List.of();
+            case PhotoExercise photo -> List.of();
         };
     }
 }

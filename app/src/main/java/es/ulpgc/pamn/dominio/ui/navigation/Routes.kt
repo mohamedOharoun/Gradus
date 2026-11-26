@@ -38,11 +38,43 @@ sealed interface Route {
     @Serializable
     data class CourseOverview(val courseId: String) : Route
 
+    // Editar el nombre, desde Ajustes (docs/tareas/ajustes.md, fase 2).
+    @Serializable
+    data object EditProfile : Route
+
+    // Cambiar la contraseña, desde Ajustes (docs/tareas/ajustes.md, fase 2).
+    @Serializable
+    data object ChangePassword : Route
+
+    // Elegir las etiquetas preferidas, desde Ajustes (docs/tareas/ajustes.md, fase 3).
+    @Serializable
+    data object PreferredTags : Route
+
+    // La ficha de un curso (docs/tareas/ficha-curso.md): de qué va, antes de entrar en su camino.
+    @Serializable
+    data class CourseDetail(val courseId: String) : Route
+
     // El camino de un curso. data class (no object) porque lleva un dato: qué curso abrir.
     @Serializable
     data class Course(val courseId: String) : Route
 
+    // Las notas con cámara de un módulo (docs/tareas/notas-camara.md).
+    @Serializable
+    data class ModuleNotes(val courseId: String, val moduleId: String) : Route
+
+    // Hacer una foto para las notas de un módulo (docs/tareas/notas-camara.md, tarea 5).
+    @Serializable
+    data class TakeNote(val courseId: String, val moduleId: String) : Route
+
+    // Ver una nota con cámara (docs/tareas/notas-camara.md, tarea 6).
+    @Serializable
+    data class NoteViewer(val noteId: String) : Route
+
     // La práctica de un módulo de un curso.
     @Serializable
     data class Exercise(val courseId: String, val moduleId: String) : Route
+
+    // Hacer la foto de una entrega desde el estudio de un módulo (docs/tareas/ejercicio-foto.md, decisión W).
+    @Serializable
+    data class TakeSubmissionPhoto(val courseId: String, val moduleId: String) : Route
 }

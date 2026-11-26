@@ -1,3 +1,389 @@
+<!-- Textos de la app en español, el idioma por defecto (docs/tareas/ajustes.md, fase 3, decisión S).
+     Su traducción al inglés, en values-en/strings.xml, con los mismos nombres. El contenido de los
+     cursos no está aquí: se queda en el idioma en que lo escribió su autor (decisión R). -->
 <resources>
     <string name="app_name">Dominio</string>
+
+    <!-- Ajustes: idioma (fase 3, tarea 5b) -->
+    <string name="settings_language">Idioma</string>
+    <string name="language_dialog_title">Idioma de la app</string>
+    <string name="language_dialog_note">Solo cambia la app: cada curso se ve en el idioma en que lo escribió su autor.</string>
+    <string name="language_system">El del sistema</string>
+    <!-- Cada idioma, escrito en su propio idioma: así lo reconoce quien no entiende el actual. -->
+    <string name="language_spanish">Español</string>
+    <string name="language_english">English</string>
+    <string name="action_cancel">Cancelar</string>
+
+    <!-- Acciones y avisos comunes de los formularios (paso 6) -->
+    <string name="action_back">Volver</string>
+    <string name="action_retry">Reintentar</string>
+    <string name="action_next">Siguiente</string>
+    <string name="error_required">Este campo es obligatorio</string>
+    <string name="error_too_short">Escribe al menos %1$d caracteres</string>
+    <string name="error_too_long">Es demasiado largo</string>
+    <string name="error_invalid_email">Escribe un correo válido, como nombre@ejemplo.com</string>
+    <string name="error_weak_password">La contraseña no cumple los requisitos</string>
+    <string name="error_passwords_dont_match">Las contraseñas no coinciden</string>
+    <string name="error_email_taken">Ya existe una cuenta con este correo. ¿Quieres iniciar sesión?</string>
+    <string name="error_terms_not_accepted">Acepta los términos para crear la cuenta</string>
+    <string name="error_invalid_credentials">Correo o contraseña incorrectos</string>
+    <string name="error_unreachable">No hay conexión con el servidor. Comprueba tu red e inténtalo de nuevo.</string>
+    <string name="error_server_failure">Algo ha fallado en el servidor. Inténtalo de nuevo en unos minutos.</string>
+
+    <!-- Campos y contraseña -->
+    <string name="field_name">Nombre</string>
+    <string name="field_email">Correo electrónico</string>
+    <string name="field_password">Contraseña</string>
+    <string name="field_password_repeat">Repite la contraseña</string>
+    <string name="password_show">Mostrar contraseña</string>
+    <string name="password_hide">Ocultar contraseña</string>
+    <string name="password_rule_min_length">Al menos 8 caracteres</string>
+    <string name="password_rule_letter_and_digit">Una letra y un número</string>
+    <string name="password_rule_special_character">Un carácter especial (!, @, #…)</string>
+    <string name="passwords_match">Las contraseñas coinciden</string>
+    <string name="terms_accept">Acepto los términos de uso y la política de privacidad</string>
+    <!-- Para TalkBack: el indicador de pasos se lee como una frase. -->
+    <string name="step_of_with_label">Paso %1$d de %2$d: %3$s</string>
+
+    <!-- Bienvenida -->
+    <string name="welcome_title">Aprende paso a paso, sin saltarte la base.</string>
+    <string name="welcome_body">Cada curso es un mapa de conceptos. Uno se desbloquea cuando dominas los anteriores.</string>
+    <string name="action_create_account">Crear cuenta</string>
+    <string name="action_log_in">Iniciar sesión</string>
+    <string name="welcome_explore">Explorar cursos sin cuenta</string>
+
+    <!-- Inicio de sesión -->
+    <string name="login_title">Hola de nuevo</string>
+    <string name="login_body">Entra con tu correo y tu contraseña para seguir donde lo dejaste.</string>
+    <string name="login_no_account">¿No tienes cuenta?</string>
+    <string name="action_enter">Entrar</string>
+    <string name="action_entering">Entrando…</string>
+
+    <!-- Registro -->
+    <string name="register_have_account">¿Ya tienes cuenta?</string>
+    <string name="register_log_in_link">Inicia sesión</string>
+    <string name="action_creating_account">Creando cuenta…</string>
+    <string name="register_step_name">Nombre</string>
+    <string name="register_name_title">¿Cómo te llamas?</string>
+    <string name="register_name_help">Así te verán los instructores y el resto de estudiantes.</string>
+    <string name="register_name_caption">Así funciona Gradus: cada concepto se desbloquea cuando dominas los anteriores.</string>
+    <string name="register_step_email">Correo</string>
+    <string name="register_email_title">¿Cuál es tu correo?</string>
+    <string name="register_email_help">Lo usarás para iniciar sesión. No lo compartimos con nadie.</string>
+    <string name="register_email_caption">¡Un paso dominado! Ya solo te queda el último.</string>
+    <string name="register_step_password">Contraseña</string>
+    <string name="register_password_title">Crea una contraseña</string>
+    <string name="register_password_help">Escríbela dos veces para evitar errores.</string>
+
+    <!-- Botones de los formularios de Ajustes (comparten buttonText con la cuenta) -->
+    <string name="action_save">Guardar</string>
+    <string name="action_saving">Guardando…</string>
+    <string name="action_change_password">Cambiar contraseña</string>
+    <string name="action_changing">Cambiando…</string>
+    <string name="action_delete_account">Eliminar cuenta</string>
+    <string name="action_deleting">Eliminando…</string>
+
+    <!-- Ajustes (paso 7) -->
+    <string name="settings_title">Ajustes</string>
+    <string name="settings_section_account">Cuenta</string>
+    <string name="settings_section_appearance">Apariencia e idioma</string>
+    <string name="settings_section_interests">Temas que te interesan</string>
+    <string name="settings_section_session">Sesión</string>
+    <string name="settings_dark_mode">Modo oscuro</string>
+    <string name="settings_preferred_tags">Etiquetas preferidas</string>
+    <string name="settings_log_out">Cerrar sesión</string>
+    <string name="action_change">Cambiar</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_add">Añadir</string>
+    <string name="action_understood">Entendido</string>
+    <string name="coming_soon">Próximamente</string>
+    <!-- Registro: los datos de los pasos ya hechos (se me pasó en el paso 6). -->
+    <string name="register_added_data">DATOS AÑADIDOS</string>
+
+    <!-- Editar perfil -->
+    <string name="profile_title">Editar perfil</string>
+    <string name="profile_email_fixed">El correo no se puede cambiar.</string>
+
+    <!-- Cambiar contraseña -->
+    <string name="password_current">Contraseña actual</string>
+    <string name="password_new">Nueva contraseña</string>
+    <string name="password_new_repeat">Repite la nueva contraseña</string>
+    <string name="password_wrong_current">La contraseña actual no es correcta</string>
+    <string name="password_changed_title">Contraseña cambiada</string>
+    <string name="password_changed_body">Hemos cerrado la sesión en tus otros dispositivos. En este móvil sigues dentro.</string>
+    <string name="password_back_to_settings">Volver a Ajustes</string>
+
+    <!-- Eliminar cuenta -->
+    <string name="delete_title">¿Eliminar tu cuenta?</string>
+    <string name="delete_body">Se borrará tu cuenta (nombre, correo y contraseña) y se cerrará la sesión en todos tus dispositivos. No se puede deshacer.</string>
+    <string name="delete_confirm_hint">Escribe tu contraseña para confirmarlo.</string>
+    <string name="delete_wrong_password">La contraseña no es correcta</string>
+    <string name="delete_author_title">No se puede eliminar</string>
+    <string name="delete_author_body">Has publicado cursos que otras personas están estudiando, así que tu cuenta no se puede eliminar.</string>
+
+    <!-- Etiquetas preferidas -->
+    <string name="tags_soon">Pronto verás antes los cursos con estas etiquetas en Inicio y en Buscar.</string>
+    <string name="tags_none">Aún no has elegido ninguna.</string>
+    <string name="tags_new">Nueva etiqueta</string>
+    <string name="tags_yours">Tus etiquetas</string>
+    <string name="tags_count">%1$d de %2$d</string>
+    <string name="tags_remove">Quitar la etiqueta %1$s</string>
+    <string name="tags_error_empty">Escribe una etiqueta</string>
+    <string name="tags_error_already_added">Ya tienes esa etiqueta</string>
+    <string name="tags_error_full">Puedes tener %1$d como mucho. Quita una para añadir otra.</string>
+
+    <!-- Camino del curso y ficha (paso 8a). Los títulos de cursos y módulos los escribe el autor: van como
+         datos (%1$s) y nunca se traducen (decisión R). -->
+    <string name="list_and">%1$s y %2$s</string>
+    <string name="list_comma">%1$s, %2$s</string>
+    <string name="course_progress">%1$d de %2$d dominados</string>
+    <string name="course_locked">«%1$s» está bloqueado.</string>
+    <string name="course_locked_missing">Para desbloquear «%1$s», domina antes %2$s.</string>
+    <string name="course_not_enrolled">Inscríbete para empezar a estudiar</string>
+    <string name="enroll_action">Inscribirme</string>
+    <string name="enroll_enrolling">Inscribiendo…</string>
+    <string name="enroll_enrolled">Inscrito</string>
+    <string name="course_overview_title">Curso</string>
+    <string name="course_overview_body">Inscríbete para guardar tu progreso y estudiar sus módulos. El camino se puede ver sin inscribirte.</string>
+    <string name="course_overview_go_to_path">Ir al camino</string>
+    <string name="course_loading">Descargando el curso</string>
+    <string name="course_not_found_title">Este curso no existe</string>
+    <string name="course_not_found_body">Puede que su autor lo haya retirado.</string>
+    <string name="course_unreachable_title">Sin conexión</string>
+    <string name="course_unreachable_body">No se ha podido descargar el curso. Comprueba la conexión y vuelve a intentarlo.</string>
+    <string name="course_unsupported_title">Actualiza Gradus</string>
+    <string name="course_unsupported_body">Este curso usa un formato más nuevo que esta versión de la app.</string>
+    <string name="course_server_failure_title">Algo ha fallado</string>
+    <string name="course_server_failure_body">El servidor no ha respondido bien. Vuelve a intentarlo en un momento.</string>
+    <!-- Para TalkBack: el estado de cada módulo del camino y qué hace tocarlo. -->
+    <string name="module_state_mastered">dominado</string>
+    <string name="module_state_frontier">frontera</string>
+    <string name="module_state_locked">bloqueado</string>
+    <string name="module_action_review">repasar</string>
+    <string name="module_action_practice">practicar</string>
+    <string name="module_action_missing">ver qué falta</string>
+    <!-- Hoja de un módulo -->
+    <string name="sheet_study">Estudiar</string>
+    <string name="sheet_review">Repasar</string>
+    <string name="sheet_state_to_study">Por estudiar</string>
+    <string name="sheet_state_mastered">Dominado</string>
+    <string name="sheet_notes">Mis notas</string>
+    <string name="sheet_notes_count">Mis notas · %1$d</string>
+    <string name="sheet_notes_none">Mis notas, ninguna todavía</string>
+    <plurals name="sheet_notes_photos">
+        <item quantity="one">Mis notas, %1$d foto</item>
+        <item quantity="other">Mis notas, %1$d fotos</item>
+    </plurals>
+    <!-- Ficha del curso -->
+    <string name="detail_by_author">por %1$s</string>
+    <string name="detail_start">Empezar el curso</string>
+    <string name="detail_continue">Continuar el curso</string>
+    <string name="detail_review">Repasar el curso</string>
+    <string name="detail_learn_title">Qué vas a aprender</string>
+
+    <!-- Estudiar un módulo (paso 8b). Preguntas, opciones, explicaciones y títulos son del autor: van como
+         datos y no se traducen (decisión R). -->
+    <string name="action_continue">Continuar</string>
+    <string name="quoted">«%1$s»</string>
+    <string name="exercise_close">Cerrar y volver al camino</string>
+    <string name="exercise_question_of">Pregunta %1$d de %2$d</string>
+    <string name="exercise_step_of">Paso %1$d de %2$d</string>
+    <string name="exercise_check">Comprobar</string>
+    <string name="exercise_correct">¡Correcto!</string>
+    <string name="exercise_wrong">No es correcto</string>
+    <string name="exercise_hint_single">Elige una respuesta.</string>
+    <string name="exercise_hint_multiple">Puede haber varias correctas: márcalas todas.</string>
+    <string name="exercise_hint_matching">Toca un elemento de cada columna para unirlos. Toca uno unido para soltarlo.</string>
+    <string name="exercise_solution_single">La respuesta era «%1$s».</string>
+    <string name="exercise_solution_multiple_one">La correcta era «%1$s».</string>
+    <string name="exercise_solution_multiple">Las correctas eran %1$s.</string>
+    <string name="exercise_solution_pairs">Las parejas eran: %1$s.</string>
+    <!-- Para TalkBack -->
+    <string name="option_correct">correcta</string>
+    <string name="option_wrong">incorrecta</string>
+    <string name="matching_joined_with">unido con %1$s</string>
+    <string name="matching_not_joined">sin unir</string>
+    <string name="check_met">cumplido</string>
+    <string name="check_pending">pendiente</string>
+    <string name="check_failed">no cumplido</string>
+    <!-- Prueba de dominio.  : el número no se queda solo en otra línea. -->
+    <plurals name="test_questions">
+        <item quantity="one">%1$d pregunta</item>
+        <item quantity="other">%1$d preguntas</item>
+    </plurals>
+    <string name="test_title">Prueba de dominio</string>
+    <string name="test_label">Prueba de dominio · %1$s</string>
+    <string name="test_intro_all">Responde %1$s sobre «%2$s». Para dominarlo, tienes que acertarlas todas.</string>
+    <string name="test_intro_min">Responde %1$s sobre «%2$s». Para dominarlo, tienes que acertar al menos %3$d.</string>
+    <string name="test_start">Empezar la prueba</string>
+    <string name="test_not_now">Ahora no</string>
+    <string name="test_see_result">Ver resultado</string>
+    <string name="test_passed_title">¡Módulo dominado!</string>
+    <plurals name="test_failed_title">
+        <item quantity="one">Te faltó %1$d para aprobar</item>
+        <item quantity="other">Te faltaron %1$d para aprobar</item>
+    </plurals>
+    <string name="test_passed_body">Has acertado %1$d de %2$d. Ya dominas «%3$s» y se desbloquea lo que dependía de él.</string>
+    <string name="test_failed_body">Has acertado %1$d de %2$d. Repasa las explicaciones y vuelve a intentarlo: saldrán otras preguntas.</string>
+    <string name="test_retry">Repetir la prueba</string>
+    <string name="back_to_path">Volver al camino</string>
+    <string name="module_done_title">Has terminado «%1$s»</string>
+    <string name="module_done_body">Este módulo todavía no tiene prueba de dominio.</string>
+
+    <!-- Tarea con foto -->
+    <string name="photo_instruction">Resuélvelo en papel y hazle una foto para tu profesor.</string>
+    <string name="photo_not_published">Este curso no está publicado en el servidor, así que no se pueden entregar fotos. Puedes dejarlo para más tarde.</string>
+    <string name="photo_yours">Tu foto</string>
+    <string name="photo_take">Hacer foto</string>
+    <string name="photo_take_another">Hacer otra</string>
+    <string name="photo_from_gallery">De la galería</string>
+    <string name="photo_remove">Quitar la foto</string>
+    <string name="photo_preparing">Preparando la foto…</string>
+    <string name="photo_unreadable">No se ha podido leer la foto. Prueba con otra.</string>
+    <string name="photo_submitted">Entregada · pendiente de revisión</string>
+    <string name="photo_solution">Solución</string>
+    <string name="photo_submit">Entregar</string>
+    <string name="photo_submitting">Entregando…</string>
+    <string name="photo_later">Entregar más tarde</string>
+    <string name="photo_again">Entregar otra vez</string>
+    <string name="photo_go_on">Continuar sin entregar otra</string>
+    <string name="photo_error_unreachable">Sin conexión. Comprueba la red y vuelve a intentarlo.</string>
+    <string name="photo_error_server">El servidor no ha podido recibir la foto. Vuelve a intentarlo en un momento.</string>
+    <string name="photo_error_session_expired">Tu sesión ha caducado. Vuelve a iniciar sesión para entregar.</string>
+    <string name="photo_error_not_found">Este ejercicio ya no está en el servidor: el curso ha cambiado. Déjalo para más tarde.</string>
+    <string name="photo_error_missing">La foto ya no está en el móvil. Haz otra.</string>
+    <string name="photo_error_not_jpeg">Esa imagen no se puede entregar. Prueba con otra foto.</string>
+    <string name="photo_error_too_large">La foto es demasiado grande. Prueba con otra.</string>
+
+    <!-- Notas y cámara (paso 8c). Cada idioma pone el orden de la fecha: «24 nov» / «Nov 24». -->
+    <string name="month_short_1">ene</string>
+    <string name="month_short_2">feb</string>
+    <string name="month_short_3">mar</string>
+    <string name="month_short_4">abr</string>
+    <string name="month_short_5">may</string>
+    <string name="month_short_6">jun</string>
+    <string name="month_short_7">jul</string>
+    <string name="month_short_8">ago</string>
+    <string name="month_short_9">sept</string>
+    <string name="month_short_10">oct</string>
+    <string name="month_short_11">nov</string>
+    <string name="month_short_12">dic</string>
+    <string name="month_long_1">enero</string>
+    <string name="month_long_2">febrero</string>
+    <string name="month_long_3">marzo</string>
+    <string name="month_long_4">abril</string>
+    <string name="month_long_5">mayo</string>
+    <string name="month_long_6">junio</string>
+    <string name="month_long_7">julio</string>
+    <string name="month_long_8">agosto</string>
+    <string name="month_long_9">septiembre</string>
+    <string name="month_long_10">octubre</string>
+    <string name="month_long_11">noviembre</string>
+    <string name="month_long_12">diciembre</string>
+    <string name="note_date_short">%1$d %2$s</string>
+    <string name="note_date_short_year">%1$d %2$s %3$d</string>
+    <string name="note_date_full">%1$d de %2$s</string>
+    <string name="note_date_full_year">%1$d de %2$s de %3$d</string>
+    <string name="note_description">Nota del %1$s</string>
+    <string name="note_description_caption">Nota del %1$s: %2$s</string>
+    <string name="notes_title">Notas · %1$s</string>
+    <string name="notes_this_module">este módulo</string>
+    <string name="notes_empty">Aún no tienes notas de este módulo. Haz una foto de tus apuntes.</string>
+    <string name="notes_open">Ver la nota</string>
+    <string name="notes_adding">Añadiendo…</string>
+    <string name="notes_add_failed">No se ha podido añadir la foto. Prueba con otra.</string>
+    <string name="note_delete_description">Eliminar nota</string>
+    <string name="note_delete_title">¿Eliminar esta nota?</string>
+    <string name="note_delete_body">Se borrará la foto de tu móvil. No se puede deshacer.</string>
+    <string name="action_delete">Eliminar</string>
+    <string name="camera_new_note">Nueva nota</string>
+    <string name="camera_new_note_of">Nueva nota · %1$s</string>
+    <string name="camera_submission_photo">Foto del ejercicio</string>
+    <string name="camera_submission_photo_of">Foto del ejercicio · %1$s</string>
+    <string name="camera_permission_notes">Para fotografiar tus apuntes, Gradus necesita usar la cámara. Las fotos se quedan en tu móvil.</string>
+    <string name="camera_permission_notes_settings">Para fotografiar tus apuntes, activa el permiso de cámara en los ajustes del móvil. Las fotos se quedan en tu móvil.</string>
+    <string name="camera_permission_submission">Para fotografiar tu ejercicio, Gradus necesita usar la cámara. La foto solo se envía al pulsar «Entregar».</string>
+    <string name="camera_permission_submission_settings">Para fotografiar tu ejercicio, activa el permiso de cámara en los ajustes del móvil. La foto solo se envía al pulsar «Entregar».</string>
+    <string name="camera_gallery_notes">Si no, puedes añadir fotos «De la galería».</string>
+    <string name="camera_gallery_submission">Si no, puedes elegirla «De la galería».</string>
+    <string name="camera_open_settings">Abrir ajustes</string>
+    <string name="camera_allow">Permitir la cámara</string>
+    <string name="camera_capture_failed">No se ha podido hacer la foto. Inténtalo otra vez.</string>
+    <string name="camera_save_failed">No se ha podido guardar la foto. Inténtalo otra vez.</string>
+    <string name="camera_caption">Pie de foto (opcional)</string>
+    <string name="camera_caption_too_long">Como mucho %1$d caracteres</string>
+    <string name="camera_retake">Repetir</string>
+    <string name="camera_use_photo">Usar foto</string>
+
+    <!-- Barra de navegación y pantallas provisionales (paso 8c) -->
+    <string name="tab_home">Inicio</string>
+    <string name="tab_search">Buscar</string>
+    <string name="tab_my_courses">Mis cursos</string>
+    <string name="tab_settings">Ajustes</string>
+    <string name="home_hello">¡Hola!</string>
+    <string name="placeholder_note">Pantalla provisional</string>
+
+    <!-- Tarjeta y ficha de un curso (paso 9a). Título, autor y etiquetas los escribe la persona: van como dato. -->
+    <plurals name="course_modules">
+        <item quantity="one">%d módulo</item>
+        <item quantity="other">%d módulos</item>
+    </plurals>
+    <string name="month_year_short">%1$s %2$d</string>
+    <string name="month_year_long">%1$s de %2$d</string>
+    <string name="course_meta">%1$s · %2$s</string>
+    <string name="course_published">publicado en %1$s</string>
+    <string name="course_open">Abrir curso</string>
+
+    <!-- Buscar: resultados (paso 9b) -->
+    <string name="search_title">Buscar cursos</string>
+    <string name="search_placeholder">Busca por título o descripción</string>
+    <string name="search_clear">Borrar búsqueda</string>
+    <plurals name="search_results">
+        <item quantity="one">%d resultado</item>
+        <item quantity="other">%d resultados</item>
+    </plurals>
+    <string name="search_unreachable_title">Sin conexión</string>
+    <string name="search_unreachable_body">No se ha podido buscar. Comprueba la conexión y vuelve a intentarlo.</string>
+    <string name="search_server_failure_title">Algo ha fallado</string>
+    <string name="search_server_failure_body">El servidor no ha respondido bien. Vuelve a intentarlo en un momento.</string>
+    <string name="search_no_matches_title">No hay cursos que coincidan</string>
+    <string name="search_no_matches_body">Prueba con otras palabras.</string>
+    <string name="search_catalog_empty">Todavía no hay cursos publicados</string>
+    <string name="search_searching">Buscando cursos</string>
+    <string name="search_loading_more">Cargando más cursos</string>
+    <string name="search_more_failed">No se han podido cargar más cursos.</string>
+    <string name="search_load_more">Cargar más</string>
+
+    <!-- Buscar: filtros (paso 9c). Etiquetas y nombre del creador los escribe la persona: van como dato. -->
+    <string name="filters">Filtros</string>
+    <plurals name="filters_active">
+        <item quantity="one">Filtros, %d activo</item>
+        <item quantity="other">Filtros, %d activos</item>
+    </plurals>
+    <string name="filters_no_tags">No hay etiquetas que elegir</string>
+    <string name="filters_reset">Restablecer</string>
+    <string name="filters_close">Cerrar filtros</string>
+    <string name="filters_tags_title">Etiquetas</string>
+    <string name="filters_tags_hint">· elige una o varias</string>
+    <string name="filters_show_all_tags">Ver todas</string>
+    <string name="filters_show_courses">Mostrar cursos</string>
+    <plurals name="filters_show_count">
+        <item quantity="one">Mostrar %d curso</item>
+        <item quantity="other">Mostrar %d cursos</item>
+    </plurals>
+    <string name="filters_no_courses_match">Ningún curso coincide</string>
+    <string name="filters_remove">Quitar filtro %1$s</string>
+    <string name="filters_creator">Creador</string>
+    <string name="filters_creator_hint">Nombre del creador</string>
+    <string name="filters_clear_creator">Borrar creador</string>
+    <string name="filters_author_chip">Creador: %1$s</string>
+    <string name="filters_remove_author">Quitar filtro creador %1$s</string>
+    <string name="filters_published_title">Fecha de publicación</string>
+    <string name="published_any">Cualquiera</string>
+    <string name="published_last_month">Último mes</string>
+    <string name="published_last_year">Último año</string>
+    <!-- Las fechas dentro de una frase: «Quitar filtro último año». -->
+    <string name="published_any_inline">cualquiera</string>
+    <string name="published_last_month_inline">último mes</string>
+    <string name="published_last_year_inline">último año</string>
 </resources>

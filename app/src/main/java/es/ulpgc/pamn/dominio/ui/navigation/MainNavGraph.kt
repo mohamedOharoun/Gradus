@@ -22,15 +22,16 @@ import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenMyCourses
 import es.ulpgc.pamn.dominio.ui.screens.ScreenSearch
-import es.ulpgc.pamn.dominio.ui.screens.ScreenSettings
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseActions
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseScreenState
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseViewModel
+import es.ulpgc.pamn.dominio.ui.screens.course.ModuleSheetActions
 import es.ulpgc.pamn.dominio.ui.screens.course.ScreenCourse
 import es.ulpgc.pamn.dominio.ui.screens.enrollment.EnrollmentViewModel
 import es.ulpgc.pamn.dominio.ui.screens.enrollment.ScreenCourseOverview
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
+import es.ulpgc.pamn.dominio.ui.screens.exercise.PhotoStepUi
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
 import es.ulpgc.pamn.dominio.ui.screens.search.SearchViewModel
 import es.ulpgc.pamn.dominio.ui.screens.search.actions
@@ -68,7 +69,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             )
         }
         tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { ScreenMyCourses(it) }
-        tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { ScreenSettings(it) }
+        tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { SettingsRoute(navController, it) }
         // Página de relleno del curso. El EnrollmentViewModel vive con esta entrada.
         composable<Route.CourseOverview> { entry ->
             val route = entry.toRoute<Route.CourseOverview>()
@@ -89,15 +90,24 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             val route = entry.toRoute<Route.Course>()
             val courseViewModel: CourseViewModel = viewModel(
                 factory = CourseViewModel.factory(
-                    route.courseId, AppContainer.courseGateway, AppContainer.progressStore, AppContainer.enrollmentStore,
+                    route.courseId, AppContainer.courseGateway, AppContainer.progressStore,
+                    AppContainer.enrollmentStore, AppContainer.notesStore,
                 ),
             )
-            // Módulo desbloqueado tocado: se abre su práctica y se borra el evento.
+            // «Estudiar» / «Repasar» en la hoja del módulo: se abre su práctica y se borra el evento.
             val practiceToOpen = (courseViewModel.state as? CourseScreenState.Ready)?.ui?.practiceToOpen
             practiceToOpen?.let { moduleId ->
                 LaunchedEffect(moduleId) {
                     navController.navigate(Route.Exercise(route.courseId, moduleId))
                     courseViewModel.onPracticeOpened()
+                }
+            }
+            // «Mis notas» en la hoja del módulo: igual, con sus notas.
+            val notesToOpen = (courseViewModel.state as? CourseScreenState.Ready)?.ui?.notesToOpen
+            notesToOpen?.let { moduleId ->
+                LaunchedEffect(moduleId) {
+                    navController.navigate(Route.ModuleNotes(route.courseId, moduleId))
+                    courseViewModel.onNotesOpened()
                 }
             }
             ScreenCourse(
@@ -107,9 +117,18 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                     onNoticeShown = courseViewModel::onNoticeShown,
                     onBack = dropUnlessResumed { navController.popBackStack() },
                     onRetry = courseViewModel::onRetry,
+                    sheet = ModuleSheetActions(
+                        onStudy = courseViewModel::onStudy,
+                        onOpenNotes = courseViewModel::onOpenNotes,
+                        onDismiss = courseViewModel::onSheetDismiss,
+                    ),
                 ),
             )
         }
+        moduleNotesDestination(navController)
+        takeNoteDestination(navController)
+        takeSubmissionPhotoDestination(navController)
+        noteViewerDestination(navController)
         // Estudiar un módulo (lecciones, ejercicios y prueba de dominio). Sin barra; «atrás», cerrar y
         // «Volver al camino» vuelven al camino, que ya enseña lo dominado.
         composable<Route.Exercise> { entry ->
@@ -124,7 +143,8 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             val exerciseViewModel: ExerciseViewModel = viewModel(
                 factory = ExerciseViewModel.factory(
                     course, route.moduleId, AppContainer.progressStore, AppContainer.enrollmentStore,
-                    AppContainer.progressSync,
+                    AppContainer.progressSync, AppContainer.submissionGateway, AppContainer.sessionStore,
+                    AppContainer.submissionPhotos, AppContainer.backgroundScope,
                 ),
             )
             // La puerta la decide el ViewModel: mientras se comprueba no se enseña nada; sin inscripción
@@ -142,6 +162,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                 LaunchedEffect(Unit) { navController.popBackStack() }
                 return@composable
             }
+            val photoSources = rememberExercisePhotoSources(entry, navController, route, exerciseViewModel)
             ScreenExercise(
                 study = study,
                 actions = ExerciseActions(
@@ -152,10 +173,21 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                     onContinue = exerciseViewModel::onContinue,
                     onStartTest = exerciseViewModel::onStartTest,
                     onRetry = exerciseViewModel::onRetry,
+                    onTakePhoto = photoSources.onTakePhoto,
+                    onPickPhoto = photoSources.onPickPhoto,
+                    onDiscardPhoto = exerciseViewModel::onDiscardPhoto,
+                    onSubmitPhoto = exerciseViewModel::onSubmitPhoto,
+                    onSubmitAgain = exerciseViewModel::onSubmitAgain,
+                    onSubmitPhotoLater = exerciseViewModel::onSubmitPhotoLater,
                     onClose = dropUnlessResumed { navController.popBackStack() },
                 ),
+                photo = PhotoStepUi(exerciseViewModel.photoNotice, exerciseViewModel.canSubmitPhotos),
             )
         }
+        courseDetailDestination(navController)
+        editProfileDestination(navController)
+        changePasswordDestination(navController)
+        preferredTagsDestination(navController)
     }
 }
 

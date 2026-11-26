@@ -48,6 +48,19 @@ dependencies {
     // Lógica en Kotlin puro (validaciones, formularios, modelo): compartible con iOS.
     implementation(project(":sharedLogic"))
 
+    // Base de datos del móvil (Room): progreso por cuenta, copias locales y notas con cámara.
+    // room-compiler no va en la app: KSP lo usa al compilar para generar el código.
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // Cámara (notas-camara.md, decisión T): core (la API), camera2 (la implementación en Android),
+    // lifecycle (se enciende y apaga con la pantalla) y view (la vista previa y el controlador).
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
@@ -59,9 +72,6 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
-    // Room (SQLite): el progreso por usuario. El compilador de Room corre con KSP.
-    implementation(libs.androidx.room.runtime)
-    ksp(libs.androidx.room.compiler)
     // DataStore tipado: la sesión guardada, cifrada.
     implementation(libs.androidx.datastore)
     // WorkManager: sincronización del progreso en segundo plano.

@@ -21,6 +21,9 @@ class ErrorCodeTest {
                 "MISSING_LETTER", "MISSING_DIGIT", "MISSING_SPECIAL_CHARACTER",
                 "TERMS_NOT_ACCEPTED", "EMAIL_TAKEN", "MALFORMED_BODY", "INVALID_CREDENTIALS",
                 "UNAUTHENTICATED", "INVALID_PARAMETER", "COURSE_NOT_FOUND", "NOT_COURSE_AUTHOR",
-                "IDENTICAL_TO_LATEST"), names);
+                "IDENTICAL_TO_LATEST", "WRONG_PASSWORD", "AUTHOR_OF_COURSES",
+                // Entregas con foto (docs/tareas/ejercicio-foto.md, decisión P).
+                "INVALID_PHOTO", "PHOTO_TOO_LARGE", "EXERCISE_NOT_FOUND", "SUBMISSION_NOT_FOUND",
+                "NOT_SUBMISSION_OWNER"), names);
     }
 }

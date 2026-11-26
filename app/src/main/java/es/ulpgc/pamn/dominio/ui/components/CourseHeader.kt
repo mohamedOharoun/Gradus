@@ -15,7 +15,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.theme.EstadoDominado
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
@@ -41,7 +43,7 @@ fun CourseHeader(
         BackButton(onClick = onBack)
         Text(title, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.onBackground)
         Text(
-            "$masteredCount de $total dominados",
+            stringResource(R.string.course_progress, masteredCount, total),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

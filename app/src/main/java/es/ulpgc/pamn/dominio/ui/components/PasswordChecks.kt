@@ -7,15 +7,19 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.model.PasswordRequirement
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Adaptador lógica → interfaz, como FieldError.toMessage().
-fun PasswordRequirement.toLabel(): String = when (this) {
-    PasswordRequirement.MIN_LENGTH -> "Al menos 8 caracteres"
-    PasswordRequirement.LETTER_AND_DIGIT -> "Una letra y un número"
-    PasswordRequirement.SPECIAL_CHARACTER -> "Un carácter especial (!, @, #…)"
+fun PasswordRequirement.toLabel(): UiText = when (this) {
+    PasswordRequirement.MIN_LENGTH -> UiText.of(R.string.password_rule_min_length)
+    PasswordRequirement.LETTER_AND_DIGIT -> UiText.of(R.string.password_rule_letter_and_digit)
+    PasswordRequirement.SPECIAL_CHARACTER -> UiText.of(R.string.password_rule_special_character)
 }
 
 // Requisitos de la contraseña: se marcan con ✓ en cuanto se cumplen.
@@ -27,7 +31,7 @@ fun PasswordRequirementList(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         PasswordRequirement.entries.forEach { requirement ->
             ChecklistItem(
-                text = requirement.toLabel(),
+                text = requirement.toLabel().asString(),
                 status = if (requirement in unmet) CheckStatus.PENDING else CheckStatus.MET,
             )
         }
@@ -42,8 +46,8 @@ fun PasswordMatchItem(
 ) {
     when (match) {
         null -> Unit
-        true -> ChecklistItem("Las contraseñas coinciden", CheckStatus.MET, modifier, emphasized = true)
-        false -> ChecklistItem("Las contraseñas no coinciden", CheckStatus.FAILED, modifier)
+        true -> ChecklistItem(stringResource(R.string.passwords_match), CheckStatus.MET, modifier, emphasized = true)
+        false -> ChecklistItem(stringResource(R.string.error_passwords_dont_match), CheckStatus.FAILED, modifier)
     }
 }
 

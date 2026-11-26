@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.ui.screens.exercise
 
+import es.ulpgc.pamn.dominio.account.InMemorySessionStore
 import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.Mastery
 import es.ulpgc.pamn.dominio.course.Module
@@ -7,6 +8,7 @@ import es.ulpgc.pamn.dominio.course.exercise.SingleChoice
 import es.ulpgc.pamn.dominio.course.progress.InMemoryProgressStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
+import es.ulpgc.pamn.dominio.submission.FakeSubmissionGateway
 import es.ulpgc.pamn.dominio.ui.screens.course.loggedInStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -138,7 +140,10 @@ class ExerciseViewModelSyncTest {
         assertThrows(IllegalStateException::class.java) {
             runTest {
                 spy = MarkedFlagProgressStore(loggedInStore()) // con sesión, pero sin inscripción
-                val viewModel = ExerciseViewModel(course, module.id, spy, loggedInStore(), requester, Random(0))
+                val viewModel = ExerciseViewModel(
+                    course, module.id, spy, loggedInStore(), requester,
+                    FakeSubmissionGateway(), InMemorySessionStore(), FakeSubmissionPhotos(), this, Random(0),
+                )
                 runCurrent()
                 pass(viewModel)
             }
@@ -152,7 +157,10 @@ class ExerciseViewModelSyncTest {
         val store = loggedInStore()
         store.enroll(course.id)
         spy = MarkedFlagProgressStore(store)
-        val viewModel = ExerciseViewModel(course, module.id, spy, store, requester, Random(0))
+        val viewModel = ExerciseViewModel(
+            course, module.id, spy, store, requester,
+            FakeSubmissionGateway(), InMemorySessionStore(), FakeSubmissionPhotos(), this, Random(0),
+        )
         runCurrent()
         return viewModel
     }

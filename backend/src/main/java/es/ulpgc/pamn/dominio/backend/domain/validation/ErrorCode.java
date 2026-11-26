@@ -31,5 +31,19 @@ public enum ErrorCode {
     /** Quien publica una versión no es el autor del curso (respuesta 403). */
     NOT_COURSE_AUTHOR,
     /** El contenido es idéntico al de la última versión: no se crea ninguna (respuesta 409). */
-    IDENTICAL_TO_LATEST
+    IDENTICAL_TO_LATEST,
+    /** La contraseña actual no es la de la cuenta, al cambiarla o al eliminar la cuenta (respuesta 403). */
+    WRONG_PASSWORD,
+    /** La cuenta es autora de cursos publicados y no se puede eliminar (respuesta 409). */
+    AUTHOR_OF_COURSES,
+    /** La foto entregada no es un JPEG (respuesta 400). */
+    INVALID_PHOTO,
+    /** La foto, o la petición que la trae, pasa del tamaño máximo (respuesta 413). */
+    PHOTO_TOO_LARGE,
+    /** En esa versión del curso no hay un ejercicio {@code photo} con ese id en los {@code steps} (respuesta 404). */
+    EXERCISE_NOT_FOUND,
+    /** No existe la entrega pedida (respuesta 404). */
+    SUBMISSION_NOT_FOUND,
+    /** La entrega es de otra cuenta: solo la puede ver quien la subió (respuesta 403). */
+    NOT_SUBMISSION_OWNER
 }

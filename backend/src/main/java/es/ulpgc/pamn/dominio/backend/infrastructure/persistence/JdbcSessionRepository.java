@@ -31,6 +31,7 @@ public final class JdbcSessionRepository implements SessionRepository {
     // Solo cambia lo que cambia al renovar; el resto de la sesión es inmutable.
     private static final String UPDATE_USAGE = "UPDATE sessions SET last_used_at = ?, expires_at = ? WHERE id = ?";
     private static final String DELETE_BY_TOKEN_HASH = "DELETE FROM sessions WHERE token_hash = ?";
+    private static final String DELETE_OTHERS_OF_USER = "DELETE FROM sessions WHERE user_id = ? AND token_hash <> ?";
 
     private final DataSource dataSource;
 
@@ -60,6 +61,11 @@ public final class JdbcSessionRepository implements SessionRepository {
     @Override
     public void update(Session session) {
         execute(UPDATE_USAGE, toColumn(session.lastUsedAt()), toColumn(session.expiresAt()), session.id());
+    }
+
+    @Override
+    public void removeOthersOf(UUID userId, SessionTokenHash keep) {
+        execute(DELETE_OTHERS_OF_USER, userId, keep.value());
     }
 
     @Override

@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import es.ulpgc.pamn.dominio.R
@@ -32,7 +33,7 @@ fun AddedDataSection(
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(
-            "DATOS AÑADIDOS",
+            stringResource(R.string.register_added_data),
             style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.sp),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -66,7 +67,7 @@ fun AddedDataChip(
             Text(text, style = MaterialTheme.typography.labelMedium)
             Icon(
                 painter = painterResource(R.drawable.ic_edit),
-                contentDescription = "Editar",
+                contentDescription = stringResource(R.string.action_edit),
                 modifier = Modifier.size(14.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
             )

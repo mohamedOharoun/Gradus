@@ -10,6 +10,7 @@ import es.ulpgc.pamn.dominio.backend.domain.course.MatchingPair;
 import es.ulpgc.pamn.dominio.backend.domain.course.Module;
 import es.ulpgc.pamn.dominio.backend.domain.course.MultipleChoice;
 import es.ulpgc.pamn.dominio.backend.domain.course.Option;
+import es.ulpgc.pamn.dominio.backend.domain.course.PhotoExercise;
 import es.ulpgc.pamn.dominio.backend.domain.course.SingleChoice;
 import es.ulpgc.pamn.dominio.backend.domain.course.Step;
 
@@ -35,7 +36,8 @@ final class CourseNodeMapper {
                     list(node.get("options"), CourseNodeMapper::option), strings(node.get("correct")),
                     text(node, "explanation")),
             "matching", node -> new Matching(text(node, "id"), text(node, "prompt"),
-                    list(node.get("pairs"), CourseNodeMapper::pair), text(node, "explanation")));
+                    list(node.get("pairs"), CourseNodeMapper::pair), text(node, "explanation")),
+            "photo", node -> new PhotoExercise(text(node, "id"), text(node, "prompt"), text(node, "explanation")));
 
     private CourseNodeMapper() {
     }

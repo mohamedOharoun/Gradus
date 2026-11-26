@@ -15,6 +15,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.ui.components.EnrollmentState
+import es.ulpgc.pamn.dominio.ui.testing.setContentInEnglish
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -33,7 +35,7 @@ class ScreenCourseOverviewTest {
     private var paths = 0
     private var backs = 0
 
-    private fun show(state: EnrollmentState) = composeRule.setContent {
+    private fun show(state: EnrollmentState) = composeRule.setContentInSpanish {
         GradusTheme {
             ScreenCourseOverview(
                 enrollment = state,
@@ -96,7 +98,7 @@ class ScreenCourseOverviewTest {
     @Test
     fun the_path_button_reports_in_every_state() {
         var state by mutableStateOf<EnrollmentState>(EnrollmentState.Unknown)
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme {
                 ScreenCourseOverview(
                     enrollment = state,
@@ -133,7 +135,7 @@ class ScreenCourseOverviewTest {
     @Test
     fun after_enrolling_the_path_button_stays_active_and_nothing_navigates_by_itself() {
         var state by mutableStateOf<EnrollmentState>(EnrollmentState.NotEnrolled)
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme {
                 ScreenCourseOverview(
                     enrollment = state,
@@ -173,5 +175,23 @@ class ScreenCourseOverviewTest {
         show(EnrollmentState.Enrolled)
 
         path().assertHeightIsAtLeast(48.dp).assertWidthIsAtLeast(48.dp)
+    }
+
+    @Test
+    fun in_english_it_shows_the_translated_copy() {
+        composeRule.setContentInEnglish {
+            GradusTheme {
+                ScreenCourseOverview(
+                    enrollment = EnrollmentState.NotEnrolled,
+                    onEnroll = {},
+                    onGoToPath = {},
+                    onBack = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Course").assertIsDisplayed()
+        composeRule.onNodeWithText("Enroll").assertIsDisplayed()
+        composeRule.onNodeWithText("Go to path").assertIsDisplayed()
     }
 }

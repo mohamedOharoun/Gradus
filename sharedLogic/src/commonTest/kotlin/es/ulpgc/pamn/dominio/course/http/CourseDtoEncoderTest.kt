@@ -1,8 +1,10 @@
 package es.ulpgc.pamn.dominio.course.http
 
+import es.ulpgc.pamn.dominio.course.Author
 import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.Mastery
 import es.ulpgc.pamn.dominio.course.Module
+import es.ulpgc.pamn.dominio.course.Publication
 import es.ulpgc.pamn.dominio.course.Step
 import es.ulpgc.pamn.dominio.course.exercise.MatchPair
 import es.ulpgc.pamn.dominio.course.exercise.Matching
@@ -97,6 +99,11 @@ class CourseDtoEncoderTest {
                                 explanation = "Correspondencia directa.",
                             ),
                         ),
+                        Step.Photo(
+                            id = "ph1",
+                            prompt = "Dibuja el grafo en papel y haz una foto.",
+                            explanation = "Cuatro vértices conectados en ciclo.",
+                        ),
                     ),
                     review = listOf(
                         SingleChoice(
@@ -183,6 +190,7 @@ class CourseDtoEncoderTest {
                         Step.Exercise(SingleChoice("sc1", "P", listOf("A", "B", "C"), correct = 2, explanation = "E")),
                         Step.Exercise(MultipleChoice("mc1", "P", listOf("A", "B", "C"), correct = setOf(2, 0), explanation = "E")),
                         Step.Exercise(Matching("mt1", "P", listOf(MatchPair("L1", "R1"), MatchPair("L2", "R2")), explanation = "E")),
+                        Step.Photo("ph1", "Dibuja el esquema.", "Solución de ejemplo."),
                     ),
                     review = listOf(
                         SingleChoice("r1", "P", listOf("A", "B"), correct = 0, explanation = "E"),
@@ -209,7 +217,7 @@ class CourseDtoEncoderTest {
         assertEquals("shape-id", root["id"]!!.jsonPrimitive.content)
         assertEquals(SUPPORTED_FORMAT_VERSION, content["formatVersion"]!!.jsonPrimitive.int)
         assertEquals(
-            listOf("lesson", "singleChoice", "multipleChoice", "matching"),
+            listOf("lesson", "singleChoice", "multipleChoice", "matching", "photo"),
             steps.map { it.jsonObject["type"]!!.jsonPrimitive.content },
         )
         assertEquals(
@@ -296,6 +304,55 @@ class CourseDtoEncoderTest {
         )
 
         assertEquals(course, decodeOk(encodeCourseVersion(course)))
+    }
+
+    @Test
+    fun `round trip preserves publication metadata and writes it at the version root`() {
+        val publication = Publication(
+            author = Author(id = "author-1", name = "Ada Lovelace"),
+            version = 3,
+            publishedAt = "2026-11-20T10:00:00Z",
+        )
+        val course = Course(
+            id = "published-course",
+            title = "Curso publicado",
+            modules = listOf(
+                Module(
+                    id = "m1",
+                    title = "Con foto",
+                    steps = listOf(Step.Photo("p1", "Haz el árbol.", "Raíz con dos hijos.")),
+                ),
+            ),
+            publication = publication,
+        )
+
+        val encoded = encodeCourseVersion(course)
+        val root = Json.parseToJsonElement(encoded).jsonObject
+        val author = root["author"]!!.jsonObject
+
+        assertEquals(3, root["version"]!!.jsonPrimitive.int)
+        assertEquals("author-1", author["id"]!!.jsonPrimitive.content)
+        assertEquals("Ada Lovelace", author["name"]!!.jsonPrimitive.content)
+        assertEquals("2026-11-20T10:00:00Z", root["publishedAt"]!!.jsonPrimitive.content)
+        assertEquals(course, decodeOk(encoded))
+    }
+
+    @Test
+    fun `round trip preserves null publication and omits publication fields from json`() {
+        val course = Course(
+            id = "local-course",
+            title = "Sin publicación",
+            modules = listOf(Module(id = "m1", title = "M1")),
+            publication = null,
+        )
+
+        val encoded = encodeCourseVersion(course)
+        val root = Json.parseToJsonElement(encoded).jsonObject
+
+        assertFalse("version" in root)
+        assertFalse("author" in root)
+        assertFalse("publishedAt" in root)
+        assertNull(decodeOk(encoded).publication)
     }
 
     private fun decodeOk(body: String): Course {

@@ -42,7 +42,7 @@ Paquete `course/` y `course/http/` (copia local de cursos; Kotlin puro, desde 12
 
 | Pieza | Qué es | Patrón |
 |---|---|---|
-| `encodeCourseVersion(course)` (`course/http/CourseDtoEncoder.kt`) | Inverso de `decodeCourseVersion`: serializa un `Course` al JSON de `GET /api/courses/{id}` (`CourseVersionDto` + `CourseContentDto` con `formatVersion = 1`). Genera ids estables `"o$index"` para opciones y ordena `MultipleChoice.correct`; comparte `internal val courseJson` de `CourseDtoMappers.kt` | *Mapper*, funciones puras |
+| `encodeCourseVersion(course)` (`course/http/CourseDtoEncoder.kt`) | Inverso de `decodeCourseVersion`: serializa un `Course` al JSON de `GET /api/courses/{id}` (`CourseVersionDto` con `version`/`author`/`publishedAt` si `course.publication != null` + `CourseContentDto` con `formatVersion = 1`). Soporta `Step.Lesson`, `Step.Exercise` y `Step.Photo` (`PhotoDto`), genera ids estables `"o$index"` para opciones y ordena `MultipleChoice.correct`; comparte `internal val courseJson` de `CourseDtoMappers.kt` | *Mapper*, funciones puras |
 | `CourseCopyStore` y `InMemoryCourseCopyStore` (`course/`) | Puerto local `save(courseId, json)` (sobrescribe) y `load(courseId): String?`, con implementación en memoria sobre `MutableStateFlow` para tests | *Strategy* (puerto hexagonal) |
 | `OfflineCourseGateway(delegate, copies)` (`course/`) | Red primero: en `Found` guarda la copia bajo el `id` pedido y la devuelve; en `Unreachable` carga y decodifica la copia (si falta o es `Malformed`/`UnsupportedFormat` devuelve `Unreachable` sin borrarla). `NotFound`, `UnsupportedFormat`, `ServerFailure` y `search` pasan tal cual sin tocar `copies`; fallos del almacén se propagan | *Decorator* sobre `CourseGateway` |
 
@@ -98,15 +98,17 @@ Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, conecta
 | `KeystoreSessionCipher(alias = DEFAULT_ALIAS)` | AES-256-GCM con una clave de Android Keystore (no sale del sistema). Formato: IV de 12 bytes + cifrado + etiqueta de 16. **Solo `encrypt` crea la clave**; buscar o crear va dentro de un cerrojo compartido por todas las instancias (generar con un alias existente sustituye la clave). La clave se busca en cada operación | Implementación de la *Strategy* |
 | `EncryptedSessionSerializer(cipher)` | `Serializer<Session?>` de DataStore: `encodeSession` + cifrar al escribir, descifrar + `decodeSession` al leer. «Sin sesión» = fichero vacío. No se puede descifrar o no es una sesión → `CorruptionException` con texto fijo (nunca el token). Una `IOException` del disco **sale tal cual** (no borra una sesión buena) | *Adapter* |
 | `DataStoreSessionStore(dataStore)` y `create(context, scope, fileName, cipher)` | Implementa `SessionStore` sin cambiar el puerto; además `session: Flow<Session?>` (cada cambio). Fichero `gradus-session.bin` en `noBackupFilesDir`; `ReplaceFileCorruptionHandler { null }`: fichero roto o clave perdida = sin sesión. **Un solo `DataStore` activo por fichero** (dos lanzan): la app crea uno; los tests cancelan el ámbito antes de abrir otro y usan alias propios, nunca `DEFAULT_ALIAS` | *Adapter* del puerto; *Factory method* |
+| `SessionSignOut` y `SessionUpdate` (`Active \| Missing(voluntary)`) | Puerto ligero en `app/` (`fun interface`) para salidas voluntarias («Cerrar sesión» y cuenta eliminada) y tipo suma con el estado de sesión observado por el arranque; mantiene `SessionStore` puro en `sharedLogic` | *Command*; jerarquía sellada (tipo suma) |
+| `SessionMonitor(store, sessionFlow)` | Envuelve a `DataStoreSessionStore` exponiendo `SessionStore` (`save`/`clear` dejan `voluntary = false`), `SessionSignOut` (`signOut` marca `voluntary = true` antes de borrar y lo restaura si falla) y `updates: Flow<SessionUpdate>` | *Decorator*; *Interface Segregation* |
 
-En `app/.../ui/navigation/` (el arranque según la sesión guardada; 11c-2 y 11c-3):
+En `app/.../ui/navigation/` (el arranque y salida unificada según la sesión guardada; 11c-2, 11c-3 y merge con `dev/joel`):
 
 | Pieza | Qué es | Patrón |
 |---|---|---|
-| `StartState` (`Loading \| SignedIn \| SignedOut`) | Qué sabe la app de la sesión guardada. Sin datos: el token no puede salir por aquí | Jerarquía sellada (tipo suma) |
-| `StartViewModel(sessions: Flow<Session?>, progressSync: ProgressSyncRequester, retryDelay = 2 s)` | `state: StateFlow<StartState>` (`Eagerly`, empieza en `Loading`). Si el primer estado resuelto tras `Loading` es `SignedIn`, llama a `progressSync.requestSync()` una sola vez (13b-2); en `SignedOut → SignedIn` tras Login o tras un error pasajero de lectura no lo llama (no pisa a `LoginViewModel`). Si leer lanza `IOException` (incluida `CorruptionException`) o `ProviderException`: `SignedOut` sin borrar nada y vuelve a leer cada 2 s (un `Flow` que falla muere). Otro error no se traga. **Consecuencia:** un error pasajero dentro de `Main` lleva a Login aunque la sesión siga guardada | *Observer* (`StateFlow`); `retryWhen` |
-| `StartNavigation.kt`: `startRoute()`, `mustLeaveMain(inMain)`, `isInMain()` y `NavController.leaveMain()` | `Loading` → sin ruta (solo el fondo); `SignedIn` → `Route.Main`; `SignedOut` → `Route.Welcome`. **Regla sobre el estado, no sobre el cambio:** `SignedOut` estando dentro del grafo `Main` → `leaveMain()`, que vacía la pila y deja `[Welcome, Login]` (como el flujo normal). Vale con la app abierta y cuando Android restaura la pila en `Main` sin sesión; con `Loading` no se sale | Funciones puras (extensiones) |
-| `GradusNavHost(start, …)` y `MainActivity` | `MainActivity` crea `StartViewModel(AppContainer.sessionUpdates, AppContainer.progressSync)` (`by viewModels`) y pasa `state` con `collectAsStateWithLifecycle()` y `progressSync = AppContainer.progressSync`. `GradusNavHost` pinta un `Box` con el fondo del tema en `Loading`; la ruta inicial se fija **una vez** con el primer estado no `Loading` (si cambiara, el `NavHost` recrearía el grafo y vaciaría la pila); `rememberNavController()` restaura la pila aunque el `NavHost` llegue después. Al iniciar sesión, `enterHome()` espera a `start == SignedIn` (si no, un fotograma de desfase devolvería a Login) | *State hoisting*; la navegación solo en `GradusNavHost` |
+| `MainExit` (`ToWelcome \| ToLogin`) y `StartState` (`Loading \| SignedIn \| SignedOut(exit)`) | Qué sabe la app sobre la sesión guardada y a dónde salir si estaba en `Main` (`ToWelcome` tras cierre voluntario/eliminación; `ToLogin` tras 401 o sesión ausente). Sin datos sensibles: el token no puede salir por aquí | Jerarquía sellada (tipo suma) |
+| `StartViewModel(sessions: Flow<SessionUpdate>, progressSync: ProgressSyncRequester, retryDelay = 2 s)` | `state: StateFlow<StartState>` (`Eagerly`, empieza en `Loading`). Si el primer estado resuelto tras `Loading` es `SignedIn`, llama a `progressSync.requestSync()` una sola vez (13b-2); en `SignedOut → SignedIn` tras Login o tras un error pasajero de lectura no lo llama (no pisa a `LoginViewModel`). Si leer lanza `IOException` (incluida `CorruptionException`) o `ProviderException`: `SignedOut(MainExit.ToLogin)` sin borrar nada y vuelve a leer cada 2 s (un `Flow` que falla muere). Otro error no se traga. **Consecuencia:** un error pasajero dentro de `Main` lleva a Login aunque la sesión siga guardada | *Observer* (`StateFlow`); `retryWhen` |
+| `StartNavigation.kt`: `startRoute()`, `mainExit(inMain)`, `isInMain()`, `NavController.leaveToWelcome()` y `NavController.leaveMain()` | `Loading` → sin ruta (solo el fondo); `SignedIn` → `Route.Main`; `SignedOut` → `Route.Welcome` al arrancar. **Regla sobre el estado, no sobre el cambio:** `SignedOut` dentro de `Main` → `leaveToWelcome()` (`[Welcome]`) si `ToWelcome`, o `leaveMain()` (`[Welcome, Login]`) si `ToLogin`. Vale con la app abierta y al restaurar la pila; con `Loading` no se sale | Funciones puras (extensiones) |
+| `GradusNavHost(start, …)` y `MainActivity` | `MainActivity` crea `StartViewModel(AppContainer.sessionUpdates, AppContainer.progressSync)` (`by viewModels`), aplica el tema oscuro reactivo de `settingsStore` y pasa `start` y `progressSync` a `GradusNavHost`. `GradusNavHost` es la **única fuente de navegación** al salir de `Main` (ni Ajustes ni Editar perfil ni Cambiar contraseña navegan por su cuenta); pinta un `Box` con el fondo del tema en `Loading`, fija la ruta inicial **una vez** con el primer estado no `Loading`, y al iniciar sesión `enterHome()` espera a `start == SignedIn` | *State hoisting*; única fuente de verdad (*Single Source of Truth*) |
 
 Tests: `EncryptedSessionSerializerTest` (JVM, con `FakeSessionCipher`); `KeystoreSessionCipherTest`,
 `DataStoreSessionStoreTest`, `DataStoreSessionStoreFileTest` y `DataStoreSessionStoreFailureTest`
@@ -395,61 +397,22 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   `ksp(room-compiler)` y `kotlinx-coroutines-test` en `androidTestImplementation`) y el esquema exportado
   `app/schemas/es.ulpgc.pamn.dominio.data.progress.ProgressDatabase/2.json`. `dev/joel` también toca los tres
   ficheros de Gradle: al resolver conflictos, conserva las líneas de los dos lados.
-- **Arranque según la sesión (11c-3):** `GradusNavHost` tiene un primer parámetro `start: StartState` y ya
-  no empieza siempre en `Route.Welcome`; `MainActivity` crea el `StartViewModel`. Si otra rama toca
-  `GradusNavHost` o `MainActivity`, conservar: el `Box` de `Loading` con su `return`, la ruta inicial con
-  `remember(start == StartState.Loading)`, el `LaunchedEffect(leaveMain)` antes del `NavHost` y la condición
-  `&& start == StartState.SignedIn` en la entrada de Login. Lo prueban `GradusNavHostStartTest` y
-  `StartNavigationTest`.
+- **Arranque y salida según la sesión (11c-3 y merge con `dev/joel`):** `GradusNavHost` recibe `start: StartState` y ya no empieza siempre en `Route.Welcome`; `MainActivity` crea el `StartViewModel` (con `AppContainer.sessionUpdates`) y aplica el modo oscuro reactivo de `settingsStore`. Conservar en `GradusNavHost`: el `Box` de `Loading` con su `return`, la ruta inicial con `remember(start == StartState.Loading)`, el único `LaunchedEffect(exit)` (`MainExit.ToWelcome` → `leaveToWelcome()`, `MainExit.ToLogin` → `leaveMain()`) antes del `NavHost` y la condición `&& start == StartState.SignedIn` en Login. Las pantallas dentro de `Main` (`SettingsRoute`, `EditProfile`, `ChangePassword`) **no** navegan fuera de `Main`: solo borran la sesión (con `sessionSignOut` si es salida voluntaria o `sessionStore.clear()` ante un 401). Lo prueban `SessionMonitorTest`, `StartViewModelTest`, `StartNavigationTest` y `GradusNavHostStartTest`.
 - **Gradle con DataStore (11b) y WorkManager (13b-1):** `datastore = "1.3.0"` (`androidx-datastore`), `work = "2.12.0"` (`androidx-work-runtime` y `androidx-work-testing`) en `gradle/libs.versions.toml`, e `implementation(libs.androidx.datastore)`, `implementation(libs.androidx.work.runtime)` y `androidTestImplementation(libs.androidx.work.testing)` en `app/build.gradle.kts`.
-- **`app/.../data/AppContainer.kt`, progreso y copias (desde 7d; WorkManager 13b; copias 12b):**
+- **`app/.../data/AppContainer.kt`, progreso, copias y notas (desde 7d; WorkManager 13b; copias 12b; merge `dev/joel`):**
   `private var appContext: Context?`, `private fun requireContext()` y `fun init(context)` (solo cuenta la
-  primera llamada). `private val progressDatabase by lazy { ProgressDatabase.create(requireContext()) }` es
-  la **única** instancia de Room, compartida entre `progress` (`ProgressModule(progressDatabase, sessionStore,
-  ProgressGateways.http(BASE_URL))`) y `courseGateway` (`CachingCourseGateway(OfflineCourseGateway(
-  CourseGateways.http(BASE_URL), RoomCourseCopyStore(progressDatabase.courseCopyDao())))`) sin acoplar
-  `courseGateway` a `sessionStore`. Encima de `progress`: `val progressStore: ProgressStore`,
-  `val enrollmentStore: EnrollmentStore` y `val sessionProgressSync: SessionProgressSync` (tienen que salir
-  del **mismo** `ProgressModule`; lo comprueba `AppContainerTest`). Desde 13b-2, `val progressSync:
-  ProgressSyncRequester by lazy { WorkSyncRequester(WorkManager.getInstance(requireContext())) }`. Desde
-  12b-2, `private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)` y
-  `val courseCopy: CourseCopyRequester by lazy { CourseCopyLauncher(courseGateway, appScope) }`. La sesión
-  (desde 11c-1): `private val sessions by lazy { DataStoreSessionStore.create(requireContext()) }` (**un solo
-  objeto**: DataStore no admite dos activos sobre el mismo fichero), `val sessionStore: SessionStore get() =
-  sessions` y `val sessionUpdates: Flow<Session?> get() = sessions.session` (solo para el arranque). Si
-  `dev/joel` también toca `AppContainer`, conserva `init`, `requireContext`, `progressDatabase`,
-  `courseGateway` (con `OfflineCourseGateway`), `progress`, `progressStore`, `enrollmentStore`,
-  `sessionProgressSync`, `progressSync`, `appScope`, `courseCopy`, `sessions`, `sessionStore` y
-  `sessionUpdates`. Todo ello (salvo `accountGateway`) necesita `init` (lo comprueban `AppContainerInitTest`
-  y `AppContainerTest`).
+  primera llamada, desde `GradusApplication.onCreate`). Hay dos bases Room separadas: `progressDatabase` (`ProgressDatabase` v2 congelada en `gradus-progress.db`, compartida entre `progress` y `courseGateway` con `OfflineCourseGateway` + `RoomCourseCopyStore`) y `database` (`GradusDatabase` en `gradus.db` para `notesStore`). Encima de `progress`: `val progressStore: ProgressStore`, `val enrollmentStore: EnrollmentStore` y `val sessionProgressSync: SessionProgressSync` (tienen que salir del **mismo** `ProgressModule`; lo comprueba `AppContainerTest`). `val progressSync: ProgressSyncRequester` usa `WorkSyncRequester`, y `val courseCopy: CourseCopyRequester` usa `CourseCopyLauncher(courseGateway, appScope)`. La sesión usa una **única** instancia de `DataStoreSessionStore` (`persistentSessions`) envuelta en `sessionMonitor: SessionMonitor`, expuesto como `sessionStore: SessionStore`, `sessionSignOut: SessionSignOut` y `sessionUpdates: Flow<SessionUpdate>`. Todo lo que usa `Context` pasa por `requireContext()` (lo comprueban `AppContainerInitTest` y `AppContainerTest`).
 - **`GradusApplication` y el manifiesto (7d):** `GradusApplication : Application` llama a
   `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
-  en `<application>` (una sola línea añadida). Sin ella, usar el progreso, la sesión o las copias de cursos
-  lanza `IllegalStateException` («AppContainer.init(context) must be called first»). Solo `accountGateway`
-  no necesita `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso
-  los tests instrumentados pueden pedir `AppContainer.progressStore` o `AppContainer.courseGateway` sin
-  tocar los datos.
-- **Fábricas con parámetros nuevos (9b, 8b, 13b-2 y 12b-2):** `CourseViewModel.factory(…, progress, enrollment)`,
-  `ExerciseViewModel.factory(course, moduleId, progress, enrollment, progressSync, random)`,
-  `EnrollmentViewModel.factory(courseId, enrollment, progressSync, courseCopy)`,
-  `LoginViewModel.factory(accountGateway, sessionStore, progressSync)` y
-  `StartViewModel.factory(sessions, progressSync)`. `GradusNavHost` recibe `progressSync` que rellena
-  `MainActivity` con `AppContainer.progressSync`. Si `dev/joel` crea estos ViewModel o llama a
-  `GradusNavHost` en otro sitio, tiene que pasar `AppContainer.enrollmentStore`, `AppContainer.progressSync`
-  y `AppContainer.courseCopy` (si no, no se sincroniza ni precarga nada).
-- **`ExerciseViewModel` ya no se alcanza sin inscripción (9b):** el camino no abre la práctica sin
+  (junto a `android:localeConfig="@xml/locales_config"` y el permiso `CAMERA`). Sin `GradusApplication`,
+  usar progreso, sesión, copias, notas o ajustes lanza `IllegalStateException` («AppContainer.init(context) must be called first»). Solo `accountGateway` y `submissionGateway` no necesitan `Context`.
+- **Fábricas con parámetros nuevos (9b, 8b, 13b-2, 12b-2 y merge `dev/joel`):** `CourseViewModel.factory(courseId, gateway, progress, enrollment, notes)`, `ExerciseViewModel.factory(course, moduleId, progress, enrollment, progressSync, submissions, sessions, photos, cleanup, random)`, `EnrollmentViewModel.factory(courseId, enrollment, progressSync, courseCopy)`, `LoginViewModel.factory(accountGateway, sessionStore, progressSync)`, `StartViewModel.factory(sessions, progressSync)`, `SettingsViewModel.factory(accounts, sessions, settings, languages, signOut)` y `DeleteAccountViewModel.factory(accounts, sessions, signOut)`.
+- **`ExerciseViewModel` ya no se alcanza sin inscripción (9b):** el camino no abre la hoja ni la práctica sin
   inscripción (`tapModule`), y la entrada de `Route.Exercise` en `MainNavGraph` vuelve atrás según
   `exerciseViewModel.access` antes de componer `ScreenExercise`. Por eso `markMastered` ya no lanza en
-  uso normal (y no se captura: si lanzara, sería un fallo de programación). Al resolver conflictos en
-  ese bloque, conserva el `when (exerciseViewModel.access)`. Desde 10b se puede inscribir desde la
-  página de relleno del curso.
-- **Buscar abre `Route.CourseOverview` (10b):** en `MainNavGraph`, la pestaña Buscar navega con
-  `Route.CourseOverview(id)` (no `Route.Course(id)`); desde esa página, «Ir al camino» navega a
-  `Route.Course(id)`. Si `dev/joel` toca la navegación de Buscar, que conserve esa ruta (si no, nadie
-  llega a inscribirse). El `EnrollmentViewModel` se crea dentro de la entrada `composable<Route.CourseOverview>`.
-- **`CourseViewModel` (`mastered` y `enrolled`):** escucha los dos con `combine`; sin sesión ve el
-  progreso vacío y sin inscripción; la sesión se lee al empezar a escuchar. `CourseUiState.enrolled`
-  vale `false` por defecto (la preview de `ScreenCourse` no lo pasa).
+  uso normal (y no se captura: si lanzara, sería un fallo de programación). Al aprobar, `onContinue` llama a `progress.markMastered` y `progressSync.requestSync()`.
+- **Buscar abre `Route.CourseOverview` (10b; provisional tras el merge):** en `MainNavGraph`, la pestaña Buscar navega con `Route.CourseOverview(id)` para conservar el acceso a inscribirse (`EnrollmentViewModel` + `EnrollButton`), mientras `courseDetailDestination` (`Route.CourseDetail`) queda registrado listo para integrar `EnrollButton` y retirar `ScreenCourseOverview` en la siguiente tarea.
+- **`CourseViewModel` (`mastered`, `enrolled` y `notes`):** escucha los tres con `combine`; sin sesión ve el progreso vacío y sin inscripción. Sin inscripción, tocar cualquier módulo saca `CourseNotice.NotEnrolled` (`UiText.of(R.string.course_not_enrolled)`); con inscripción, `ModuleTap.OpenPractice` abre `ModuleSheet` (`sheet = moduleId`) y desde ahí «Estudiar» abre la práctica. `CourseUiState.enrolled` vale `false` por defecto.
 - **`courseId` en mayúsculas:** `settle` compara el `courseId` tal cual, y el servidor lo devuelve en
   minúsculas (forma canónica). Si los ids de curso que usa el móvil vinieran en mayúsculas, el mismo
   curso aparecería dos veces tras sincronizar. **Comprobado en C (2026-11-25):** el móvil no inventa

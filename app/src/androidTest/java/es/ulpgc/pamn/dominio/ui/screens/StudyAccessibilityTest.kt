@@ -18,20 +18,21 @@ import es.ulpgc.pamn.dominio.course.Mastery
 import es.ulpgc.pamn.dominio.course.Module
 import es.ulpgc.pamn.dominio.course.Step
 import es.ulpgc.pamn.dominio.course.exercise.SingleChoice
+import es.ulpgc.pamn.dominio.course.statesFor
 import es.ulpgc.pamn.dominio.course.study.ModuleStudy
 import es.ulpgc.pamn.dominio.data.demoCourse
 import es.ulpgc.pamn.dominio.data.demoMastered
-import es.ulpgc.pamn.dominio.course.statesFor
 import es.ulpgc.pamn.dominio.ui.components.CourseMap
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseProblem
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseProblemContent
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ScreenExercise
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
+import kotlin.random.Random
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.random.Random
 
 // Lo que TalkBack lee al estudiar un curso (tarea 9 de cursos-backend-app.md): encabezados,
 // estados, avisos que se leen solos y zonas táctiles de 48 dp. Se ejecuta en el emulador:
@@ -52,7 +53,7 @@ class StudyAccessibilityTest {
     )
     private val course = Course("c", "Grafos", listOf(module))
 
-    private fun show(study: ModuleStudy) = composeRule.setContent { GradusTheme { ScreenExercise(study, ExerciseActions()) } }
+    private fun show(study: ModuleStudy) = composeRule.setContentInSpanish { GradusTheme { ScreenExercise(study, ExerciseActions()) } }
 
     private fun start() = ModuleStudy.start(course, "bfs", random)!!
 
@@ -103,7 +104,7 @@ class StudyAccessibilityTest {
 
     @Test
     fun a_problem_downloading_is_read_aloud_and_its_buttons_are_big_enough() {
-        composeRule.setContent { GradusTheme { CourseProblemContent(CourseProblem.UNREACHABLE, onRetry = {}, onBack = {}) } }
+        composeRule.setContentInSpanish { GradusTheme { CourseProblemContent(CourseProblem.UNREACHABLE, onRetry = {}, onBack = {}) } }
 
         // La región viva es el bloque del aviso: TalkBack lee todo lo que tiene dentro.
         composeRule.onNode(hasLiveRegion and hasAnyDescendant(hasText("Sin conexión"))).assertIsDisplayed()
@@ -114,7 +115,7 @@ class StudyAccessibilityTest {
 
     @Test
     fun every_module_of_the_path_says_its_state() {
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme { CourseMap(demoCourse, demoCourse.statesFor(demoMastered), onModuleClick = {}) }
         }
 

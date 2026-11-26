@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import es.ulpgc.pamn.dominio.ui.testing.setContentInEnglish
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -26,7 +28,7 @@ class EnrollButtonTest {
 
     private fun show(state: EnrollmentState) {
         taps = 0
-        composeRule.setContent { GradusTheme { EnrollButton(state = state, onEnroll = { taps++ }) } }
+        composeRule.setContentInSpanish { GradusTheme { EnrollButton(state = state, onEnroll = { taps++ }) } }
     }
 
     @Test
@@ -79,6 +81,12 @@ class EnrollButtonTest {
 
     @Test
     fun the_touch_target_is_at_least_48dp_when_enrolled() = assertTouchTarget(EnrollmentState.Enrolled, "Inscrito")
+
+    @Test
+    fun in_english_it_uses_the_translated_labels() {
+        composeRule.setContentInEnglish { GradusTheme { EnrollButton(state = EnrollmentState.NotEnrolled, onEnroll = {}) } }
+        composeRule.onNodeWithText("Enroll").assertIsEnabled()
+    }
 
     private fun assertTouchTarget(state: EnrollmentState, text: String) {
         show(state)

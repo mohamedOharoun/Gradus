@@ -25,6 +25,8 @@ public enum CourseIssueCode {
     UNKNOWN_OPTION(ERROR),
     ALL_OPTIONS_CORRECT(ERROR),
     DUPLICATE_MATCHING_SIDE(ERROR),
+    /** Un ejercicio {@code photo} en {@code review}: no se corrige solo y la prueba de dominio sí. */
+    PHOTO_IN_REVIEW(ERROR),
     UNKNOWN_PREREQUISITE(ERROR),
     SELF_PREREQUISITE(ERROR),
     DUPLICATE_TAG(WARNING),

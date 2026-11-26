@@ -20,6 +20,8 @@ import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.data.demoSearchResults
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
+import es.ulpgc.pamn.dominio.ui.testing.inSpanish
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,7 +39,7 @@ class CourseCardTest {
     private val course = demoSearchResults.first()
 
     private fun show(course: CourseSummary, onClick: () -> Unit = {}) =
-        composeRule.setContent { GradusTheme { CourseCard(course, onClick) } }
+        composeRule.setContentInSpanish { GradusTheme { CourseCard(course, onClick) } }
 
     // La tarjeta es la única cosa pulsable. Se busca en el árbol «fusionado», el que ve TalkBack.
     private fun card() = composeRule.onNode(hasClickAction())
@@ -57,7 +59,7 @@ class CourseCardTest {
     fun talkback_reads_the_whole_sentence_with_the_full_month() {
         show(course)
 
-        card().assert(hasContentDescription(course.spokenText()))
+        card().assert(hasContentDescription(course.spokenText().inSpanish()))
         card().assert(hasContentDescription("publicado en octubre de 2026", substring = true))
     }
 
