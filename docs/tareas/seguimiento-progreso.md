@@ -38,13 +38,13 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     deja estudiar sin inscripción, guarda el progreso en Room por usuario y lo sincroniza tras iniciar
     sesión, inscribirse y dominar. Probado de punta a punta por los usuarios (con `pm clear`, lo dominado
     vuelve del servidor). Detalle: `docs/tareas/progreso-app.md` y su histórico.
-- **Para la parte D, todo en `docs/tareas/progreso-app.md` (Relevo) y `docs/arquitectura-progreso.md`:**
-  - El `Worker` de D13 usa el mismo `ProgressSync` de `ProgressModule` (en `AppContainer`) y necesita
-    la sesión persistente de D11. `GradusApplication` ya llama a `AppContainer.init` (el `Worker` no
-    necesita Activity).
-  - D11 implementa `SessionStore` sin cambiar el puerto (es de la parte B).
-  - Si D13 quiere ahorrar llamadas, que lo decida con `pending(...).isEmpty` (B-10).
-- **Siguiente:** la parte D (tareas 11–13), con su orquestador: primero, su plan y las dependencias.
+  - **Parte D planificada (2026-11-26):** decisiones D-1 a D-5, criterios y pasos en
+    `docs/tareas/progreso-app.md`. Orden 11a → 11b → 11c → 13a → 13b → 12a → 12b. Sin código todavía.
+- **Lo común que cambia con D:** `SessionStore` tendrá una implementación cifrada en disco sin cambiar
+  el puerto (D-2); la sincronización pasa a WorkManager y `ProgressSyncLauncher` se borra (D-4);
+  `ProgressDatabase` sube a la versión 2 con la tabla `course_copies` (D-3). Lo nuevo de `sharedLogic`
+  va en ficheros nuevos; los puertos de la parte B no cambian.
+- **Siguiente:** paso 11a de la parte D.
 - **Dependencias entre partes:**
   - A, B y C: **terminadas**.
   - D: lo que necesitaba de C está hecho. WorkManager (D13) necesita la sesión persistente (D11).
@@ -52,8 +52,8 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
   apunta aquí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador. Ningún
   orquestador cambia el contrato por su cuenta después de congelarlo.
 - **Abierto (común):**
-  - Dependencias: Room 2.8.5 + KSP 2.3.14 aprobados y añadidos (C-1); WorkManager y lo que pida la
-    sesión cifrada (D) sin aprobar.
+  - Dependencias: Room 2.8.5 + KSP 2.3.14 aprobados y añadidos (C-1); WorkManager 2.12.0, work-testing
+    2.12.0 y DataStore 1.3.0 aprobados el 2026-11-26 (D-1), se añaden en 11b y 13b.
   - Coordinación con otras ramas: la migración es la `006` (la `005` es de valoraciones), y la rama
     `dev/joel` toca `CourseViewModel`, `ScreenCourse`, `MainNavGraph`, `AppContainer`,
     `libs.versions.toml` y `build.gradle.kts`: tocarlos lo mínimo (decisión 5).

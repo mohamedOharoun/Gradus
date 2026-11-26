@@ -34,6 +34,16 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `ProgressGateways.http(baseUrl)` | La única forma de obtener el gateway real desde fuera de `sharedLogic`. `AppContainer` se lo pasa a `ProgressModule` (C8a) | *Factory method* |
 | `FakeProgressGateway(answer)` y `SyncCall(userId, sent)` | Gateway sin red para los tests de `ProgressSync`: responde lo configurado y recuerda **el id del usuario** y lo enviado, nunca la `Session` (el token no queda guardado). `answer` es `suspend` (puede esperar a un `CompletableDeferred`: el test decide cuándo llega la respuesta) y la llamada se apunta antes de responder | *Test double* (fake) |
 | `ProgressSync(store, gateway)` y `suspend sync(session): SyncOutcome` | Caso de uso de la sincronización: sube lo pendiente del usuario de la sesión, fusiona la respuesta y devuelve el desenlace del gateway tal cual | Caso de uso (*Interactor*) sobre dos puertos inyectados (*Strategy*) |
+| `SessionProgressSync(sessions, sync)` y `suspend run(): SessionSyncResult` (11a) | Sincroniza con la sesión **guardada**: sin sesión devuelve `NoSession` sin llamar; si no, `Finished(outcome)` con el desenlace tal cual. Con `SessionExpired` borra la sesión con `clearIfCurrent(session)` (la que se leyó al empezar). Es **el único sitio que trata el 401**; la interfaz solo reacciona a «la sesión se ha borrado». Lo usará el `Worker` (13b) | Caso de uso que compone dos puertos |
+| `SessionSyncResult` (`NoSession \| Finished(outcome)`) | Qué pasó al sincronizar con la sesión guardada | Jerarquía sellada (tipo suma) |
+
+Paquete `account/` (piezas de la sesión que usa el progreso; Kotlin puro, desde 11a):
+
+| Pieza | Qué es | Patrón |
+|---|---|---|
+| `SessionStore.clearIfCurrent(session)` | Borra la sesión guardada solo si tiene **el mismo token** (un 401 invalida el token sea cual sea su `expiresAt`); con otra o sin ninguna, nada. El puerto no cambia. **Límite:** lee y borra en dos pasos (el puerto no tiene uno atómico); una sesión guardada justo entre los dos se borraría. Guardar mientras la petición viaja sí está protegido (probado) | Función de extensión |
+| `encodeSession(session)` y `decodeSession(text): Session?` (`account/storage/`) | `Session` ↔ JSON para guardarla en disco. Lo ilegible (roto, vacío, no es objeto, falta un campo, `null` o tipo equivocado) da `null` y nunca lanza; el fallo no lleva texto. **El JSON lleva el token en claro**: se cifra en la app (11b) y no se registra nunca. Campos desconocidos, ignorados. Sin campo de versión: un formato viejo da `null` (volver a iniciar sesión) | *Mapper*, funciones puras |
+| `StoredSessionDto` y `StoredAccountDto` (`internal`) | El JSON del disco, aparte del de la red (`SessionResponseDto`): si cambia el del servidor, lo guardado sigue leyéndose. El `toString` oculta el token | DTO |
 
 Paquete `course/progress/http/` (`internal`, traduce entre el modelo y el JSON; sin HTTP):
 
