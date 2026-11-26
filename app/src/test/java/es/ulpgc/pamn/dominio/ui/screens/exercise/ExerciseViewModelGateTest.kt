@@ -6,6 +6,7 @@ import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.InMemoryProgressStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.StudyAccess
+import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import es.ulpgc.pamn.dominio.ui.screens.course.SilentEnrollmentStore
 import es.ulpgc.pamn.dominio.ui.screens.course.gateCourse
 import es.ulpgc.pamn.dominio.ui.screens.course.loggedInStore
@@ -81,7 +82,7 @@ class ExerciseViewModelGateTest {
     fun `the factory builds a view model that uses the given stores`() = runTest {
         val store = loggedInStore()
         store.enroll(gateCourse.id)
-        val viewModel = ExerciseViewModel.factory(gateCourse, "a", store, store, Random(0))
+        val viewModel = ExerciseViewModel.factory(gateCourse, "a", store, store, ProgressSyncRequester { }, Random(0))
             .create(ExerciseViewModel::class.java, MutableCreationExtras())
         runCurrent()
         assertEquals(StudyAccess.Allowed, viewModel.access)
@@ -92,7 +93,7 @@ class ExerciseViewModelGateTest {
     private fun TestScope.openPractice(store: InMemoryProgressStore) = openPractice(progress = store, enrollment = store)
 
     private fun TestScope.openPractice(progress: ProgressStore, enrollment: EnrollmentStore): ExerciseViewModel {
-        val viewModel = ExerciseViewModel(gateCourse, "a", progress, enrollment, Random(0))
+        val viewModel = ExerciseViewModel(gateCourse, "a", progress, enrollment, ProgressSyncRequester { }, Random(0))
         runCurrent()
         return viewModel
     }

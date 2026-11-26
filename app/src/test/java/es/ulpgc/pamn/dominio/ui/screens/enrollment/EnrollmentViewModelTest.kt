@@ -4,6 +4,7 @@ import androidx.lifecycle.viewmodel.MutableCreationExtras
 import es.ulpgc.pamn.dominio.account.InMemorySessionStore
 import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.InMemoryProgressStore
+import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import es.ulpgc.pamn.dominio.ui.components.EnrollmentState
 import es.ulpgc.pamn.dominio.ui.screens.course.SilentEnrollmentStore
 import es.ulpgc.pamn.dominio.ui.screens.course.gateCourse
@@ -33,6 +34,10 @@ class EnrollmentViewModelTest {
 
     private val courseId = gateCourse.id
 
+    // 8b: cuenta las peticiones de sincronizar (fun interface: basta una lambda).
+    private var requests = 0
+    private val requester = ProgressSyncRequester { requests++ }
+
     @Before
     fun setUp() {
         Dispatchers.setMain(StandardTestDispatcher())
@@ -47,7 +52,7 @@ class EnrollmentViewModelTest {
 
     @Test
     fun `before the first value the state is unknown`() = runTest {
-        val viewModel = EnrollmentViewModel(courseId, SilentEnrollmentStore())
+        val viewModel = EnrollmentViewModel(courseId, SilentEnrollmentStore(), requester)
         runCurrent()
         assertEquals(EnrollmentState.Unknown, viewModel.state)
     }
@@ -144,6 +149,82 @@ class EnrollmentViewModelTest {
         assertEquals(EnrollmentState.Enrolled, viewModel.state)
     }
 
+    // --- Sincronizar (8b, C-5) ---
+
+    @Test
+    fun `enrolling requests a sync once`() = runTest {
+        val viewModel = open(loggedInStore())
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(1, requests)
+    }
+
+    // En el momento de pedir, la inscripción ya está hecha: se sube lo que acaba de pasar.
+    @Test
+    fun `the sync is requested after enroll finishes, not before`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val viewModel = open(CountingEnrollmentStore(loggedInStore(), gate))
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(0, requests)
+        gate.complete(Unit)
+        runCurrent()
+        assertEquals(1, requests)
+    }
+
+    @Test
+    fun `two taps in a row make one enrollment and one request`() = runTest {
+        val store = CountingEnrollmentStore(loggedInStore(), CompletableDeferred())
+        val viewModel = open(store)
+        viewModel.onEnroll()
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(1, store.calls)
+        assertEquals(0, requests) // la inscripción sigue en marcha: todavía no se pide
+    }
+
+    @Test
+    fun `two taps in a row and then finishing request once`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val viewModel = open(CountingEnrollmentStore(loggedInStore(), gate))
+        viewModel.onEnroll()
+        viewModel.onEnroll()
+        gate.complete(Unit)
+        runCurrent()
+        assertEquals(1, requests)
+    }
+
+    @Test
+    fun `tapping while the state is unknown requests nothing`() = runTest {
+        val viewModel = open(SilentEnrollmentStore())
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(0, requests)
+    }
+
+    @Test
+    fun `tapping when already enrolled requests nothing`() = runTest {
+        val store = loggedInStore()
+        store.enroll(courseId)
+        val viewModel = open(store)
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(0, requests)
+    }
+
+    // Si enroll lanza (sin sesión), la excepción sale y no se pide sincronizar.
+    @Test
+    fun `when enroll fails nothing is requested`() {
+        assertThrows(IllegalStateException::class.java) {
+            runTest {
+                val viewModel = open(InMemoryProgressStore(InMemorySessionStore()))
+                viewModel.onEnroll()
+                runCurrent()
+            }
+        }
+        assertEquals(0, requests)
+    }
+
     // --- Sin sesión: fallo de programación, no se captura ---
 
     @Test
@@ -165,7 +246,7 @@ class EnrollmentViewModelTest {
     fun `the factory builds a view model that uses the given store`() = runTest {
         val store = loggedInStore()
         store.enroll(courseId)
-        val viewModel = EnrollmentViewModel.factory(courseId, store)
+        val viewModel = EnrollmentViewModel.factory(courseId, store, requester)
             .create(EnrollmentViewModel::class.java, MutableCreationExtras())
         runCurrent()
         assertEquals(EnrollmentState.Enrolled, viewModel.state)
@@ -174,7 +255,7 @@ class EnrollmentViewModelTest {
     // --- Ayudantes ---
 
     private fun TestScope.open(store: EnrollmentStore): EnrollmentViewModel {
-        val viewModel = EnrollmentViewModel(courseId, store)
+        val viewModel = EnrollmentViewModel(courseId, store, requester)
         runCurrent()
         return viewModel
     }

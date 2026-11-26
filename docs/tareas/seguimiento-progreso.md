@@ -6,8 +6,8 @@ Que un usuario se **inscriba** en un curso, estudie (también sin conexión) y s
 Este documento es el **índice común**: decisiones, contrato, reparto en partes y acuerdos. El detalle
 de cada parte vive en su propio documento, para que cada orquestador lea solo lo suyo.
 
-Estado: **partes A (backend) y B (`sharedLogic`) terminadas; contrato congelado** (2026-11-25). Rama:
-`dev/course-progress-tracking`.
+Estado: **partes A (backend), B (`sharedLogic`) y C (app) terminadas; contrato congelado** (2026-11-26).
+Siguiente: parte D. Rama: `dev/course-progress-tracking`.
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -18,7 +18,8 @@ Estado: **partes A (backend) y B (`sharedLogic`) terminadas; contrato congelado*
 | `backend/docs/api-progreso.md` | **Contrato** de `POST /api/progress/sync` (la única frontera entre backend y app) | Orquestadores A y B |
 | `backend/docs/tareas/progreso-backend.md` | Parte A: tareas 1–3, su Relevo y su progreso | Orquestador A y sus implementadores |
 | `docs/tareas/progreso-logica.md` | Parte B: tareas 4–6 (**lo crea su orquestador** al empezar, con la plantilla de abajo) | Orquestador B |
-| `docs/tareas/progreso-app.md` | Partes C y D: tareas 7–13 (**lo crea su orquestador**) | Orquestador C/D |
+| `docs/tareas/progreso-app.md` | Partes C y D: tareas 7–13 (Relevo, decisiones C-1 a C-6 y las tareas de D) | Orquestador C/D |
+| `docs/tareas/progreso-app-historico.md` | Lo terminado de la parte C, con su detalle | Solo si hace falta saber por qué se hizo algo |
 | `docs/arquitectura-progreso.md` | **Referencia viva:** piezas, flujo, invariantes, cómo extenderlo y qué cuidar al mergear | Orquestadores B, C y D; quien mergee o añada algo que use el progreso |
 
 Los implementadores leen `AGENTS.md`, el documento de **su** parte (Relevo y su paso) y la lista de
@@ -28,47 +29,31 @@ ficheros que les dé el orquestador. Este índice, solo si el orquestador lo ind
 
 Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumula.
 
-- **Dónde estamos (2026-11-25):**
+- **Dónde estamos (2026-11-26):**
   - **Parte A terminada** (tareas 1–3): `POST /api/progress/sync` funciona contra PostgreSQL y la `006`
     está aplicada en la base de desarrollo. Contrato congelado: `backend/docs/api-progreso.md`.
-  - **Parte B terminada** (tareas 4–6, 156 tests): modelo, puertos, almacén en memoria, gateway HTTP
-    (cumple el contrato: 413 en `text/plain`, fechas con 0/3/6 decimales, `skipped`, UTF-8 sin BOM) y
+  - **Parte B terminada** (tareas 4–6): modelo, puertos, almacén en memoria, gateway HTTP y
     `ProgressSync`. Decisiones B-1 a B-11 en `docs/tareas/progreso-logica.md`.
-- **Para la parte C, todo en `docs/arquitectura-progreso.md`:** qué debe cumplir Room («Otra forma de
-  guardar el progreso» e «Invariantes») y cómo sincronizar desde la app («Sincronizar desde la app»).
-  Lo más importante:
-  - Puertos que Room implementa (en `course/progress/`): `ProgressStore` y `EnrollmentStore` (leen la
-    sesión de `SessionStore`) y `ProgressSyncStore` (`pending(userId)`, `settle(userId, sent, remote)` en
-    una transacción). Lo pendiente es una columna en cada tabla, no un campo del modelo.
-  - Sin sesión, `mastered`/`enrolled` emiten el vacío y el `Flow` **termina**: la interfaz debe volver a
-    escuchar al cambiar de sesión.
-  - `AppContainer.kt`: B4 cambió **solo** la línea de `InMemoryProgressStore` (ahora recibe `sessionStore`).
-  - `markMastered` sin inscripción lanza excepción (no se captura; es el invariante). **Resuelto en
-    C9/C10 (2026-11-25):** la puerta impide llegar a la práctica sin inscripción y la página de
-    relleno (desde Buscar) permite inscribirse. La rama vuelve a servir para enseñar la app.
-  - **C9** prueba que, sin inscripción, no se abre ni un módulo frontera ni uno dominado (en B solo se
-    prueba `studyAccess`, que no recibe el estado del módulo).
-  - **`courseId` en minúsculas:** `settle` compara el id tal cual y el servidor lo devuelve en minúsculas;
-    C debe comprobar que los ids del catálogo llegan así (o normalizarlos al guardar).
-  - Lo omitido por el servidor (`skipped`) sale de la cola y el móvil lo conserva (B-8).
-  - **C8:** `ProgressSync(store, ProgressGateways.http(baseUrl)).sync(session)`, con el **mismo** objeto
-    que implementa los tres puertos del almacén. Llama **siempre** al servidor, también sin nada
-    pendiente (B-10): sincronizar tras iniciar sesión trae lo de otros móviles. Devuelve
-    `Synced | SessionExpired | Unreachable | ServerFailure` (los textos, en la interfaz); no lanza por la
-    red; dos `sync` a la vez no hacen daño (B-11). Si D13 quiere ahorrar llamadas, que lo decida con
-    `pending(...).isEmpty`.
-- **Siguiente:** parte C en curso (`docs/tareas/progreso-app.md`): C7 (Room, 2026-11-26), C9 y C10
-  hechas; falta C8 (sincronizar). El progreso ya se guarda en el móvil por usuario y sobrevive a
-  cerrar la app.
+  - **Parte C terminada** (tareas 7–10): la app deja inscribirse (página de relleno desde Buscar), no
+    deja estudiar sin inscripción, guarda el progreso en Room por usuario y lo sincroniza tras iniciar
+    sesión, inscribirse y dominar. Probado de punta a punta por los usuarios (con `pm clear`, lo dominado
+    vuelve del servidor). Detalle: `docs/tareas/progreso-app.md` y su histórico.
+- **Para la parte D, todo en `docs/tareas/progreso-app.md` (Relevo) y `docs/arquitectura-progreso.md`:**
+  - El `Worker` de D13 usa el mismo `ProgressSync` de `ProgressModule` (en `AppContainer`) y necesita
+    la sesión persistente de D11. `GradusApplication` ya llama a `AppContainer.init` (el `Worker` no
+    necesita Activity).
+  - D11 implementa `SessionStore` sin cambiar el puerto (es de la parte B).
+  - Si D13 quiere ahorrar llamadas, que lo decida con `pending(...).isEmpty` (B-10).
+- **Siguiente:** la parte D (tareas 11–13), con su orquestador: primero, su plan y las dependencias.
 - **Dependencias entre partes:**
-  - A y B: **terminadas**.
-  - C: en curso; lo que necesitaba de A y B está hecho y Room + KSP están aprobados.
-  - D necesita C. WorkManager (D13) necesita la sesión persistente (D11).
+  - A, B y C: **terminadas**.
+  - D: lo que necesitaba de C está hecho. WorkManager (D13) necesita la sesión persistente (D11).
 - **Cambios de contrato:** quien necesite cambiar `api-progreso.md` lo propone a los usuarios, lo
   apunta aquí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador. Ningún
   orquestador cambia el contrato por su cuenta después de congelarlo.
 - **Abierto (común):**
-  - Dependencias: Room 2.8.5 + KSP 2.3.14 aprobados (C-1, 2026-11-25); WorkManager (D) sin aprobar.
+  - Dependencias: Room 2.8.5 + KSP 2.3.14 aprobados y añadidos (C-1); WorkManager y lo que pida la
+    sesión cifrada (D) sin aprobar.
   - Coordinación con otras ramas: la migración es la `006` (la `005` es de valoraciones), y la rama
     `dev/joel` toca `CourseViewModel`, `ScreenCourse`, `MainNavGraph`, `AppContainer`,
     `libs.versions.toml` y `build.gradle.kts`: tocarlos lo mínimo (decisión 5).
@@ -171,3 +156,5 @@ Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquesta
 - 2026-11-25: **parte A terminada y contrato congelado** (tarea 3 de `progreso-backend.md`).
 - 2026-11-25: **parte B terminada** (tareas 4-6 de `progreso-logica.md`). Creada la referencia viva
   `docs/arquitectura-progreso.md`. Lo que necesita la parte C, en el Relevo general.
+- 2026-11-26: **parte C terminada** (tareas 7–10 de `progreso-app.md`; lo terminado, en
+  `progreso-app-historico.md`). Lo que necesita la parte D, en el Relevo general y en el de `progreso-app.md`.

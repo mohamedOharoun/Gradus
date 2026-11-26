@@ -14,7 +14,11 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             GradusTheme {
-                GradusNavHost(accountGateway = AppContainer.accountGateway, sessionStore = AppContainer.sessionStore)
+                GradusNavHost(
+                    accountGateway = AppContainer.accountGateway,
+                    sessionStore = AppContainer.sessionStore,
+                    progressSync = AppContainer.progressSyncLauncher,
+                )
             }
         }
     }

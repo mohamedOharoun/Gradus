@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
+import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import es.ulpgc.pamn.dominio.ui.components.EnrollmentState
 import kotlinx.coroutines.launch
 
@@ -16,11 +17,12 @@ import kotlinx.coroutines.launch
 class EnrollmentViewModel(
     private val courseId: String,
     private val enrollment: EnrollmentStore,
+    private val progressSync: ProgressSyncRequester,
 ) : ViewModel() {
 
     companion object {
-        fun factory(courseId: String, enrollment: EnrollmentStore) =
-            viewModelFactory { initializer { EnrollmentViewModel(courseId, enrollment) } }
+        fun factory(courseId: String, enrollment: EnrollmentStore, progressSync: ProgressSyncRequester) =
+            viewModelFactory { initializer { EnrollmentViewModel(courseId, enrollment, progressSync) } }
     }
 
     // null hasta que el almacén responde.
@@ -47,7 +49,11 @@ class EnrollmentViewModel(
         enrolling = true
         refresh()
         // enrolling no se apaga al terminar: lo apaga el Flow al emitir true (sin parpadeo a NotEnrolled).
-        viewModelScope.launch { enrollment.enroll(courseId) }
+        // Tras inscribirse se pide sincronizar; si enroll lanza, no se pide.
+        viewModelScope.launch {
+            enrollment.enroll(courseId)
+            progressSync.requestSync()
+        }
     }
 
     private fun refresh() {

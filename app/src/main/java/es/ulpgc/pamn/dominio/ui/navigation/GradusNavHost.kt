@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.account.SessionStore
+import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import es.ulpgc.pamn.dominio.model.RegisterStep
 import es.ulpgc.pamn.dominio.model.Submission
 import es.ulpgc.pamn.dominio.ui.screens.ScreenLogin
@@ -29,6 +30,7 @@ import es.ulpgc.pamn.dominio.ui.screens.register.RegisterViewModel
 fun GradusNavHost(
     accountGateway: AccountGateway,
     sessionStore: SessionStore,
+    progressSync: ProgressSyncRequester,
     modifier: Modifier = Modifier,
     navController: NavHostController = rememberNavController(),
 ) {
@@ -72,7 +74,7 @@ fun GradusNavHost(
             )
         }
         composable<Route.Login> {
-            val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModel.factory(accountGateway, sessionStore))
+            val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModel.factory(accountGateway, sessionStore, progressSync))
             // Sesión iniciada (y ya guardada): a Inicio, sin poder volver atrás al formulario.
             if (loginViewModel.form.submission == Submission.Succeeded) {
                 LaunchedEffect(Unit) { navController.enterHome() }

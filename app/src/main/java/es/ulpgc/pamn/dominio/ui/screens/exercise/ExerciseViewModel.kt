@@ -14,6 +14,7 @@ import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.StudyAccess
 import es.ulpgc.pamn.dominio.course.progress.studyAccess
 import es.ulpgc.pamn.dominio.course.study.ModuleStudy
+import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.random.Random
@@ -27,6 +28,7 @@ class ExerciseViewModel(
     moduleId: String,
     private val progress: ProgressStore,
     enrollment: EnrollmentStore,
+    private val progressSync: ProgressSyncRequester,
     private val random: Random,
 ) : ViewModel() {
 
@@ -36,8 +38,11 @@ class ExerciseViewModel(
             moduleId: String,
             progress: ProgressStore,
             enrollment: EnrollmentStore,
+            progressSync: ProgressSyncRequester,
             random: Random = Random.Default,
-        ) = viewModelFactory { initializer { ExerciseViewModel(course, moduleId, progress, enrollment, random) } }
+        ) = viewModelFactory {
+            initializer { ExerciseViewModel(course, moduleId, progress, enrollment, progressSync, random) }
+        }
     }
 
     // La puerta: null mientras se lee la inscripción (no se enseña nada); NotEnrolled, la pantalla
@@ -65,7 +70,10 @@ class ExerciseViewModel(
         study = next
         // Solo en el momento de aprobar (no en cada «Continuar» posterior).
         if (next.isPassed && !current.isPassed) {
-            viewModelScope.launch { progress.markMastered(next.course.id, next.module.id) }
+            viewModelScope.launch {
+                progress.markMastered(next.course.id, next.module.id)
+                progressSync.requestSync() // sube lo dominado; si markMastered lanza, no se pide
+            }
         }
     }
 

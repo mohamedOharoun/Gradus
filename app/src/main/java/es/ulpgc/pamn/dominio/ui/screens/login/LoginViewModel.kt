@@ -12,6 +12,7 @@ import es.ulpgc.pamn.dominio.account.LogInOutcome
 import es.ulpgc.pamn.dominio.account.SessionStore
 import es.ulpgc.pamn.dominio.account.applying
 import es.ulpgc.pamn.dominio.account.toCredentials
+import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import es.ulpgc.pamn.dominio.model.LoginForm
 import kotlinx.coroutines.launch
 
@@ -21,13 +22,13 @@ import kotlinx.coroutines.launch
 class LoginViewModel(
     private val accountGateway: AccountGateway,
     private val sessionStore: SessionStore,
+    private val progressSync: ProgressSyncRequester,
 ) : ViewModel() {
 
     companion object {
         // Android crea los ViewModel por su cuenta: la factory le dice cómo pasarle las dependencias.
-        fun factory(accountGateway: AccountGateway, sessionStore: SessionStore) = viewModelFactory {
-            initializer { LoginViewModel(accountGateway, sessionStore) }
-        }
+        fun factory(accountGateway: AccountGateway, sessionStore: SessionStore, progressSync: ProgressSyncRequester) =
+            viewModelFactory { initializer { LoginViewModel(accountGateway, sessionStore, progressSync) } }
     }
 
     var form by mutableStateOf(LoginForm())
@@ -54,7 +55,10 @@ class LoginViewModel(
             val outcome = accountGateway.logIn(credentials)
             // La sesión se guarda antes de marcar el formulario como terminado: así, cuando se
             // navegue a Inicio, la sesión ya está disponible.
-            if (outcome is LogInOutcome.LoggedIn) sessionStore.save(outcome.session)
+            if (outcome is LogInOutcome.LoggedIn) {
+                sessionStore.save(outcome.session)
+                progressSync.requestSync() // trae lo dominado en otros móviles; la sesión ya está guardada
+            }
             form = form.applying(outcome)
         }
     }

@@ -73,7 +73,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         composable<Route.CourseOverview> { entry ->
             val route = entry.toRoute<Route.CourseOverview>()
             val enrollmentViewModel: EnrollmentViewModel = viewModel(
-                factory = EnrollmentViewModel.factory(route.courseId, AppContainer.enrollmentStore),
+                factory = EnrollmentViewModel.factory(route.courseId, AppContainer.enrollmentStore, AppContainer.progressSyncLauncher),
             )
             ScreenCourseOverview(
                 enrollment = enrollmentViewModel.state,
@@ -122,6 +122,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             val exerciseViewModel: ExerciseViewModel = viewModel(
                 factory = ExerciseViewModel.factory(
                     course, route.moduleId, AppContainer.progressStore, AppContainer.enrollmentStore,
+                    AppContainer.progressSyncLauncher,
                 ),
             )
             // La puerta la decide el ViewModel: mientras se comprueba no se enseña nada; sin inscripción

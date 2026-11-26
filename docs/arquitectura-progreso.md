@@ -303,6 +303,16 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
      sincronización corre en el `appScope` de `AppContainer` (`SupervisorJob() + Dispatchers.Default`),
      no en el `viewModelScope`: salir de la pantalla no la corta. El desenlace queda en
      `progressSyncLauncher.lastOutcome`; en C la interfaz no enseña nada con ninguno (C-5).
+     **Hecho en C8b, los tres momentos** (cada ViewModel recibe el `ProgressSyncRequester` por
+     constructor, nunca el launcher ni `AppContainer`; las fábricas de `MainNavGraph` y
+     `MainActivity` → `GradusNavHost` le pasan `AppContainer.progressSyncLauncher`):
+     - `LoginViewModel`: justo después de `sessionStore.save` de un inicio de sesión correcto (trae lo
+       dominado en otros móviles). Con un inicio fallido (credenciales, servidor, formulario no
+       válido) no se pide.
+     - `EnrollmentViewModel`: después de que `enroll` termine. Si el botón no actúa (`Unknown`,
+       `Enrolling`, `Enrolled`) no se pide; si `enroll` lanza, tampoco.
+     - `ExerciseViewModel`: después de `markMastered`, solo al aprobar la prueba de dominio (el mismo
+       sitio donde se llama a `markMastered`), no en cada «Continuar»; si `markMastered` lanza, no.
   2. Cuándo llamar a `sync(session)`: con la sesión actual (`SessionStore.current()`; si es `null`, no
      se sincroniza). Momentos razonables: al iniciar sesión o abrir la app (para traer lo de otros
      móviles, aunque no haya nada pendiente), tras inscribirse o dominar un módulo, y cuando el
@@ -346,9 +356,14 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   («AppContainer.init(context) must be called first»); la sesión, el catálogo y la cuenta no necesitan
   `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso los tests
   instrumentados pueden pedir `AppContainer.progressStore` sin tocar los datos.
-- **Factorías con un parámetro más (9b):** `CourseViewModel.factory(…, progress, enrollment)` y
-  `ExerciseViewModel.factory(course, moduleId, progress, enrollment)`. Si `dev/joel` crea estos
-  ViewModel en otro sitio, tiene que pasar `AppContainer.enrollmentStore`.
+- **Fábricas con parámetros nuevos (9b y 8b):** `CourseViewModel.factory(…, progress, enrollment)`,
+  `ExerciseViewModel.factory(course, moduleId, progress, enrollment, progressSync, random)`,
+  `EnrollmentViewModel.factory(courseId, enrollment, progressSync)` y
+  `LoginViewModel.factory(accountGateway, sessionStore, progressSync)`. `GradusNavHost` recibe un tercer
+  parámetro `progressSync` que rellena `MainActivity` con `AppContainer.progressSyncLauncher`. Si
+  `dev/joel` crea estos ViewModel o llama a `GradusNavHost` en otro sitio, tiene que pasar
+  `AppContainer.enrollmentStore` y `AppContainer.progressSyncLauncher` (si no, no se sincroniza nada y
+  no hay error que lo avise).
 - **`ExerciseViewModel` ya no se alcanza sin inscripción (9b):** el camino no abre la práctica sin
   inscripción (`tapModule`), y la entrada de `Route.Exercise` en `MainNavGraph` vuelve atrás según
   `exerciseViewModel.access` antes de componer `ScreenExercise`. Por eso `markMastered` ya no lanza en
