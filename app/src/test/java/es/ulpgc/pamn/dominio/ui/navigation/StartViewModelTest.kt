@@ -4,6 +4,7 @@ import androidx.datastore.core.CorruptionException
 import androidx.lifecycle.viewmodel.MutableCreationExtras
 import es.ulpgc.pamn.dominio.account.Account
 import es.ulpgc.pamn.dominio.account.Session
+import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -38,6 +39,8 @@ class StartViewModelTest {
     private val beto = Session("token-beto", "2026-12-18T10:00:00Z", Account("beto", "Beto", "beto@ulpgc.es", "2026-11-13T10:00:00Z"))
 
     private val sessions = MutableSharedFlow<Session?>(extraBufferCapacity = 8)
+    private var syncRequests = 0
+    private val progressSync = ProgressSyncRequester { syncRequests++ }
 
     @Before
     fun setUp() {
@@ -50,8 +53,10 @@ class StartViewModelTest {
     }
 
     // Crea el ViewModel y deja que empiece a escuchar (con Eagerly, nada más crearlo).
-    private fun TestScope.startViewModel(source: Flow<Session?> = sessions): StartViewModel =
-        StartViewModel(source).also { runCurrent() }
+    private fun TestScope.startViewModel(
+        source: Flow<Session?> = sessions,
+        sync: ProgressSyncRequester = progressSync,
+    ): StartViewModel = StartViewModel(source, sync).also { runCurrent() }
 
     private fun TestScope.emit(session: Session?) {
         sessions.tryEmit(session)
@@ -184,7 +189,7 @@ class StartViewModelTest {
     @Test
     fun `a passing failure goes Loading then SignedOut then SignedIn, never back to Loading`() = runTest {
         val store = FlakySessions(listOf(IOException("disk")), ana)
-        val viewModel = StartViewModel(store.flow)
+        val viewModel = StartViewModel(store.flow, progressSync)
         val seen = mutableListOf<StartState>()
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.state.collect { seen += it } }
         runCurrent()
@@ -219,9 +224,94 @@ class StartViewModelTest {
 
     @Test
     fun `the factory builds a view model that follows the session`() = runTest {
-        val viewModel = StartViewModel.factory(sessions).create(StartViewModel::class.java, MutableCreationExtras())
+        val viewModel = StartViewModel.factory(sessions, progressSync).create(StartViewModel::class.java, MutableCreationExtras())
         runCurrent()
         emit(ana)
         assertEquals(StartState.SignedIn, viewModel.state.value)
+    }
+
+    // --- Sincronización al arrancar con sesión guardada (13b-2) ---
+
+    @Test
+    fun `while Loading it does not request sync`() = runTest {
+        startViewModel()
+        assertEquals(0, syncRequests)
+    }
+
+    @Test
+    fun `when starting with a saved session it requests sync once`() = runTest {
+        startViewModel()
+        emit(ana)
+        assertEquals(1, syncRequests)
+    }
+
+    @Test
+    fun `when starting without a saved session it does not request sync`() = runTest {
+        startViewModel()
+        emit(null)
+        assertEquals(0, syncRequests)
+    }
+
+    @Test
+    fun `logging in from SignedOut to SignedIn does not request sync`() = runTest {
+        startViewModel()
+        emit(null)
+        emit(ana)
+        assertEquals(0, syncRequests)
+    }
+
+    @Test
+    fun `another session while already signed in does not request sync again`() = runTest {
+        startViewModel()
+        emit(ana)
+        emit(beto)
+        assertEquals(1, syncRequests)
+    }
+
+    @Test
+    fun `logging in again after session deletion does not request sync again`() = runTest {
+        startViewModel()
+        emit(ana)
+        emit(null)
+        emit(beto)
+        assertEquals(1, syncRequests)
+    }
+
+    @Test
+    fun `a transient read failure followed by a saved session does not request sync`() = runTest {
+        val store = FlakySessions(listOf(IOException("disk")), ana)
+        startViewModel(store.flow)
+        advanceTimeBy(2_000)
+        runCurrent()
+        assertEquals(0, syncRequests)
+    }
+
+    @Test
+    fun `synchronous SignedOut then SignedIn does not request startup sync`() = runTest {
+        val burst = flow {
+            emit(null)
+            emit(ana)
+        }
+        val viewModel = startViewModel(burst)
+        assertEquals(StartState.SignedIn, viewModel.state.value)
+        assertEquals(0, syncRequests)
+    }
+
+    @Test
+    fun `an unexpected read error does not request sync`() {
+        assertThrows(IllegalStateException::class.java) {
+            runTest {
+                startViewModel(FlakySessions(listOf(IllegalStateException("bug")), null).flow)
+            }
+        }
+        assertEquals(0, syncRequests)
+    }
+
+    @Test
+    fun `the factory wires the sync requester to the view model`() = runTest {
+        StartViewModel.factory(sessions, progressSync).create(StartViewModel::class.java, MutableCreationExtras())
+        runCurrent()
+        emit(ana)
+        assertEquals(1, syncRequests)
     }
 }

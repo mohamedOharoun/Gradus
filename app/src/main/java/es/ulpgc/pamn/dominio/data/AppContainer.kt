@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.data
 
 import android.content.Context
+import androidx.work.WorkManager
 import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.account.AccountGateways
 import es.ulpgc.pamn.dominio.account.Session
@@ -13,11 +14,9 @@ import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.SessionProgressSync
 import es.ulpgc.pamn.dominio.data.progress.ProgressDatabase
 import es.ulpgc.pamn.dominio.data.progress.ProgressModule
-import es.ulpgc.pamn.dominio.data.progress.ProgressSyncLauncher
+import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
+import es.ulpgc.pamn.dominio.data.progress.WorkSyncRequester
 import es.ulpgc.pamn.dominio.data.session.DataStoreSessionStore
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 
 // Composition root (inyección manual): el único sitio de la app que elige las implementaciones
@@ -58,13 +57,9 @@ object AppContainer {
     val enrollmentStore: EnrollmentStore get() = progress.enrollmentStore
     val sessionProgressSync: SessionProgressSync get() = progress.sessionSync
 
-    // Ámbito de la app para lo que no debe cancelarse al cerrar una pantalla. SupervisorJob: si un
-    // hijo falla, no cancela a los demás.
-    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
-    // Pide sincronizar el progreso (los ViewModels lo reciben como ProgressSyncRequester).
-    val progressSyncLauncher: ProgressSyncLauncher by lazy {
-        ProgressSyncLauncher(progress.sync, sessionStore, appScope)
+    // Pide sincronizar el progreso con WorkManager (los ViewModels lo reciben como ProgressSyncRequester).
+    val progressSync: ProgressSyncRequester by lazy {
+        WorkSyncRequester(WorkManager.getInstance(requireContext()))
     }
 
     // La sesión iniciada: guardada cifrada en el móvil (DataStore + Keystore), así que sobrevive a cerrar

@@ -69,7 +69,6 @@ Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, conectado a
 | `ProgressSyncRequester` | `fun interface` con `requestSync()` (no `suspend`): pedir sincronizar sin esperar al resultado. Es lo que reciben los ViewModels (8b); en sus tests basta una lambda | *Command* |
 | `ProgressSyncWorker` (`CoroutineWorker`) (13b-1) | Ejecuta `sessionSync.run()` y traduce `backgroundSyncDecision(result, runAttemptCount)` a `Result` (`Done` → `success`, `Retry` → `retry`, `GiveUp` → `failure`). Constructor público de 2 argumentos usa `AppContainer.sessionProgressSync`; constructor `internal` + `ProgressSyncWorker.factory(sessionSync)` permiten probarlo sin `AppContainer`. No captura excepciones (errores de almacén pasan a `FAILED` en WorkManager; cancelación se propaga) | *Worker*; *Factory method* (`factory`) |
 | `WorkSyncRequester(workManager)` (13b-1) | Implementa `ProgressSyncRequester` encolando trabajo único `"progress-sync"` (`ExistingWorkPolicy.REPLACE`, `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL` de 30 s) | *Command*; *Adapter* sobre WorkManager |
-| `ProgressSyncLauncher(sync, sessions, scope)` | Implementa `ProgressSyncRequester`: lanza `sync.sync(session)` en `scope`, un ámbito **de la app** inyectado (no se cancela al cerrar la pantalla que lo pidió). Lee `sessions.current()` al ejecutarse: sin sesión no llama y `lastOutcome` no cambia; con sesión llama siempre (B-10). `lastOutcome: StateFlow<SyncOutcome?>`: `null` hasta el primer desenlace; con dos a la vez, el de la que termina la última. No captura excepciones (las del almacén salen por el ámbito), no reintenta (D13), sin `Mutex` (B-11) | *Command*; *Observer* (`StateFlow`); inyección de dependencias (el ámbito) |
 | `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
 Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, conectada a `AppContainer` en
@@ -87,9 +86,9 @@ En `app/.../ui/navigation/` (el arranque según la sesión guardada; 11c-2 y 11c
 | Pieza | Qué es | Patrón |
 |---|---|---|
 | `StartState` (`Loading \| SignedIn \| SignedOut`) | Qué sabe la app de la sesión guardada. Sin datos: el token no puede salir por aquí | Jerarquía sellada (tipo suma) |
-| `StartViewModel(sessions: Flow<Session?>, retryDelay = 2 s)` | `state: StateFlow<StartState>` (`Eagerly`, empieza en `Loading`). Si leer lanza `IOException` (incluida `CorruptionException`) o `ProviderException`: `SignedOut` sin borrar nada y vuelve a leer cada 2 s (un `Flow` que falla muere). Otro error no se traga. **Consecuencia:** un error pasajero dentro de `Main` lleva a Login aunque la sesión siga guardada | *Observer* (`StateFlow`); `retryWhen` |
+| `StartViewModel(sessions: Flow<Session?>, progressSync: ProgressSyncRequester, retryDelay = 2 s)` | `state: StateFlow<StartState>` (`Eagerly`, empieza en `Loading`). Si el primer estado resuelto tras `Loading` es `SignedIn`, llama a `progressSync.requestSync()` una sola vez (13b-2); en `SignedOut → SignedIn` tras Login o tras un error pasajero de lectura no lo llama (no pisa a `LoginViewModel`). Si leer lanza `IOException` (incluida `CorruptionException`) o `ProviderException`: `SignedOut` sin borrar nada y vuelve a leer cada 2 s (un `Flow` que falla muere). Otro error no se traga. **Consecuencia:** un error pasajero dentro de `Main` lleva a Login aunque la sesión siga guardada | *Observer* (`StateFlow`); `retryWhen` |
 | `StartNavigation.kt`: `startRoute()`, `mustLeaveMain(inMain)`, `isInMain()` y `NavController.leaveMain()` | `Loading` → sin ruta (solo el fondo); `SignedIn` → `Route.Main`; `SignedOut` → `Route.Welcome`. **Regla sobre el estado, no sobre el cambio:** `SignedOut` estando dentro del grafo `Main` → `leaveMain()`, que vacía la pila y deja `[Welcome, Login]` (como el flujo normal). Vale con la app abierta y cuando Android restaura la pila en `Main` sin sesión; con `Loading` no se sale | Funciones puras (extensiones) |
-| `GradusNavHost(start, …)` y `MainActivity` | `MainActivity` crea `StartViewModel(AppContainer.sessionUpdates)` (`by viewModels`) y pasa `state` con `collectAsStateWithLifecycle()`. `GradusNavHost` pinta un `Box` con el fondo del tema en `Loading`; la ruta inicial se fija **una vez** con el primer estado no `Loading` (si cambiara, el `NavHost` recrearía el grafo y vaciaría la pila); `rememberNavController()` restaura la pila aunque el `NavHost` llegue después. Al iniciar sesión, `enterHome()` espera a `start == SignedIn` (si no, un fotograma de desfase devolvería a Login) | *State hoisting*; la navegación solo en `GradusNavHost` |
+| `GradusNavHost(start, …)` y `MainActivity` | `MainActivity` crea `StartViewModel(AppContainer.sessionUpdates, AppContainer.progressSync)` (`by viewModels`) y pasa `state` con `collectAsStateWithLifecycle()` y `progressSync = AppContainer.progressSync`. `GradusNavHost` pinta un `Box` con el fondo del tema en `Loading`; la ruta inicial se fija **una vez** con el primer estado no `Loading` (si cambiara, el `NavHost` recrearía el grafo y vaciaría la pila); `rememberNavController()` restaura la pila aunque el `NavHost` llegue después. Al iniciar sesión, `enterHome()` espera a `start == SignedIn` (si no, un fotograma de desfase devolvería a Login) | *State hoisting*; la navegación solo en `GradusNavHost` |
 
 Tests: `EncryptedSessionSerializerTest` (JVM, con `FakeSessionCipher`); `KeystoreSessionCipherTest`,
 `DataStoreSessionStoreTest`, `DataStoreSessionStoreFileTest` y `DataStoreSessionStoreFailureTest`
@@ -337,40 +336,37 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   - Los `Flow` de `mastered` y `enrolled` deben emitir tras `settle` (con Room, al leer de las mismas
     tablas, sale solo).
   - `ProgressSync` no cambia: se le pasa el almacén Room en lugar del de memoria.
-- **Sincronizar desde la app (parte C; la D lo automatiza con WorkManager):**
-  1. **Hecho en C8a:** `ProgressModule` crea `ProgressSync(store, gateway)` con el **mismo** objeto que
-     implementa `ProgressStore` y `EnrollmentStore`; `AppContainer` le pasa `ProgressGateways.http(BASE_URL)`.
-     **Cómo se pide desde la app:** con `AppContainer.progressSyncLauncher`, que los ViewModels reciben
-     como `ProgressSyncRequester` y llaman con `requestSync()` (sin `suspend`, sin esperar). La
-     sincronización corre en el `appScope` de `AppContainer` (`SupervisorJob() + Dispatchers.Default`),
-     no en el `viewModelScope`: salir de la pantalla no la corta. El desenlace queda en
-     `progressSyncLauncher.lastOutcome`; en C la interfaz no enseña nada con ninguno (C-5).
-     **Hecho en C8b, los tres momentos** (cada ViewModel recibe el `ProgressSyncRequester` por
-     constructor, nunca el launcher ni `AppContainer`; las fábricas de `MainNavGraph` y
-     `MainActivity` → `GradusNavHost` le pasan `AppContainer.progressSyncLauncher`):
+- **Sincronizar desde la app (WorkManager, desde 13b):**
+  1. `ProgressModule` crea `ProgressSync(store, gateway)` y `SessionProgressSync(sessions, sync)` sobre el
+     **mismo** `RoomProgressStore` y el mismo `SessionStore`. `AppContainer` expone `sessionProgressSync`
+     (para `ProgressSyncWorker`) y `progressSync: ProgressSyncRequester` (un `WorkSyncRequester` sobre
+     `WorkManager.getInstance(requireContext())`).
+     **Cómo se pide desde la app:** los ViewModels reciben `ProgressSyncRequester` por constructor (nunca
+     `WorkSyncRequester` ni `AppContainer`) y llaman a `requestSync()` (sin `suspend`). `WorkSyncRequester`
+     encola el trabajo único `"progress-sync"` (`REPLACE`, `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL`
+     de 30 s), que ejecuta `ProgressSyncWorker` incluso con la app cerrada (deslizada desde Recientes).
+     **Los cuatro momentos** (las fábricas de `MainNavGraph` y `MainActivity` → `GradusNavHost` pasan
+     `AppContainer.progressSync`):
+     - `StartViewModel`: una sola vez al arrancar si el primer estado resuelto tras `Loading` es `SignedIn`
+       (nunca en `GradusApplication`, para no sustituir al trabajo que arrancó el proceso; ni en
+       `SignedOut → SignedIn` tras Login, para no pisar a `LoginViewModel`).
      - `LoginViewModel`: justo después de `sessionStore.save` de un inicio de sesión correcto (trae lo
-       dominado en otros móviles). Con un inicio fallido (credenciales, servidor, formulario no
-       válido) no se pide.
+       dominado en otros móviles). Con un inicio fallido (credenciales, servidor, formulario no válido) no se pide.
      - `EnrollmentViewModel`: después de que `enroll` termine. Si el botón no actúa (`Unknown`,
        `Enrolling`, `Enrolled`) no se pide; si `enroll` lanza, tampoco.
      - `ExerciseViewModel`: después de `markMastered`, solo al aprobar la prueba de dominio (el mismo
        sitio donde se llama a `markMastered`), no en cada «Continuar»; si `markMastered` lanza, no.
-  2. Cuándo llamar a `sync(session)`: con la sesión actual (`SessionStore.current()`; si es `null`, no
-     se sincroniza). Momentos razonables: al iniciar sesión o abrir la app (para traer lo de otros
-     móviles, aunque no haya nada pendiente), tras inscribirse o dominar un módulo, y cuando el
-     estudiante lo pida. En la app, con `ProgressSyncRequester.requestSync()` (punto 1), que ya lee la
-     sesión y no llama sin ella; el `Worker` de D13 podrá llamar a `sync` directamente. Nunca en el hilo
-     principal bloqueándolo.
-  3. Qué hacer con cada desenlace (los textos los decide la interfaz):
-     - `Synced`: nada más; quien escucha `mastered` y `enrolled` ya ve lo fusionado. `skipped` es solo
-       informativo (B-8): no hay que borrar ni reintentar nada.
-     - `SessionExpired`: la sesión no vale. No reintentes con ella: lleva al estudiante a iniciar sesión
-       (lo pendiente sigue guardado y se sube tras entrar).
-     - `Unreachable`: sin conexión. Avisa si quieres y reintenta más tarde (WorkManager, parte D).
-     - `ServerFailure`: fallo del servidor. Igual que `Unreachable`, pero no insistas en bucle.
-  4. No captures excepciones alrededor de `sync` para «tapar» la red: no las lanza. Las del almacén son
-     un fallo real. No hace falta evitar dos `sync` a la vez (B-11); si D quiere ahorrar llamadas, usa
-     trabajo único de WorkManager o mira `pending(userId).isEmpty` (B-10).
+  2. Qué hace `ProgressSyncWorker` con cada desenlace (mediante `SessionProgressSync` + `backgroundSyncDecision`):
+     - `NoSession` o `Synced`: `Result.success()`; quien escucha `mastered` y `enrolled` ya ve lo fusionado.
+       `skipped` es solo informativo (B-8): no hay que borrar ni reintentar nada.
+     - `SessionExpired`: `SessionProgressSync` borra la sesión con `clearIfCurrent` y el worker devuelve
+       `Result.failure()` (no reintenta). La interfaz observa `sessionUpdates` y, si está en `Main`, lleva a
+       Iniciar sesión (`leaveMain`).
+     - `Unreachable`: `Result.retry()` siempre (con espera exponencial y restricción `NetworkType.CONNECTED`).
+     - `ServerFailure`: `Result.retry()` en los intentos `0..3` y `Result.failure()` en el 5.º (`attempt >= 4`).
+  3. No captures excepciones alrededor de `sync` para «tapar» la red: no las lanza. Las del almacén (Room o
+     lectura de sesión) salen de `doWork()` y WorkManager marca el trabajo como `FAILED` sin reintentar en bucle;
+     la cancelación se propaga limpiamente y lo pendiente queda intacto.
 
 ## Qué cuidar al mergear
 
@@ -386,38 +382,35 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   `&& start == StartState.SignedIn` en la entrada de Login. Lo prueban `GradusNavHostStartTest` y
   `StartNavigationTest`.
 - **Gradle con DataStore (11b) y WorkManager (13b-1):** `datastore = "1.3.0"` (`androidx-datastore`), `work = "2.12.0"` (`androidx-work-runtime` y `androidx-work-testing`) en `gradle/libs.versions.toml`, e `implementation(libs.androidx.datastore)`, `implementation(libs.androidx.work.runtime)` y `androidTestImplementation(libs.androidx.work.testing)` en `app/build.gradle.kts`.
-- **`app/.../data/AppContainer.kt`, progreso (desde 7d; antes, en 9b, era `InMemoryProgressStore`):**
-  `private var appContext: Context?` con `fun init(context)` (solo cuenta la primera llamada),
-  `private val progress by lazy { ProgressModule(ProgressDatabase.create(checkNotNull(appContext) { … }), sessionStore, ProgressGateways.http(BASE_URL)) }`
-  y, encima, `val progressStore: ProgressStore get() = progress.progressStore` y
-  `val enrollmentStore: EnrollmentStore get() = progress.enrollmentStore`. Tienen que ser **el mismo
-  objeto** (si fueran dos, inscribirse no abriría nada; lo comprueba `AppContainerTest`). Desde 8a,
-  además, `private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)` (el ámbito de
-  la app: vive lo que el proceso y no se cancela al cerrar una pantalla) y
-  `val progressSyncLauncher by lazy { ProgressSyncLauncher(progress.sync, sessionStore, appScope) }`.
-  Si `dev/joel` también toca `AppContainer`, conserva `init`, `progress` (con el gateway), las dos
-  propiedades, `appScope`, `progressSyncLauncher` y el `sessionStore` (declarado después, pero `lazy`:
-  no importa el orden). **Desde 11c-1**, la sesión: `private fun requireContext()` (el `checkNotNull` que
-  usan `progress` y la sesión), `private val sessions by lazy { DataStoreSessionStore.create(requireContext()) }`
-  (**un solo objeto**: DataStore no admite dos activos sobre el mismo fichero), `val sessionStore: SessionStore
-  get() = sessions` y `val sessionUpdates: Flow<Session?> get() = sessions.session` (solo para el arranque).
-  La sesión ya necesita `init` (lo comprueban `AppContainerInitTest` y `AppContainerTest`); `InMemorySessionStore`
-  ya no se usa en la app. `InMemoryProgressStore` ya no está en la app
-  (sigue en `sharedLogic` para los tests).
+- **`app/.../data/AppContainer.kt`, progreso (desde 7d; WorkManager desde 13b):**
+  `private var appContext: Context?`, `private fun requireContext()` y `fun init(context)` (solo cuenta la
+  primera llamada). `private val progress by lazy { ProgressModule(ProgressDatabase.create(requireContext()),
+  sessionStore, ProgressGateways.http(BASE_URL)) }` y, encima, `val progressStore: ProgressStore`,
+  `val enrollmentStore: EnrollmentStore` y `val sessionProgressSync: SessionProgressSync`. Tienen que salir
+  del **mismo** `ProgressModule` (si fueran dos almacenes, inscribirse no abriría nada; lo comprueba
+  `AppContainerTest`). Desde 13b-2, `val progressSync: ProgressSyncRequester by lazy {
+  WorkSyncRequester(WorkManager.getInstance(requireContext())) }` sustituye a `progressSyncLauncher`
+  (borrado junto con `appScope`, que volverá en 12b). La sesión (desde 11c-1):
+  `private val sessions by lazy { DataStoreSessionStore.create(requireContext()) }` (**un solo objeto**:
+  DataStore no admite dos activos sobre el mismo fichero), `val sessionStore: SessionStore get() = sessions`
+  y `val sessionUpdates: Flow<Session?> get() = sessions.session` (solo para el arranque). Si `dev/joel`
+  también toca `AppContainer`, conserva `init`, `requireContext`, `progress` (con el gateway),
+  `progressStore`, `enrollmentStore`, `sessionProgressSync`, `progressSync`, `sessions`, `sessionStore` y
+  `sessionUpdates`. Todo ello necesita `init` (lo comprueban `AppContainerInitTest` y `AppContainerTest`).
 - **`GradusApplication` y el manifiesto (7d):** `GradusApplication : Application` llama a
   `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
-  en `<application>` (una sola línea añadida). Sin ella, usar el progreso lanza `IllegalStateException`
-  («AppContainer.init(context) must be called first»); desde 11c-1 también la sesión. El catálogo y la
-  cuenta no necesitan `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso los tests
-  instrumentados pueden pedir `AppContainer.progressStore` sin tocar los datos.
-- **Fábricas con parámetros nuevos (9b y 8b):** `CourseViewModel.factory(…, progress, enrollment)`,
+  en `<application>` (una sola línea añadida). Sin ella, usar el progreso o la sesión lanza
+  `IllegalStateException` («AppContainer.init(context) must be called first»). El catálogo y la cuenta no
+  necesitan `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso los
+  tests instrumentados pueden pedir `AppContainer.progressStore` sin tocar los datos.
+- **Fábricas con parámetros nuevos (9b, 8b y 13b-2):** `CourseViewModel.factory(…, progress, enrollment)`,
   `ExerciseViewModel.factory(course, moduleId, progress, enrollment, progressSync, random)`,
-  `EnrollmentViewModel.factory(courseId, enrollment, progressSync)` y
-  `LoginViewModel.factory(accountGateway, sessionStore, progressSync)`. `GradusNavHost` recibe un tercer
-  parámetro `progressSync` que rellena `MainActivity` con `AppContainer.progressSyncLauncher`. Si
-  `dev/joel` crea estos ViewModel o llama a `GradusNavHost` en otro sitio, tiene que pasar
-  `AppContainer.enrollmentStore` y `AppContainer.progressSyncLauncher` (si no, no se sincroniza nada y
-  no hay error que lo avise).
+  `EnrollmentViewModel.factory(courseId, enrollment, progressSync)`,
+  `LoginViewModel.factory(accountGateway, sessionStore, progressSync)` y
+  `StartViewModel.factory(sessions, progressSync)`. `GradusNavHost` recibe `progressSync` que rellena
+  `MainActivity` con `AppContainer.progressSync`. Si `dev/joel` crea estos ViewModel o llama a
+  `GradusNavHost` en otro sitio, tiene que pasar `AppContainer.enrollmentStore` y `AppContainer.progressSync`
+  (si no, no se sincroniza nada y no hay error que lo avise).
 - **`ExerciseViewModel` ya no se alcanza sin inscripción (9b):** el camino no abre la práctica sin
   inscripción (`tapModule`), y la entrada de `Route.Exercise` en `MainNavGraph` vuelve atrás según
   `exerciseViewModel.access` antes de componer `ScreenExercise`. Por eso `markMastered` ya no lanza en

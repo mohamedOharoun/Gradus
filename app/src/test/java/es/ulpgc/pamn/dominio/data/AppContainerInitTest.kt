@@ -36,4 +36,18 @@ class AppContainerInitTest {
 
         assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
     }
+
+    @Test
+    fun progress_sync_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.progressSync }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
+
+    @Test
+    fun session_progress_sync_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.sessionProgressSync }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
 }

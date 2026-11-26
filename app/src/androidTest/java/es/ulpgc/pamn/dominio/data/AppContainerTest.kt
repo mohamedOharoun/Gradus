@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.data
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import es.ulpgc.pamn.dominio.data.progress.WorkSyncRequester
 import es.ulpgc.pamn.dominio.data.session.DataStoreSessionStore
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -39,5 +40,18 @@ class AppContainerTest {
     fun session_updates_come_from_the_same_store_as_the_session_store() {
         val store = AppContainer.sessionStore as DataStoreSessionStore
         assertSame(store.session, AppContainer.sessionUpdates)
+    }
+
+    // 13b: la sincronización pasa por WorkManager y es una sola instancia en la app.
+    @Test
+    fun progress_sync_is_work_sync_requester_single_instance() {
+        assertTrue(AppContainer.progressSync is WorkSyncRequester)
+        assertSame(AppContainer.progressSync, AppContainer.progressSync)
+    }
+
+    // El caso de uso que ejecuta el Worker sale del mismo ProgressModule.
+    @Test
+    fun session_progress_sync_is_a_single_instance() {
+        assertSame(AppContainer.sessionProgressSync, AppContainer.sessionProgressSync)
     }
 }

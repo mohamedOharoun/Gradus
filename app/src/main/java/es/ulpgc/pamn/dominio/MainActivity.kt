@@ -14,7 +14,9 @@ import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 class MainActivity : ComponentActivity() {
 
     // Vive con la Activity (sobrevive al giro) y escucha la sesión guardada desde que se crea.
-    private val startViewModel: StartViewModel by viewModels { StartViewModel.factory(AppContainer.sessionUpdates) }
+    private val startViewModel: StartViewModel by viewModels {
+        StartViewModel.factory(AppContainer.sessionUpdates, AppContainer.progressSync)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +29,7 @@ class MainActivity : ComponentActivity() {
                     start = start,
                     accountGateway = AppContainer.accountGateway,
                     sessionStore = AppContainer.sessionStore,
-                    progressSync = AppContainer.progressSyncLauncher,
+                    progressSync = AppContainer.progressSync,
                 )
             }
         }

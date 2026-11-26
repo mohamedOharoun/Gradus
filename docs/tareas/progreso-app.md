@@ -5,37 +5,37 @@ Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`
 detalle (la parte C y los pasos de D ya revisados): `docs/tareas/progreso-app-historico.md` (no hace falta
 leerlo para continuar). Rama: `dev/course-progress-tracking`.
 
-Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11, paso 13a y subpaso 13b-1 terminados y revisados (2026-11-26). Siguiente paso: 13b-2.**
+Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 terminada; tarea 13 hecha y revisada en código (13a, 13b-1 y 13b-2, 2026-11-26), pendiente de pruebas de emulador de los usuarios. Siguiente paso: 12a.**
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
 - **Dónde estamos (2026-11-26):** parte C terminada y en commits. **Parte D:** decisiones D-1 a D-5,
-  criterios de 11–13 y pasos aprobados (abajo, en «Tareas»). **Tarea 11 y paso 13a terminados y en commits.**
-  **Subpaso 13b-1 terminado y revisado** (a falta del commit de los usuarios): WorkManager 2.12.0
-  (`work-runtime` + `work-testing`, sin avisos nuevos con `compileSdk 37`), `ProgressModule.sessionSync`,
-  `AppContainer.sessionProgressSync`, `ProgressSyncWorker` (con `factory`) y `WorkSyncRequester` (`progress-sync`,
-  `REPLACE`, `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL`), con 18/18 tests instrumentados nuevos.
-- **Paso que toca:** **13b-2** (propuesta ya aprobada; mismo chat o Gemini Carbon · medio): conectar
-  `AppContainer.progressSync` (`WorkSyncRequester`) en `MainActivity` y `MainNavGraph`, añadir
-  `ProgressSyncRequester` a `StartViewModel` (pide sincronizar solo si el primer estado resuelto es `SignedIn`),
-  quitar `appScope` sin usar de `AppContainer`, borrar `ProgressSyncLauncher` y `ProgressSyncLauncherTest`,
-  actualizar tests (`StartViewModelTest`, `AppContainerInitTest`, `AppContainerTest`) y dejar los pasos de
-  prueba en el emulador.
+  criterios de 11–13 y pasos aprobados (abajo, en «Tareas»). **Tarea 11 terminada y en commits.**
+  **Tarea 13 hecha y revisada en código** (13a y 13b-1 en commits; 13b-2 revisado a falta del commit de
+  los usuarios): la sincronización usa WorkManager 2.12.0 (`ProgressSyncWorker` + `WorkSyncRequester`,
+  trabajo único `progress-sync`, `REPLACE`, `NetworkType.CONNECTED`, backoff exponencial de 30 s,
+  `backgroundSyncDecision` con tope de 5 intentos en `ServerFailure`), `StartViewModel` pide sincronizar
+  una vez solo al arrancar con sesión guardada, y `ProgressSyncLauncher` + su test están borrados.
+- **Antes de marcar la tarea 13 [x]:** pruebas de emulador de los usuarios (escriben en la base de
+  desarrollo): (1) dominar en modo avión, cerrar desde **Recientes** (no `am force-stop`), quitar el modo
+  avión → sube solo (`dumpsys jobscheduler`; `pm clear` + iniciar sesión); (2) borrar la fila de la sesión
+  en PostgreSQL → abrir la app → 401 borra la sesión y lleva a Iniciar sesión.
+- **Paso que toca:** **12a** (`sharedLogic`, test primero; Gemini Neon · alto): `encodeCourseVersion`,
+  `CourseCopyStore` (+ implementación en memoria) y `OfflineCourseGateway` (*Decorator* de `CourseGateway`).
 - **Lo que hay que saber para seguir:**
-  - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). 13 va antes que 12 porque necesita 11.
-  - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`).
-    La interfaz ya reacciona a «no hay sesión estando en `Main`» (11c-3); quien la borrará de verdad es
-    el `Worker` de 13b, que usa `SessionProgressSync`. El 401 de punta a punta se prueba en 13b.
-  - 13b: `StartViewModel` es quien pide sincronizar al arrancar con sesión (D-4); hoy recibe solo el
-    `Flow<Session?>`, así que 13b le añade el `ProgressSyncRequester` (y su `factory` en `MainActivity`).
-  - Al iniciar sesión, `GradusNavHost` espera a `start == SignedIn` antes de `enterHome()` (11c-3): si se
-    toca el flujo de Login, conservarlo.
-  - En 13b, `ProgressSyncLauncher` y `ProgressSyncLauncherTest` se **borran** (permiso del 2026-11-26) y
-    `AppContainer` da a los ViewModels el `WorkSyncRequester` (los ViewModels no cambian).
-  - En 12b, `ProgressDatabase` pasa a la versión 2: en desarrollo, el destructivo borra lo local una vez.
-  - Gradle: 11b añade DataStore y 13b WorkManager, aprobados (D-1). Nada más sin permiso.
+  - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). Queda solo la tarea **12** (12a y 12b).
+  - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`);
+    lo ejecuta `ProgressSyncWorker` (13b) y la interfaz reacciona a «no hay sesión estando en `Main`» (11c-3).
+  - Al iniciar sesión, `GradusNavHost` espera a `start == SignedIn` antes de `enterHome()` (11c-3) y
+    `StartViewModel` solo pide sincronizar si el primer estado tras `Loading` es `SignedIn` (13b-2): si se
+    toca el flujo de Login, conservar ambos.
+  - En 12b, `ProgressDatabase` pasa a la versión 2 (tabla `course_copies`): en desarrollo, el destructivo
+    borra lo local una vez; volverá del servidor al sincronizar. También volverá `appScope` a `AppContainer`
+    (quitado en 13b-2 por no tener uso) para lanzar la descarga de la copia del curso tras inscribirse.
+  - Gradle: DataStore 1.3.0 (11b) y WorkManager 2.12.0 + `work-testing` 2.12.0 (13b-1) ya están añadidos.
+    12a y 12b no necesitan dependencias nuevas.
 - **Abierto (para después, no es de D):** inscribirse desde el camino (C-6); la página definitiva del
   curso; «Mis cursos» con los cursos inscritos (D-3: sin ella, la copia solo se usa cuando Android
   restaura el camino); «cerrar sesión» (D-2); en la tarea 14, congelar el esquema de Room (C-4).
@@ -45,12 +45,11 @@ Se **reescribe** al final de cada sesión; no se acumula.
     mergear está en la arquitectura («Qué cuidar al mergear»).
   - Un error pasajero al leer la sesión con la app ya en `Main` lleva a Login aunque la sesión siga
     guardada (`StartViewModel`, 11c-2): conocido y aceptado; muy raro (DataStore lee el fichero una vez).
-  - Un fallo del almacén (Room) dentro de la sincronización cierra la app (no se captura, a propósito).
+  - Un fallo del almacén (Room o lectura de sesión) dentro de `ProgressSyncWorker` se propaga sin
+    capturarse y WorkManager marca el trabajo como `FAILED` (sin reintentar en bucle y sin cerrar la app).
   - Con un fallo del sistema al leer la sesión que **no pasa** (`ProviderException` de Keystore o
     `IOException`), `save` también lanza y `LoginViewModel` no lo captura: iniciar sesión cerraría la app.
     Muy improbable; conocido y aceptado (probado en `DataStoreSessionStoreFailureTest`).
-  - No se ha encontrado qué `compileSdk` pide WorkManager 2.12.0 (tenemos 37); si no vale, Gradle lo
-    dirá en 13b (`checkAarMetadata`).
 - **Cómo comprobar (aprendido en C):**
   - La sincronización no se ve en pantalla. Para comprobar que llega al servidor: dominar, `adb shell pm
     clear es.ulpgc.pamn.dominio` (borra solo la base local) y volver a iniciar sesión: lo dominado
@@ -298,7 +297,7 @@ Pasos:
   - [x] **13b-1** (revisado el 2026-11-26) Gradle (WorkManager 2.12.0 y `work-testing` 2.12.0), `ProgressModule.sessionSync`,
     `ProgressSyncWorker` (con `factory`), `WorkSyncRequester` y tests instrumentados (`ProgressSyncWorkerTest`
     y `WorkSyncRequesterTest`).
-  - [ ] **13b-2** `AppContainer` (`sessionProgressSync` + `progressSync`, sin `appScope` sin usar),
+  - [x] **13b-2** (revisado el 2026-11-26) `AppContainer` (`sessionProgressSync` + `progressSync`, sin `appScope` sin usar),
     `StartViewModel` (pide sincronizar solo si el primer estado resuelto es `SignedIn`), `MainActivity`,
     `MainNavGraph`, comentario de `ProgressSyncRequester`, borrado de `ProgressSyncLauncher` y
     `ProgressSyncLauncherTest`, y tests (`StartViewModelTest`, `AppContainerInitTest`, `AppContainerTest`).
@@ -324,10 +323,16 @@ Pasos:
   `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL` de 30 s). Revisión del orquestador: JVM de `app`
   300/300 (22 clases) e instrumentados `ProgressSyncWorkerTest` (10/10) + `WorkSyncRequesterTest` (8/8) =
   18/18 (0 fallos).
+- 2026-11-26: **13b-2 revisado y aprobado:** `AppContainer.progressSync` (`WorkSyncRequester`), borrados
+  `ProgressSyncLauncher`, `ProgressSyncLauncherTest` y `appScope` sin usar, `StartViewModel` pide sincronizar
+  una sola vez solo cuando el primer estado tras `Loading` es `SignedIn` (`initialHandled` en `.onEach` antes
+  de `.stateIn`), cableado en `MainActivity` y `MainNavGraph`. Revisión del orquestador: JVM de `app`
+  300/300 (21 clases, 0 fallos) e instrumentados `AppContainerTest` (6) + `GradusNavHostStartTest` (10) +
+  `ProgressSyncWorkerTest` (10) + `WorkSyncRequesterTest` (8) = 34/34 en el mismo proceso (0 fallos).
+  Pendientes las dos pruebas de emulador de los usuarios (modo avión cerrando desde recientes y 401 borrando
+  la sesión en la base) para marcar la tarea 13 `[x]`.
 
 ## Siguiente paso
 
-1. Commit de **13b-1** (por los usuarios).
-2. **13b-2** (propuesta ya aprobada): el implementador conecta `WorkSyncRequester` en `AppContainer` /
-   `MainActivity` / `MainNavGraph`, actualiza `StartViewModel`, borra `ProgressSyncLauncher` y su test,
-   pasa los tests JVM e instrumentados y entrega para revisión.
+1. Commit de **13b-2** (por los usuarios) y, si quieren, las dos pruebas de emulador de la tarea 13.
+2. **12a** (`sharedLogic`, test primero): `encodeCourseVersion`, `CourseCopyStore` y `OfflineCourseGateway`.
