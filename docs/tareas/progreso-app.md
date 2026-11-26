@@ -4,7 +4,7 @@ Parte C y D del seguimiento del progreso (índice común: `docs/tareas/seguimien
 Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`. Rama:
 `dev/course-progress-tracking`.
 
-Estado: **tareas 7, 9 y 10 hechas (2026-11-26).** Siguiente: 8a.
+Estado: **tareas 7, 9 y 10 hechas; 8a hecho (2026-11-26).** Siguiente: 8b.
 
 ## Relevo
 
@@ -14,7 +14,10 @@ Se **reescribe** al final de cada sesión; no se acumula.
   Room, por usuario (`RoomProgressStore` con los tres puertos, conectado en `AppContainer`); 7d probado
   de punta a punta en el emulador por los usuarios (sobrevive a `force-stop`; otro usuario no lo ve).
   Todavía no se sincroniza con el servidor (tarea 8). `courseId` comprobado (C-4, en la arquitectura).
-- **Paso que toca:** 8a (Opus 5.5, esfuerzo medio), mensaje preparado.
+- **Paso que toca:** 8b (Sonnet 5.5, esfuerzo medio), mensaje preparado. 8a hecho y revisado:
+  `ProgressSyncLauncher` (en `AppContainer.progressSyncLauncher`) existe pero nadie lo llama todavía.
+  La prueba de 8b en el emulador **escribe en la base de desarrollo**: necesita el permiso de los
+  usuarios.
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
@@ -22,10 +25,10 @@ Se **reescribe** al final de cada sesión; no se acumula.
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo.
   - Hasta D11 la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
     no hay sesión (el camino sale vacío e inscribirse lanzaría). Conocido y aceptado hasta D11.
-- **Qué mirar en la próxima revisión (8a):** que la sincronización use el MISMO objeto Room que los
-  otros puertos; que el ámbito de corrutinas sea de la app (no se cancela con la pantalla) y se
-  inyecte (testeable); que sin sesión no llame; que no capture excepciones del almacén ni «tape» la
-  red; tests sin tiempos.
+- **Qué mirar en la próxima revisión (8b):** que cada ViewModel pida sincronizar en su momento y no
+  en otro (inicio de sesión fallido, dominar lo ya dominado, inscribirse ya inscrito); que reciban la
+  `fun interface` y no el launcher; que nadie enseñe nada con el desenlace (C-5); cambios mínimos en
+  `GradusNavHost` y `MainNavGraph` (las fábricas).
 - **Tests instrumentados:** con el emulador caído, `connectedDebugAndroidTest` acaba en BUILD SUCCESSFUL
   sin ejecutar nada: mirar siempre el XML de `app/build/outputs/androidTest-results/connected/debug/`
   (un solo fichero con todas las clases; contar `testcase name` y mirar el `timestamp`).
@@ -211,7 +214,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
 
 ### [ ] 8. Sincronizar con la app abierta
 
-- **[ ] 8a · `ProgressSyncLauncher`.** Opus 5.5, esfuerzo medio (corrutinas y ámbitos).
+- **[x] 8a · `ProgressSyncLauncher`.** Opus 5.5, esfuerzo medio (corrutinas y ámbitos).
   - `ProgressModule` crea `ProgressSync(store, ProgressGateways.http(baseUrl))` con el mismo objeto Room.
   - Tests mínimos (`app/src/test`, con `InMemoryProgressStore` y `FakeProgressGateway`): sin sesión no
     llama; con sesión llama aunque no haya nada pendiente; `lastOutcome` recibe el desenlace; un
@@ -319,6 +322,16 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   el código de Room 2.8.5 que `build()` no abre el fichero (lo abre la primera consulta). Fuera del plan:
   `init` ignora la segunda llamada (aprobado). **Falta el emulador de punta a punta** (necesita cuenta).
 
+- 2026-11-26: **8a hecho y revisado** (el orquestador: 12/12 JVM y 104/104 instrumentados). Nuevos en `data/progress/`: `ProgressSyncRequester` (`fun interface`,
+  `requestSync()`) y `ProgressSyncLauncher(sync, sessions, scope)` con `lastOutcome`. `ProgressModule` recibe el
+  gateway y expone `sync` sobre el mismo `RoomProgressStore`; `AppContainer`: `appScope`
+  (`SupervisorJob() + Dispatchers.Default`) y `progressSyncLauncher`. Sin sesión `lastOutcome` no cambia; con
+  dos a la vez queda el de la que termina la última (test). Tests: `ProgressSyncLauncherTest` (12, JVM) y uno
+  más en `ProgressModuleTest`; 104 de 104 de `data` en `Pixel_9a` (XML comprobado) y las 4 clases JVM de
+  `data` en verde; compilación de `main`, `test` y `androidTest` sin avisos nuevos. Sin emulador de punta a
+  punta (nadie llama todavía al launcher: 8b).
+
 ## Siguiente paso
 
-Paso 8a: abrir un chat nuevo (Opus 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
+Paso 8b: abrir un chat nuevo (Sonnet 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
+Antes de su prueba en el emulador, los usuarios dan (o no) el permiso para escribir en la base de desarrollo.

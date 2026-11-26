@@ -31,7 +31,7 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `SkippedProgress` (`WholeEnrollment \| SingleModule`) | Lo que el servidor no guardó, con su `code` como texto. Solo informativo (B-8, B-9) | Jerarquía sellada (tipo suma) |
 | `ProgressGateway` | Puerto: `suspend sync(session, pending): SyncOutcome`. La `Session` va por parámetro (decisión 11) | *Strategy* |
 | `SyncOutcome` (`Synced(SyncResponse) \| SessionExpired \| Unreachable \| ServerFailure`) | Desenlace de la llamada, sin textos; nunca se lanza una excepción por red o servidor | Jerarquía sellada (tipo suma) |
-| `ProgressGateways.http(baseUrl)` | La única forma de obtener el gateway real desde fuera de `sharedLogic` (no está conectado a `AppContainer`: es C8) | *Factory method* |
+| `ProgressGateways.http(baseUrl)` | La única forma de obtener el gateway real desde fuera de `sharedLogic`. `AppContainer` se lo pasa a `ProgressModule` (C8a) | *Factory method* |
 | `FakeProgressGateway(answer)` y `SyncCall(userId, sent)` | Gateway sin red para los tests de `ProgressSync`: responde lo configurado y recuerda **el id del usuario** y lo enviado, nunca la `Session` (el token no queda guardado). `answer` es `suspend` (puede esperar a un `CompletableDeferred`: el test decide cuándo llega la respuesta) y la llamada se apunta antes de responder | *Test double* (fake) |
 | `ProgressSync(store, gateway)` y `suspend sync(session): SyncOutcome` | Caso de uso de la sincronización: sube lo pendiente del usuario de la sesión, fusiona la respuesta y devuelve el desenlace del gateway tal cual | Caso de uso (*Interactor*) sobre dos puertos inyectados (*Strategy*) |
 
@@ -54,7 +54,9 @@ Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, conectado a
 | `ProgressDao` | Insertar y leer (7a); `insert…IfAbsent` (`INSERT OR IGNORE`) y los `Flow` `watchEnrolled` / `watchMasteredIds` (7b); para sincronizar (7c), `pendingRows` y `settle`, dos métodos `@Transaction` con cuerpo que usan seis consultas (`enrollmentsToUpload`, `pendingModules`, `unqueue…`, `keepOlder…Date`). Nunca `DELETE` | *DAO* (*Data Access Object*); *Unit of Work* (`@Transaction`) |
 | `ProgressRows(enrollments, modules)`, `ProgressSnapshot.toRows(userId)` y `ProgressRows.toSnapshot()` | Las filas de las dos tablas y su traducción a la forma del contrato. `toRows` pone el usuario y `pending = false`; `toSnapshot` mete cada módulo en la inscripción de su mismo usuario y curso (un módulo sin ella se queda fuera) | *Mapper*, funciones puras |
 | `RoomProgressStore(dao, sessions, clock)` | Implementa **los tres puertos** (`ProgressStore`, `EnrollmentStore` y `ProgressSyncStore`) con Room, igual que `InMemoryProgressStore` | *Adapter* de los puertos; *Interface Segregation*; inyección de dependencias (`ProgressDao`, `SessionStore`, `Clock`) |
-| `ProgressModule(database, sessions)` | Crea **un** `RoomProgressStore` y lo expone como `progressStore`, `enrollmentStore` y `syncStore`: los tres son el mismo objeto. Recibe la base ya creada (y no el `Context`) para probarlo con una base en memoria. En 8a añadirá `ProgressSync` con ese mismo objeto | *Facade*; inyección de dependencias |
+| `ProgressModule(database, sessions, gateway)` | Crea **un** `RoomProgressStore` y lo expone como `progressStore`, `enrollmentStore` y `syncStore`: los tres son el mismo objeto. `sync` es `ProgressSync(store, gateway)` con **ese mismo** objeto (C8a): lo fusionado se ve por los otros puertos. Recibe la base ya creada (y no el `Context`) para probarlo con una base en memoria | *Facade*; inyección de dependencias |
+| `ProgressSyncRequester` | `fun interface` con `requestSync()` (no `suspend`): pedir sincronizar sin esperar al resultado. Es lo que reciben los ViewModels (8b); en sus tests basta una lambda | *Command* |
+| `ProgressSyncLauncher(sync, sessions, scope)` | Implementa `ProgressSyncRequester`: lanza `sync.sync(session)` en `scope`, un ámbito **de la app** inyectado (no se cancela al cerrar la pantalla que lo pidió). Lee `sessions.current()` al ejecutarse: sin sesión no llama y `lastOutcome` no cambia; con sesión llama siempre (B-10). `lastOutcome: StateFlow<SyncOutcome?>`: `null` hasta el primer desenlace; con dos a la vez, el de la que termina la última. No captura excepciones (las del almacén salen por el ámbito), no reintenta (D13), sin `Mutex` (B-11) | *Command*; *Observer* (`StateFlow`); inyección de dependencias (el ámbito) |
 | `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
@@ -294,13 +296,19 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
     tablas, sale solo).
   - `ProgressSync` no cambia: se le pasa el almacén Room en lugar del de memoria.
 - **Sincronizar desde la app (parte C; la D lo automatiza con WorkManager):**
-  1. Crea `ProgressSync(store, gateway)` en `AppContainer` (C8) con el **mismo** objeto que implementa
-     `ProgressStore` y `EnrollmentStore`, y el gateway de `ProgressGateways.http(baseUrl)`.
+  1. **Hecho en C8a:** `ProgressModule` crea `ProgressSync(store, gateway)` con el **mismo** objeto que
+     implementa `ProgressStore` y `EnrollmentStore`; `AppContainer` le pasa `ProgressGateways.http(BASE_URL)`.
+     **Cómo se pide desde la app:** con `AppContainer.progressSyncLauncher`, que los ViewModels reciben
+     como `ProgressSyncRequester` y llaman con `requestSync()` (sin `suspend`, sin esperar). La
+     sincronización corre en el `appScope` de `AppContainer` (`SupervisorJob() + Dispatchers.Default`),
+     no en el `viewModelScope`: salir de la pantalla no la corta. El desenlace queda en
+     `progressSyncLauncher.lastOutcome`; en C la interfaz no enseña nada con ninguno (C-5).
   2. Cuándo llamar a `sync(session)`: con la sesión actual (`SessionStore.current()`; si es `null`, no
      se sincroniza). Momentos razonables: al iniciar sesión o abrir la app (para traer lo de otros
      móviles, aunque no haya nada pendiente), tras inscribirse o dominar un módulo, y cuando el
-     estudiante lo pida. Desde una corrutina del `ViewModel` (`viewModelScope`) o del `Worker`, nunca
-     en el hilo principal bloqueándolo.
+     estudiante lo pida. En la app, con `ProgressSyncRequester.requestSync()` (punto 1), que ya lee la
+     sesión y no llama sin ella; el `Worker` de D13 podrá llamar a `sync` directamente. Nunca en el hilo
+     principal bloqueándolo.
   3. Qué hacer con cada desenlace (los textos los decide la interfaz):
      - `Synced`: nada más; quien escucha `mastered` y `enrolled` ya ve lo fusionado. `skipped` es solo
        informativo (B-8): no hay que borrar ni reintentar nada.
@@ -321,12 +329,16 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   conserva las líneas de los dos lados.
 - **`app/.../data/AppContainer.kt`, progreso (desde 7d; antes, en 9b, era `InMemoryProgressStore`):**
   `private var appContext: Context?` con `fun init(context)` (solo cuenta la primera llamada),
-  `private val progress by lazy { ProgressModule(ProgressDatabase.create(checkNotNull(appContext) { … }), sessionStore) }`
+  `private val progress by lazy { ProgressModule(ProgressDatabase.create(checkNotNull(appContext) { … }), sessionStore, ProgressGateways.http(BASE_URL)) }`
   y, encima, `val progressStore: ProgressStore get() = progress.progressStore` y
   `val enrollmentStore: EnrollmentStore get() = progress.enrollmentStore`. Tienen que ser **el mismo
-  objeto** (si fueran dos, inscribirse no abriría nada; lo comprueba `AppContainerTest`). Si `dev/joel`
-  también toca `AppContainer`, conserva `init`, `progress`, las dos propiedades y el `sessionStore`
-  (declarado después, pero `lazy`: no importa el orden). `InMemoryProgressStore` ya no está en la app
+  objeto** (si fueran dos, inscribirse no abriría nada; lo comprueba `AppContainerTest`). Desde 8a,
+  además, `private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)` (el ámbito de
+  la app: vive lo que el proceso y no se cancela al cerrar una pantalla) y
+  `val progressSyncLauncher by lazy { ProgressSyncLauncher(progress.sync, sessionStore, appScope) }`.
+  Si `dev/joel` también toca `AppContainer`, conserva `init`, `progress` (con el gateway), las dos
+  propiedades, `appScope`, `progressSyncLauncher` y el `sessionStore` (declarado después, pero `lazy`:
+  no importa el orden). `InMemoryProgressStore` ya no está en la app
   (sigue en `sharedLogic` para los tests).
 - **`GradusApplication` y el manifiesto (7d):** `GradusApplication : Application` llama a
   `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
