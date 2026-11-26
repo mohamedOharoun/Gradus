@@ -59,6 +59,8 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     // DataStore tipado: la sesión guardada, cifrada.
     implementation(libs.androidx.datastore)
+    // WorkManager: sincronización del progreso en segundo plano.
+    implementation(libs.androidx.work.runtime)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -66,6 +68,7 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.work.testing)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

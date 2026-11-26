@@ -6,6 +6,7 @@ import es.ulpgc.pamn.dominio.course.progress.ProgressGateway
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressSync
 import es.ulpgc.pamn.dominio.course.progress.ProgressSyncStore
+import es.ulpgc.pamn.dominio.course.progress.SessionProgressSync
 
 // Facade: una sola puerta al progreso guardado en el móvil. Crea UN RoomProgressStore y lo enseña
 // por los tres puertos, que por tanto son el mismo objeto (si fueran dos, inscribirse no abriría
@@ -20,4 +21,7 @@ class ProgressModule(database: ProgressDatabase, sessions: SessionStore, gateway
 
     // La sincronización usa el MISMO store: lo fusionado se ve por los otros dos puertos.
     val sync = ProgressSync(store, gateway)
+
+    // Sincroniza con la sesión guardada y trata el 401 (lo usa ProgressSyncWorker).
+    val sessionSync = SessionProgressSync(sessions, sync)
 }

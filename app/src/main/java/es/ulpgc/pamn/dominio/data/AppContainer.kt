@@ -10,6 +10,7 @@ import es.ulpgc.pamn.dominio.course.CourseGateways
 import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressGateways
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
+import es.ulpgc.pamn.dominio.course.progress.SessionProgressSync
 import es.ulpgc.pamn.dominio.data.progress.ProgressDatabase
 import es.ulpgc.pamn.dominio.data.progress.ProgressModule
 import es.ulpgc.pamn.dominio.data.progress.ProgressSyncLauncher
@@ -55,6 +56,7 @@ object AppContainer {
     }
     val progressStore: ProgressStore get() = progress.progressStore
     val enrollmentStore: EnrollmentStore get() = progress.enrollmentStore
+    val sessionProgressSync: SessionProgressSync get() = progress.sessionSync
 
     // Ámbito de la app para lo que no debe cancelarse al cerrar una pantalla. SupervisorJob: si un
     // hijo falla, no cancela a los demás.

@@ -5,21 +5,24 @@ Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`
 detalle (la parte C y los pasos de D ya revisados): `docs/tareas/progreso-app-historico.md` (no hace falta
 leerlo para continuar). Rama: `dev/course-progress-tracking`.
 
-Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 y paso 13a terminados y revisados (2026-11-26). Siguiente paso: 13b.**
+Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11, paso 13a y subpaso 13b-1 terminados y revisados (2026-11-26). Siguiente paso: 13b-2.**
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
 - **Dónde estamos (2026-11-26):** parte C terminada y en commits. **Parte D:** decisiones D-1 a D-5,
-  criterios de 11–13 y pasos aprobados (abajo, en «Tareas»). **Tarea 11 terminada y en commits** (11a–11c-3:
-  sesión cifrada en DataStore + Keystore, arranque según sesión). **Paso 13a terminado y revisado** (a falta
-  del commit de los usuarios): `BackgroundSyncDecision` (`Done` | `Retry` | `GiveUp`),
-  `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` en `sharedLogic` (10 tests).
-- **Paso que toca:** 13b (`app` + Gradle: WorkManager 2.12.0 y `work-testing` 2.12.0, ya aprobados en D-1;
-  Gemini Carbon · medio): `ProgressSyncWorker`, `WorkSyncRequester`, conectar en `AppContainer` /
-  `MainActivity` / `MainNavGraph`, que `StartViewModel` pida sincronizar al arrancar con sesión, y borrar
-  `ProgressSyncLauncher` y `ProgressSyncLauncherTest`.
+  criterios de 11–13 y pasos aprobados (abajo, en «Tareas»). **Tarea 11 y paso 13a terminados y en commits.**
+  **Subpaso 13b-1 terminado y revisado** (a falta del commit de los usuarios): WorkManager 2.12.0
+  (`work-runtime` + `work-testing`, sin avisos nuevos con `compileSdk 37`), `ProgressModule.sessionSync`,
+  `AppContainer.sessionProgressSync`, `ProgressSyncWorker` (con `factory`) y `WorkSyncRequester` (`progress-sync`,
+  `REPLACE`, `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL`), con 18/18 tests instrumentados nuevos.
+- **Paso que toca:** **13b-2** (propuesta ya aprobada; mismo chat o Gemini Carbon · medio): conectar
+  `AppContainer.progressSync` (`WorkSyncRequester`) en `MainActivity` y `MainNavGraph`, añadir
+  `ProgressSyncRequester` a `StartViewModel` (pide sincronizar solo si el primer estado resuelto es `SignedIn`),
+  quitar `appScope` sin usar de `AppContainer`, borrar `ProgressSyncLauncher` y `ProgressSyncLauncherTest`,
+  actualizar tests (`StartViewModelTest`, `AppContainerInitTest`, `AppContainerTest`) y dejar los pasos de
+  prueba en el emulador.
 - **Lo que hay que saber para seguir:**
   - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). 13 va antes que 12 porque necesita 11.
   - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`).
@@ -291,7 +294,14 @@ Pasos:
   Emulador (cerrar desde recientes, no `force-stop`): dominar en modo avión, cerrar, quitar el modo
   avión → sube solo (`dumpsys jobscheduler`; `pm clear` + iniciar sesión). 401: borrar la fila de la
   sesión en la base de desarrollo → abrir → iniciar sesión. **Las dos escriben en la base de desarrollo:
-  pedir permiso.**
+  pedir permiso.** Partido en dos (aprobado el 2026-11-26):
+  - [x] **13b-1** (revisado el 2026-11-26) Gradle (WorkManager 2.12.0 y `work-testing` 2.12.0), `ProgressModule.sessionSync`,
+    `ProgressSyncWorker` (con `factory`), `WorkSyncRequester` y tests instrumentados (`ProgressSyncWorkerTest`
+    y `WorkSyncRequesterTest`).
+  - [ ] **13b-2** `AppContainer` (`sessionProgressSync` + `progressSync`, sin `appScope` sin usar),
+    `StartViewModel` (pide sincronizar solo si el primer estado resuelto es `SignedIn`), `MainActivity`,
+    `MainNavGraph`, comentario de `ProgressSyncRequester`, borrado de `ProgressSyncLauncher` y
+    `ProgressSyncLauncherTest`, y tests (`StartViewModelTest`, `AppContainerInitTest`, `AppContainerTest`).
 
 ## Progreso
 
@@ -307,8 +317,17 @@ Pasos:
   `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` en `sharedLogic` (con
   `require(attempt >= 0)`). Revisión del orquestador: `:sharedLogic:testAndroidHostTest --rerun` en verde
   (61 clases, 781 tests, 0 fallos; `BackgroundSyncDecisionTest` 10/10).
+- 2026-11-26: **13b-1 revisado y aprobado:** WorkManager `2.12.0` (`work-runtime` + `work-testing`,
+  `checkAarMetadata` en verde con `compileSdk 37`, sin avisos nuevos ni deprecación en
+  `ExistingWorkPolicy.REPLACE`), `ProgressModule.sessionSync` + `AppContainer.sessionProgressSync`,
+  `ProgressSyncWorker` (con `factory(sessionSync)`) y `WorkSyncRequester` (`progress-sync`, `REPLACE`,
+  `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL` de 30 s). Revisión del orquestador: JVM de `app`
+  300/300 (22 clases) e instrumentados `ProgressSyncWorkerTest` (10/10) + `WorkSyncRequesterTest` (8/8) =
+  18/18 (0 fallos).
 
 ## Siguiente paso
 
-1. Commit de **13a** (por los usuarios).
-2. **13b**: el implementador propone el diseño de WorkManager (`ProgressSyncWorker`, `WorkSyncRequester`, `StartViewModel`, `AppContainer` y borrado de `ProgressSyncLauncher`) y espera el OK.
+1. Commit de **13b-1** (por los usuarios).
+2. **13b-2** (propuesta ya aprobada): el implementador conecta `WorkSyncRequester` en `AppContainer` /
+   `MainActivity` / `MainNavGraph`, actualiza `StartViewModel`, borra `ProgressSyncLauncher` y su test,
+   pasa los tests JVM e instrumentados y entrega para revisión.
