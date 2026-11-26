@@ -33,9 +33,9 @@ class SessionStoreRule : ExternalResource() {
 
     // Abre un DataStore nuevo sobre el fichero del test. Antes de abrir otro sobre el mismo fichero hay
     // que cancelar el ámbito del anterior (closeAll): dos activos sobre el mismo fichero lanzan.
-    fun open(): DataStoreSessionStore {
+    fun open(cipher: SessionCipher = KeystoreSessionCipher(alias)): DataStoreSessionStore {
         val scope = CoroutineScope(Dispatchers.IO + Job()).also { scopes += it }
-        return DataStoreSessionStore.create(context, scope, fileName, KeystoreSessionCipher(alias))
+        return DataStoreSessionStore.create(context, scope, fileName, cipher)
     }
 
     fun closeAll() {

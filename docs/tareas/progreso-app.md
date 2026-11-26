@@ -6,7 +6,7 @@ C, con su detalle: `docs/tareas/progreso-app-historico.md` (no hace falta leerlo
 `dev/course-progress-tracking`.
 
 Estado: **parte C terminada (tareas 7–10, 2026-11-26). Parte D (11–13) planificada y aprobada
-(2026-11-26); 11a y 11b hechos; siguiente paso: 11c.**
+(2026-11-26); 11a, 11b y 11c-1 hechos; siguiente paso: 11c-2.**
 
 ## Relevo
 
@@ -20,10 +20,9 @@ Se **reescribe** al final de cada sesión; no se acumula.
   `encodeSession` / `decodeSession`, `clearIfCurrent` (por token) y `SessionProgressSync` en `sharedLogic`;
   DataStore 1.3.0 y `DataStoreSessionStore` cifrado (Keystore, AES-256-GCM) en `app/.../data/session/`,
   **todavía sin conectar** a `AppContainer` (piezas en la arquitectura).
-- **Paso que toca:** 11c (app; Sonnet 5.5 · alto): conectar el almacén, `StartViewModel` y el arranque.
-  Tiene que decidir qué hace el arranque si leer la sesión lanza (`IOException` o `ProviderException` de
-  Keystore: no se convierten en «sin sesión», a propósito) y corregir el comentario de `SessionCipher`.
-  El orquestador escribe el mensaje; quien implemente propone y espera el OK.
+- **Paso que toca:** 11c-2 (`StartViewModel`), en el mismo chat que hizo 11c-1, con la propuesta ya
+  aprobada (ver los sub-pasos de 11c en «Tareas»). Después, 11c-3 (navegación y emulador). 11c-1 ya
+  conectó el almacén cifrado a `AppContainer` (`sessionStore` y `sessionUpdates`).
 - **Lo que hay que saber para seguir:**
   - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). 13 va antes que 12 porque necesita 11.
   - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`).
@@ -40,9 +39,16 @@ Se **reescribe** al final de cada sesión; no se acumula.
   - La rama `dev/joel` toca `AppContainer`, `CourseViewModel`, `ScreenCourse`, `MainNavGraph`,
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo. Lo que hay que conservar al
     mergear está en la arquitectura («Qué cuidar al mergear»).
-  - Hasta 11c la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
-    no hay sesión. Lo resuelve 11c.
+  - Desde 11c-1 la sesión está en disco, pero hasta 11c-3 la app sigue empezando siempre en Bienvenida
+    (no mira la sesión guardada al abrir).
   - Un fallo del almacén (Room) dentro de la sincronización cierra la app (no se captura, a propósito).
+  - **Hallazgo de 11c (probado en `DataStoreSessionStoreFailureTest`):** con un fallo del sistema al leer la
+    sesión (`ProviderException` o `IOException`) que **no pasa**, `save` también lanza (`updateData` lee antes
+    de escribir), así que «al iniciar sesión, `save` sustituye» solo vale con `CorruptionException` (fichero
+    roto o clave perdida). `LoginViewModel` no captura ese fallo: iniciar sesión cerraría la app. Con un
+    fallo pasajero, leer y guardar vuelven a funcionar con el mismo `DataStore`, y un fallo no borra la
+    sesión guardada. Muy improbable (Keystore ocupado un instante); no se arregla en 11c.
+    DataStore envuelve la `IOException` en otra `IOException` («Inoperable file…») con la original como causa.
   - No se ha encontrado qué `compileSdk` pide WorkManager 2.12.0 (tenemos 37); si no vale, Gradle lo
     dirá en 13b (`checkAarMetadata`).
 - **Cómo comprobar (aprendido en C):**
@@ -214,7 +220,15 @@ Pasos:
   Tests: `StartViewModelTest` (`Loading` hasta el primer valor, con y sin sesión, con sesión → sin ella
   avisa una vez, sin sesión → con ella no avisa); `AppContainerTest` sigue en verde. Emulador: iniciar
   sesión, `am force-stop` y abrir → Inicio (también en modo avión); `pm clear` → Bienvenida; camino →
-  fondo → `am kill` → volver: el camino con lo dominado.
+  fondo → `am kill` → volver: el camino con lo dominado. Partido en tres (aprobado el 2026-11-26):
+  - [x] **11c-1** `AppContainer` con `DataStoreSessionStore` (`sessionStore` + `sessionUpdates`) y comentario
+    de `SessionCipher` (revisado el 2026-11-26).
+  - [ ] **11c-2** `StartState` + `StartViewModel` en `ui/navigation/`: error al leer (`IOException` o
+    `ProviderException`) → `SignedOut` y reintento cada 2 s; el resto de errores no se traga.
+  - [ ] **11c-3** `StartNavigation.kt` (funciones puras), `GradusNavHost` y `MainActivity`. Regla sobre el
+    estado: `SignedOut` estando en `Main` → `leaveMain()` deja la pila `[Welcome, Login]` (sin tocar
+    `enterHome` ni la flecha de Login). `Loading` = un `Box` con el fondo del tema (sin componente nuevo).
+    Tests de restauración con `StateRestorationTester`, incluido girar tras iniciar sesión.
 
 ### [ ] 12. Copia local del curso al inscribirse (parte D)
 
@@ -305,7 +319,15 @@ Pasos:
   del disco (no borran la sesión). Se corrige el comentario en 11c, que decide qué hace el arranque si
   leer la sesión lanza. El test de hilos no se ha visto fallar sin el cerrojo (una carrera no siempre
   ocurre): documenta, no demuestra.
+- 2026-11-26: **11c-1 hecho y revisado** (orquestador: JVM 4 + 11 y 33 instrumentados en verde en esta pasada). `AppContainer`: `sessionStore` es ya
+  el `DataStoreSessionStore` (un solo objeto, necesita `init`) y `sessionUpdates: Flow<Session?>` sale del
+  mismo; comentario de `SessionCipher` corregido. Cambiado `AppContainerInitTest` (la sesión ya necesita
+  `init`). Tests nuevos: 2 JVM del serializer (fallos del sistema salen tal cual), 2 de `AppContainerInitTest`,
+  3 de `AppContainerTest` y `DataStoreSessionStoreFailureTest` (6). Verde: JVM de `app` y 136 instrumentados
+  del paquete `data`. Queda 11c-2 (`StartViewModel`, en `ui/navigation/`) y 11c-3 (navegación y emulador).
+  Nota: Gradle desde el sandbox del agente no tiene `JAVA_HOME` ni `~/.gradle` escribible; se lanza con
+  `JAVA_HOME=/usr/lib/jvm/java-21-openjdk` fuera del sandbox.
 
 ## Siguiente paso
 
-11c (app): quien implemente propone y espera el OK de los usuarios.
+11c-2 (`StartViewModel`): propuesta ya aprobada; tests primero.

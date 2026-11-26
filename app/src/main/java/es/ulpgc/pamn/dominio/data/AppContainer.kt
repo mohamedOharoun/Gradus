@@ -3,7 +3,7 @@ package es.ulpgc.pamn.dominio.data
 import android.content.Context
 import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.account.AccountGateways
-import es.ulpgc.pamn.dominio.account.InMemorySessionStore
+import es.ulpgc.pamn.dominio.account.Session
 import es.ulpgc.pamn.dominio.account.SessionStore
 import es.ulpgc.pamn.dominio.course.CachingCourseGateway
 import es.ulpgc.pamn.dominio.course.CourseGateways
@@ -13,9 +13,11 @@ import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.data.progress.ProgressDatabase
 import es.ulpgc.pamn.dominio.data.progress.ProgressModule
 import es.ulpgc.pamn.dominio.data.progress.ProgressSyncLauncher
+import es.ulpgc.pamn.dominio.data.session.DataStoreSessionStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 
 // Composition root (inyección manual): el único sitio de la app que elige las implementaciones
 // concretas, como App.java en el backend. El resto recibe interfaces por parámetro.
@@ -38,6 +40,9 @@ object AppContainer {
 
     private var appContext: Context? = null
 
+    private fun requireContext(): Context =
+        checkNotNull(appContext) { "AppContainer.init(context) must be called first (GradusApplication)" }
+
     // La llama GradusApplication.onCreate. Solo la primera vez cuenta.
     fun init(context: Context) {
         if (appContext == null) appContext = context.applicationContext
@@ -46,8 +51,7 @@ object AppContainer {
     // Progreso e inscripciones, guardados en el móvil (Room). Un solo objeto Room con varias caras: el
     // MISMO almacén como ProgressStore y como EnrollmentStore.
     private val progress by lazy {
-        val context = checkNotNull(appContext) { "AppContainer.init(context) must be called first (GradusApplication)" }
-        ProgressModule(ProgressDatabase.create(context), sessionStore, ProgressGateways.http(BASE_URL))
+        ProgressModule(ProgressDatabase.create(requireContext()), sessionStore, ProgressGateways.http(BASE_URL))
     }
     val progressStore: ProgressStore get() = progress.progressStore
     val enrollmentStore: EnrollmentStore get() = progress.enrollmentStore
@@ -61,6 +65,14 @@ object AppContainer {
         ProgressSyncLauncher(progress.sync, sessionStore, appScope)
     }
 
-    // La sesión iniciada. De momento en memoria: se pierde al cerrar la app (tarea 6: guardarla cifrada).
-    val sessionStore: SessionStore by lazy { InMemorySessionStore() }
+    // La sesión iniciada: guardada cifrada en el móvil (DataStore + Keystore), así que sobrevive a cerrar
+    // la app. Un solo objeto para toda la app: DataStore no admite dos activos sobre el mismo fichero.
+    private val sessions: DataStoreSessionStore by lazy { DataStoreSessionStore.create(requireContext()) }
+
+    // El resto de la app solo ve el puerto SessionStore.
+    val sessionStore: SessionStore get() = sessions
+
+    // Cada cambio de la sesión (fuera del puerto): solo lo usa el arranque (StartViewModel). Es el
+    // Flow del MISMO DataStore que sessionStore.
+    val sessionUpdates: Flow<Session?> get() = sessions.session
 }

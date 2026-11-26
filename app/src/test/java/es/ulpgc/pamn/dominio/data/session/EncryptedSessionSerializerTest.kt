@@ -8,12 +8,14 @@ import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
+import java.security.ProviderException
 
 class EncryptedSessionSerializerTest {
 
@@ -91,5 +93,26 @@ class EncryptedSessionSerializerTest {
         }
         val failure = runCatching { serializer.readFrom(broken) }.exceptionOrNull()
         assertEquals(IOException::class.java, failure?.javaClass)
+    }
+
+    // Los fallos del sistema (Keystore ocupado, KeyStore.load) no dicen que ESTA sesión esté mal: salen
+    // tal cual, sin convertirse en corrupción (que borraría una sesión buena).
+    private fun failingWith(error: Throwable) = EncryptedSessionSerializer(object : SessionCipher {
+        override fun encrypt(plain: ByteArray): ByteArray = plain
+        override fun decrypt(sealed: ByteArray): ByteArray = throw error
+    })
+
+    @Test
+    fun `a ProviderException of the cipher comes out as it is, not as a corruption`() = runTest {
+        val error = ProviderException("keystore busy")
+        val failure = runCatching { failingWith(error).readFrom(ByteArrayInputStream(byteArrayOf(1, 2, 3))) }.exceptionOrNull()
+        assertSame(error, failure)
+    }
+
+    @Test
+    fun `an IOException of the cipher comes out as it is, not as a corruption`() = runTest {
+        val error = IOException("KeyStore.load")
+        val failure = runCatching { failingWith(error).readFrom(ByteArrayInputStream(byteArrayOf(1, 2, 3))) }.exceptionOrNull()
+        assertSame(error, failure)
     }
 }

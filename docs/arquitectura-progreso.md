@@ -69,8 +69,8 @@ Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, conectado a
 | `ProgressSyncLauncher(sync, sessions, scope)` | Implementa `ProgressSyncRequester`: lanza `sync.sync(session)` en `scope`, un ámbito **de la app** inyectado (no se cancela al cerrar la pantalla que lo pidió). Lee `sessions.current()` al ejecutarse: sin sesión no llama y `lastOutcome` no cambia; con sesión llama siempre (B-10). `lastOutcome: StateFlow<SyncOutcome?>`: `null` hasta el primer desenlace; con dos a la vez, el de la que termina la última. No captura excepciones (las del almacén salen por el ámbito), no reintenta (D13), sin `Mutex` (B-11) | *Command*; *Observer* (`StateFlow`); inyección de dependencias (el ámbito) |
 | `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
-Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, **sin conectar a `AppContainer`
-hasta 11c**):
+Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, conectada a `AppContainer` en
+11c-1):
 
 | Pieza | Qué es | Patrón |
 |---|---|---|
@@ -80,7 +80,14 @@ hasta 11c**):
 | `DataStoreSessionStore(dataStore)` y `create(context, scope, fileName, cipher)` | Implementa `SessionStore` sin cambiar el puerto; además `session: Flow<Session?>` (cada cambio). Fichero `gradus-session.bin` en `noBackupFilesDir`; `ReplaceFileCorruptionHandler { null }`: fichero roto o clave perdida = sin sesión. **Un solo `DataStore` activo por fichero** (dos lanzan): la app crea uno; los tests cancelan el ámbito antes de abrir otro y usan alias propios, nunca `DEFAULT_ALIAS` | *Adapter* del puerto; *Factory method* |
 
 Tests: `EncryptedSessionSerializerTest` (JVM, con `FakeSessionCipher`); `KeystoreSessionCipherTest`,
-`DataStoreSessionStoreTest` y `DataStoreSessionStoreFileTest` (instrumentados, con `SessionStoreRule`).
+`DataStoreSessionStoreTest`, `DataStoreSessionStoreFileTest` y `DataStoreSessionStoreFailureTest`
+(instrumentados, con `SessionStoreRule`).
+
+Fallos del sistema al leer la sesión (`ProviderException` de Keystore, `IOException`; DataStore envuelve
+esta en otra `IOException` con la original como causa): salen de `current()` y del `Flow`, **no borran**
+la sesión y, si son pasajeros, el mismo `DataStore` vuelve a leer y a guardar. Si no pasan, `save` también
+lanza (`updateData` lee antes de escribir) y `LoginViewModel` no lo captura: iniciar sesión cerraría la
+app. Muy improbable; conocido y aceptado (11c-1).
 
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
 (`Clock.System` por defecto); los tests usan un `FakeClock`.
@@ -373,13 +380,18 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   `val progressSyncLauncher by lazy { ProgressSyncLauncher(progress.sync, sessionStore, appScope) }`.
   Si `dev/joel` también toca `AppContainer`, conserva `init`, `progress` (con el gateway), las dos
   propiedades, `appScope`, `progressSyncLauncher` y el `sessionStore` (declarado después, pero `lazy`:
-  no importa el orden). `InMemoryProgressStore` ya no está en la app
+  no importa el orden). **Desde 11c-1**, la sesión: `private fun requireContext()` (el `checkNotNull` que
+  usan `progress` y la sesión), `private val sessions by lazy { DataStoreSessionStore.create(requireContext()) }`
+  (**un solo objeto**: DataStore no admite dos activos sobre el mismo fichero), `val sessionStore: SessionStore
+  get() = sessions` y `val sessionUpdates: Flow<Session?> get() = sessions.session` (solo para el arranque).
+  La sesión ya necesita `init` (lo comprueban `AppContainerInitTest` y `AppContainerTest`); `InMemorySessionStore`
+  ya no se usa en la app. `InMemoryProgressStore` ya no está en la app
   (sigue en `sharedLogic` para los tests).
 - **`GradusApplication` y el manifiesto (7d):** `GradusApplication : Application` llama a
   `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
   en `<application>` (una sola línea añadida). Sin ella, usar el progreso lanza `IllegalStateException`
-  («AppContainer.init(context) must be called first»); la sesión, el catálogo y la cuenta no necesitan
-  `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso los tests
+  («AppContainer.init(context) must be called first»); desde 11c-1 también la sesión. El catálogo y la
+  cuenta no necesitan `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso los tests
   instrumentados pueden pedir `AppContainer.progressStore` sin tocar los datos.
 - **Fábricas con parámetros nuevos (9b y 8b):** `CourseViewModel.factory(…, progress, enrollment)`,
   `ExerciseViewModel.factory(course, moduleId, progress, enrollment, progressSync, random)`,
