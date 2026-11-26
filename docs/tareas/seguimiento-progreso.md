@@ -57,8 +57,9 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     `Synced | SessionExpired | Unreachable | ServerFailure` (los textos, en la interfaz); no lanza por la
     red; dos `sync` a la vez no hacen daño (B-11). Si D13 quiere ahorrar llamadas, que lo decida con
     `pending(...).isEmpty`.
-- **Siguiente:** parte C en curso (`docs/tareas/progreso-app.md`): C9 y C10 hechas; faltan C7 (Room)
-  y C8 (sincronizar). Room + KSP aprobados (C-1).
+- **Siguiente:** parte C en curso (`docs/tareas/progreso-app.md`): C7 (Room, 2026-11-26), C9 y C10
+  hechas; falta C8 (sincronizar). El progreso ya se guarda en el móvil por usuario y sobrevive a
+  cerrar la app.
 - **Dependencias entre partes:**
   - A y B: **terminadas**.
   - C: en curso; lo que necesitaba de A y B está hecho y Room + KSP están aprobados.

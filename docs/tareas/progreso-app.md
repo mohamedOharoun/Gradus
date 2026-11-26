@@ -4,19 +4,17 @@ Parte C y D del seguimiento del progreso (índice común: `docs/tareas/seguimien
 Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`. Rama:
 `dev/course-progress-tracking`.
 
-Estado: **tareas 9 y 10 hechas; 7a, 7b y 7c hechos (2026-11-25).** Siguiente: 7d.
+Estado: **tareas 7, 9 y 10 hechas (2026-11-26).** Siguiente: 8a.
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-25):** tareas 9 y 10 hechas y revisadas; 10b probado de punta a punta en el
-  emulador por los usuarios. La app vuelve a permitir inscribirse (página de relleno desde Buscar) y
-  estudiar, todavía con `InMemoryProgressStore` (se pierde al cerrar la app).
-- **Paso que toca:** 7d (Sonnet 5.5, esfuerzo medio), mensaje preparado. 7a, 7b y 7c hechos y
-  revisados: `RoomProgressStore` implementa los tres puertos (`ProgressStore`, `EnrollmentStore`,
-  `ProgressSyncStore`) en `app/.../data/progress/`, todavía sin conectar a `AppContainer` (es 7d).
-  `courseId` comprobado (C-4, en la arquitectura).
+- **Dónde estamos (2026-11-26):** tareas 7, 9 y 10 hechas. La app guarda inscripciones y dominados en
+  Room, por usuario (`RoomProgressStore` con los tres puertos, conectado en `AppContainer`); 7d probado
+  de punta a punta en el emulador por los usuarios (sobrevive a `force-stop`; otro usuario no lo ve).
+  Todavía no se sincroniza con el servidor (tarea 8). `courseId` comprobado (C-4, en la arquitectura).
+- **Paso que toca:** 8a (Opus 5.5, esfuerzo medio), mensaje preparado.
 - **Abierto:** el plan de la parte D se hace al cerrar C. El botón de inscribirse en el camino queda
   para después (C-6).
 - **Riesgos:**
@@ -24,10 +22,10 @@ Se **reescribe** al final de cada sesión; no se acumula.
     `libs.versions.toml` y `build.gradle.kts`: cada paso los toca lo mínimo.
   - Hasta D11 la sesión está en memoria: si Android mata el proceso y restaura una pantalla de `Main`,
     no hay sesión (el camino sale vacío e inscribirse lanzaría). Conocido y aceptado hasta D11.
-- **Qué mirar en la próxima revisión (7d):** que `progressStore` y `enrollmentStore` sean el mismo
-  objeto Room; la línea del manifiesto y `GradusApplication`, mínimas; que ningún test ni preview
-  toque la base real; el emulador (lo dominado sobrevive a cerrar la app; otro usuario no lo ve);
-  «Qué cuidar al mergear» al día (ya no es `InMemoryProgressStore`).
+- **Qué mirar en la próxima revisión (8a):** que la sincronización use el MISMO objeto Room que los
+  otros puertos; que el ámbito de corrutinas sea de la app (no se cancela con la pantalla) y se
+  inyecte (testeable); que sin sesión no llame; que no capture excepciones del almacén ni «tape» la
+  red; tests sin tiempos.
 - **Tests instrumentados:** con el emulador caído, `connectedDebugAndroidTest` acaba en BUILD SUCCESSFUL
   sin ejecutar nada: mirar siempre el XML de `app/build/outputs/androidTest-results/connected/debug/`
   (un solo fichero con todas las clases; contar `testcase name` y mirar el `timestamp`).
@@ -184,7 +182,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   - Emulador: Buscar → curso → Inscribirme → Ir al camino → dominar un módulo: el camino lo enseña y la
     app no se cierra. «Atrás» vuelve a la página y luego a Buscar.
 
-### [ ] 7. Room por usuario
+### [x] 7. Room por usuario
 
 - **[x] 7a · Dependencias y esquema.** Opus 5.5, esfuerzo medio.
   - Primero: añadir Room + KSP (C-1), sincronizar y compilar `:app` vacío; si KSP falla, parar y avisar.
@@ -205,7 +203,7 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
     pendiente, lo nuevo no queda pendiente, nunca borra, idempotente, lo marcado durante el viaje sigue
     pendiente); los `Flow` emiten tras `settle`; `ProgressSync` con Room y `FakeProgressGateway`.
   - Revisión: completa (SQL línea a línea).
-- **[ ] 7d · `Application`, `ProgressModule` y cambio a Room.** Sonnet 5.5, esfuerzo medio.
+- **[x] 7d · `Application`, `ProgressModule` y cambio a Room.** Sonnet 5.5, esfuerzo medio.
   - `GradusApplication`, la línea del manifiesto, `ProgressModule` y `AppContainer` (C-3).
   - Revisión: completa (emulador).
   - Emulador: dominar un módulo, cerrar la app del todo, abrirla, iniciar sesión: sigue dominado. Con
@@ -312,6 +310,15 @@ Plan **aprobado el 2026-11-25**. Orden: 9a → 9b → 10a → 10b → 7a → 7b 
   `sent` no se guardan, módulo enviado que no existe, `pending` no lee la sesión, tras un `settle` fallido
   el siguiente funciona, `ProgressSync` deja salir el fallo del almacén; los tres desenlaces sin 200.
 
+- 2026-11-26: **7d hecho y revisado; probado de punta a punta en el emulador por los usuarios** (el orquestador ejecutó 103 de 103 en el emulador y las 16 clases JVM). `GradusApplication`, la línea
+  del manifiesto, `ProgressModule` (*Facade*) y `AppContainer` con Room (`init(context)`, `progress` perezoso;
+  `progressStore` y `enrollmentStore` devuelven el mismo objeto). Tests: `ProgressModuleTest` (5) y
+  `AppContainerTest` (1) instrumentados, y `AppContainerInitTest` (3, JVM: antes de `init` el progreso lanza
+  `IllegalStateException`, la sesión no). Con todos los de `data` en `Pixel_9a`: 103 de 103 (XML comprobado);
+  JVM de course, exercise y enrollment en verde; `:app:compileDebugKotlin` sin avisos nuevos. Comprobado en
+  el código de Room 2.8.5 que `build()` no abre el fichero (lo abre la primera consulta). Fuera del plan:
+  `init` ignora la segunda llamada (aprobado). **Falta el emulador de punta a punta** (necesita cuenta).
+
 ## Siguiente paso
 
-Paso 7d: abrir un chat nuevo (Sonnet 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.
+Paso 8a: abrir un chat nuevo (Opus 5.5, esfuerzo medio) con el mensaje que ha preparado el orquestador.

@@ -44,7 +44,7 @@ Paquete `course/progress/http/` (`internal`, traduce entre el modelo y el JSON; 
 | `decodeSyncResponse(body)` | Texto JSON de un 200 → `SyncResponse?` (`null` = no se puede leer; no lanza) | *Mapper*, función pura |
 | `HttpProgressGateway(client, baseUrl)` | Adaptador Ktor del puerto: `POST /api/progress/sync` con `Authorization: Bearer`. Solo HTTP: el JSON es de los mappers; las excepciones van por `callServer` | Adaptador (*Adapter*); `callServer` es una función de orden superior |
 
-Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, **todavía sin conectar** a `AppContainer`: es 7d):
+Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, conectado a `AppContainer` en 7d a través de `ProgressModule`):
 
 | Pieza | Qué es | Patrón |
 |---|---|---|
@@ -54,6 +54,7 @@ Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, **todavía 
 | `ProgressDao` | Insertar y leer (7a); `insert…IfAbsent` (`INSERT OR IGNORE`) y los `Flow` `watchEnrolled` / `watchMasteredIds` (7b); para sincronizar (7c), `pendingRows` y `settle`, dos métodos `@Transaction` con cuerpo que usan seis consultas (`enrollmentsToUpload`, `pendingModules`, `unqueue…`, `keepOlder…Date`). Nunca `DELETE` | *DAO* (*Data Access Object*); *Unit of Work* (`@Transaction`) |
 | `ProgressRows(enrollments, modules)`, `ProgressSnapshot.toRows(userId)` y `ProgressRows.toSnapshot()` | Las filas de las dos tablas y su traducción a la forma del contrato. `toRows` pone el usuario y `pending = false`; `toSnapshot` mete cada módulo en la inscripción de su mismo usuario y curso (un módulo sin ella se queda fuera) | *Mapper*, funciones puras |
 | `RoomProgressStore(dao, sessions, clock)` | Implementa **los tres puertos** (`ProgressStore`, `EnrollmentStore` y `ProgressSyncStore`) con Room, igual que `InMemoryProgressStore` | *Adapter* de los puertos; *Interface Segregation*; inyección de dependencias (`ProgressDao`, `SessionStore`, `Clock`) |
+| `ProgressModule(database, sessions)` | Crea **un** `RoomProgressStore` y lo expone como `progressStore`, `enrollmentStore` y `syncStore`: los tres son el mismo objeto. Recibe la base ya creada (y no el `Context`) para probarlo con una base en memoria. En 8a añadirá `ProgressSync` con ese mismo objeto | *Facade*; inyección de dependencias |
 | `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
@@ -318,12 +319,21 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   y `app/build.gradle.kts` (el plugin, `room-runtime`, `ksp(room-compiler)` y `kotlinx-coroutines-test`
   en `androidTestImplementation`). `dev/joel` también toca estos tres ficheros: al resolver conflictos,
   conserva las líneas de los dos lados.
-- **`app/.../data/AppContainer.kt`, progreso (desde 9b):** un solo almacén con dos caras:
-  `private val inMemoryProgress by lazy { InMemoryProgressStore(sessionStore) }` y, encima,
-  `val progressStore: ProgressStore get() = inMemoryProgress` y
-  `val enrollmentStore: EnrollmentStore get() = inMemoryProgress`. Tienen que ser **el mismo objeto**
-  (si fueran dos, inscribirse no abriría nada). Si `dev/joel` también toca `AppContainer`, conserva
-  las tres líneas y el `sessionStore` (declarado después, pero `lazy`: no importa el orden).
+- **`app/.../data/AppContainer.kt`, progreso (desde 7d; antes, en 9b, era `InMemoryProgressStore`):**
+  `private var appContext: Context?` con `fun init(context)` (solo cuenta la primera llamada),
+  `private val progress by lazy { ProgressModule(ProgressDatabase.create(checkNotNull(appContext) { … }), sessionStore) }`
+  y, encima, `val progressStore: ProgressStore get() = progress.progressStore` y
+  `val enrollmentStore: EnrollmentStore get() = progress.enrollmentStore`. Tienen que ser **el mismo
+  objeto** (si fueran dos, inscribirse no abriría nada; lo comprueba `AppContainerTest`). Si `dev/joel`
+  también toca `AppContainer`, conserva `init`, `progress`, las dos propiedades y el `sessionStore`
+  (declarado después, pero `lazy`: no importa el orden). `InMemoryProgressStore` ya no está en la app
+  (sigue en `sharedLogic` para los tests).
+- **`GradusApplication` y el manifiesto (7d):** `GradusApplication : Application` llama a
+  `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
+  en `<application>` (una sola línea añadida). Sin ella, usar el progreso lanza `IllegalStateException`
+  («AppContainer.init(context) must be called first»); la sesión, el catálogo y la cuenta no necesitan
+  `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso los tests
+  instrumentados pueden pedir `AppContainer.progressStore` sin tocar los datos.
 - **Factorías con un parámetro más (9b):** `CourseViewModel.factory(…, progress, enrollment)` y
   `ExerciseViewModel.factory(course, moduleId, progress, enrollment)`. Si `dev/joel` crea estos
   ViewModel en otro sitio, tiene que pasar `AppContainer.enrollmentStore`.
