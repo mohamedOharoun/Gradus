@@ -69,6 +69,19 @@ Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, conectado a
 | `ProgressSyncLauncher(sync, sessions, scope)` | Implementa `ProgressSyncRequester`: lanza `sync.sync(session)` en `scope`, un ámbito **de la app** inyectado (no se cancela al cerrar la pantalla que lo pidió). Lee `sessions.current()` al ejecutarse: sin sesión no llama y `lastOutcome` no cambia; con sesión llama siempre (B-10). `lastOutcome: StateFlow<SyncOutcome?>`: `null` hasta el primer desenlace; con dos a la vez, el de la que termina la última. No captura excepciones (las del almacén salen por el ámbito), no reintenta (D13), sin `Mutex` (B-11) | *Command*; *Observer* (`StateFlow`); inyección de dependencias (el ámbito) |
 | `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 1, `exportSchema = false`, `fallbackToDestructiveMigration(dropAllTables = true)` (C-4; se congela en la tarea 14). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
+Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, **sin conectar a `AppContainer`
+hasta 11c**):
+
+| Pieza | Qué es | Patrón |
+|---|---|---|
+| `SessionCipher` | `encrypt(bytes)` y `decrypt(bytes)`; `decrypt` lanza `GeneralSecurityException` si no se puede descifrar (otra clave, byte cambiado, muy corto o sin clave). Los fallos del sistema (`ProviderException` de Keystore, `IOException` de `KeyStore.load`) salen tal cual | *Strategy* |
+| `KeystoreSessionCipher(alias = DEFAULT_ALIAS)` | AES-256-GCM con una clave de Android Keystore (no sale del sistema). Formato: IV de 12 bytes + cifrado + etiqueta de 16. **Solo `encrypt` crea la clave**; buscar o crear va dentro de un cerrojo compartido por todas las instancias (generar con un alias existente sustituye la clave). La clave se busca en cada operación | Implementación de la *Strategy* |
+| `EncryptedSessionSerializer(cipher)` | `Serializer<Session?>` de DataStore: `encodeSession` + cifrar al escribir, descifrar + `decodeSession` al leer. «Sin sesión» = fichero vacío. No se puede descifrar o no es una sesión → `CorruptionException` con texto fijo (nunca el token). Una `IOException` del disco **sale tal cual** (no borra una sesión buena) | *Adapter* |
+| `DataStoreSessionStore(dataStore)` y `create(context, scope, fileName, cipher)` | Implementa `SessionStore` sin cambiar el puerto; además `session: Flow<Session?>` (cada cambio). Fichero `gradus-session.bin` en `noBackupFilesDir`; `ReplaceFileCorruptionHandler { null }`: fichero roto o clave perdida = sin sesión. **Un solo `DataStore` activo por fichero** (dos lanzan): la app crea uno; los tests cancelan el ámbito antes de abrir otro y usan alias propios, nunca `DEFAULT_ALIAS` | *Adapter* del puerto; *Factory method* |
+
+Tests: `EncryptedSessionSerializerTest` (JVM, con `FakeSessionCipher`); `KeystoreSessionCipherTest`,
+`DataStoreSessionStoreTest` y `DataStoreSessionStoreFileTest` (instrumentados, con `SessionStoreRule`).
+
 Las fechas son `kotlin.time.Instant` (estable, sin `@OptIn`), nunca texto. El `Clock` se inyecta
 (`Clock.System` por defecto); los tests usan un `FakeClock`.
 
@@ -347,6 +360,8 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   y `app/build.gradle.kts` (el plugin, `room-runtime`, `ksp(room-compiler)` y `kotlinx-coroutines-test`
   en `androidTestImplementation`). `dev/joel` también toca estos tres ficheros: al resolver conflictos,
   conserva las líneas de los dos lados.
+- **Gradle con DataStore (11b):** `datastore = "1.3.0"` y `androidx-datastore` en
+  `gradle/libs.versions.toml`, e `implementation(libs.androidx.datastore)` en `app/build.gradle.kts`.
 - **`app/.../data/AppContainer.kt`, progreso (desde 7d; antes, en 9b, era `InMemoryProgressStore`):**
   `private var appContext: Context?` con `fun init(context)` (solo cuenta la primera llamada),
   `private val progress by lazy { ProgressModule(ProgressDatabase.create(checkNotNull(appContext) { … }), sessionStore, ProgressGateways.http(BASE_URL)) }`

@@ -6,7 +6,7 @@ C, con su detalle: `docs/tareas/progreso-app-historico.md` (no hace falta leerlo
 `dev/course-progress-tracking`.
 
 Estado: **parte C terminada (tareas 7–10, 2026-11-26). Parte D (11–13) planificada y aprobada
-(2026-11-26); 11a hecho; siguiente paso: 11b.**
+(2026-11-26); 11a y 11b hechos; siguiente paso: 11c.**
 
 ## Relevo
 
@@ -16,12 +16,14 @@ Se **reescribe** al final de cada sesión; no se acumula.
   y en commits. La app deja inscribirse (página de relleno desde Buscar), no deja estudiar sin
   inscripción, guarda el progreso en Room por usuario y lo sincroniza tras iniciar sesión, inscribirse y
   dominar (`ProgressSyncLauncher`, sin enseñar nada). **Parte D:** decisiones D-1 a D-5 tomadas, criterios
-  de 11–13 escritos y pasos aprobados (abajo, en «Tareas»). **11a hecho y revisado**: `encodeSession` /
-  `decodeSession`, `clearIfCurrent` (por token) y `SessionProgressSync` en `sharedLogic` (piezas en la
-  arquitectura). Todavía no hay código de D en `app`.
-- **Paso que toca:** 11b (app + Gradle: DataStore; Opus 5.5 · medio). Usa `encodeSession` /
-  `decodeSession` dentro del `Serializer` cifrado. El orquestador escribe el mensaje; quien implemente
-  propone y espera el OK.
+  de 11–13 escritos y pasos aprobados (abajo, en «Tareas»). **11a y 11b hechos y revisados**:
+  `encodeSession` / `decodeSession`, `clearIfCurrent` (por token) y `SessionProgressSync` en `sharedLogic`;
+  DataStore 1.3.0 y `DataStoreSessionStore` cifrado (Keystore, AES-256-GCM) en `app/.../data/session/`,
+  **todavía sin conectar** a `AppContainer` (piezas en la arquitectura).
+- **Paso que toca:** 11c (app; Sonnet 5.5 · alto): conectar el almacén, `StartViewModel` y el arranque.
+  Tiene que decidir qué hace el arranque si leer la sesión lanza (`IOException` o `ProviderException` de
+  Keystore: no se convierten en «sin sesión», a propósito) y corregir el comentario de `SessionCipher`.
+  El orquestador escribe el mensaje; quien implemente propone y espera el OK.
 - **Lo que hay que saber para seguir:**
   - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). 13 va antes que 12 porque necesita 11.
   - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`).
@@ -201,7 +203,7 @@ Pasos:
   o sin un campo → `null`; `clearIfCurrent` con la misma, con otra y sin sesión; `SessionProgressSync`
   sin sesión (no llama), `Synced` (no borra), `SessionExpired` (borra), `SessionExpired` tras guardar otra
   sesión mientras viajaba (no la borra), `Unreachable` y `ServerFailure` (no borra; sigue pendiente).
-- [ ] **11b** (app + Gradle: DataStore; Opus 5.5 · medio). `SessionCipher` + `KeystoreSessionCipher`,
+- [x] **11b** (app + Gradle: DataStore; Opus 5.5 · medio; revisado el 2026-11-26). `SessionCipher` + `KeystoreSessionCipher`,
   `EncryptedSessionSerializer`, `DataStoreSessionStore` con `create(context)`. Tests JVM del *serializer*
   con un cifrado falso; instrumentados del cifrado (ida y vuelta, IV aleatorio, byte cambiado → falla) y
   del almacén (guardar, sustituir, borrar, borrar sin sesión, otro `DataStore` sobre el mismo fichero
@@ -289,7 +291,21 @@ Pasos:
   conocido: `clearIfCurrent` lee y borra en dos pasos (el puerto no tiene uno atómico), así que una
   sesión guardada justo entre los dos se borraría; el caso realista (guardar mientras la petición viaja)
   está probado.
+- 2026-11-26: **11b hecho y revisado** (orquestador: 9 JVM + 23 instrumentados en verde en esta pasada).
+  DataStore 1.3.0 añadido. Nuevo en `app/.../data/session/`:
+  `SessionCipher`, `KeystoreSessionCipher`, `EncryptedSessionSerializer` y `DataStoreSessionStore`
+  (`create(context, scope = IO + SupervisorJob, fileName, cipher)`, `session: Flow<Session?>`). Todavía no
+  está en `AppContainer` (11c). Lo que hay que saber: `DataStore<Session?>` sin envoltorio; «sin sesión»
+  es un fichero vacío; descifrar o leer mal da `CorruptionException` → `null`, pero una IOException del
+  disco **sale hacia fuera** (no borra la sesión): 11c decide qué hace la interfaz con ella. Solo
+  `encrypt` crea la clave, buscar o crear va dentro de un cerrojo, y sin clave lo guardado se lee
+  como `null`. Los tests usan alias propios, nunca `DEFAULT_ALIAS`. Tests: 9 JVM + 23 instrumentados, en
+  verde. Revisión: el comentario de `SessionCipher` promete «nunca otra excepción», pero Keystore puede
+  lanzar `ProviderException` (y `KeyStore.load`, `IOException`); salen tal cual, como la `IOException`
+  del disco (no borran la sesión). Se corrige el comentario en 11c, que decide qué hace el arranque si
+  leer la sesión lanza. El test de hilos no se ha visto fallar sin el cerrojo (una carrera no siempre
+  ocurre): documenta, no demuestra.
 
 ## Siguiente paso
 
-11b (app + DataStore): quien implemente propone y espera el OK de los usuarios.
+11c (app): quien implemente propone y espera el OK de los usuarios.

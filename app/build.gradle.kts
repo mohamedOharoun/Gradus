@@ -57,6 +57,8 @@ dependencies {
     // Room (SQLite): el progreso por usuario. El compilador de Room corre con KSP.
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
+    // DataStore tipado: la sesión guardada, cifrada.
+    implementation(libs.androidx.datastore)
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
