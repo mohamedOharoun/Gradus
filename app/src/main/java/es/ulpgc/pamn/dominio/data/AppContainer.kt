@@ -13,12 +13,17 @@ import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressGateways
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.SessionProgressSync
+import es.ulpgc.pamn.dominio.data.course.CourseCopyLauncher
+import es.ulpgc.pamn.dominio.data.course.CourseCopyRequester
 import es.ulpgc.pamn.dominio.data.course.RoomCourseCopyStore
 import es.ulpgc.pamn.dominio.data.progress.ProgressDatabase
 import es.ulpgc.pamn.dominio.data.progress.ProgressModule
 import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import es.ulpgc.pamn.dominio.data.progress.WorkSyncRequester
 import es.ulpgc.pamn.dominio.data.session.DataStoreSessionStore
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 
 // Composition root (inyección manual): el único sitio de la app que elige las implementaciones
@@ -72,6 +77,13 @@ object AppContainer {
     val progressSync: ProgressSyncRequester by lazy {
         WorkSyncRequester(WorkManager.getInstance(requireContext()))
     }
+
+    // Ámbito de la app para tareas en segundo plano que no deben cancelarse al salir de una
+    // pantalla (precarga de copias de cursos tras inscribirse).
+    private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    // Descarga y guarda la copia local del curso tras inscribirse (los ViewModels reciben la interfaz).
+    val courseCopy: CourseCopyRequester by lazy { CourseCopyLauncher(courseGateway, appScope) }
 
     // La sesión iniciada: guardada cifrada en el móvil (DataStore + Keystore), así que sobrevive a cerrar
     // la app. Un solo objeto para toda la app: DataStore no admite dos activos sobre el mismo fichero.

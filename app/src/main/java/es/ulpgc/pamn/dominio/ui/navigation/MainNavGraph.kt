@@ -73,7 +73,9 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         composable<Route.CourseOverview> { entry ->
             val route = entry.toRoute<Route.CourseOverview>()
             val enrollmentViewModel: EnrollmentViewModel = viewModel(
-                factory = EnrollmentViewModel.factory(route.courseId, AppContainer.enrollmentStore, AppContainer.progressSync),
+                factory = EnrollmentViewModel.factory(
+                    route.courseId, AppContainer.enrollmentStore, AppContainer.progressSync, AppContainer.courseCopy,
+                ),
             )
             ScreenCourseOverview(
                 enrollment = enrollmentViewModel.state,

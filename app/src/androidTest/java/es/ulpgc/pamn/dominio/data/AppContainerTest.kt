@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.data
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import es.ulpgc.pamn.dominio.data.course.CourseCopyLauncher
 import es.ulpgc.pamn.dominio.data.progress.WorkSyncRequester
 import es.ulpgc.pamn.dominio.data.session.DataStoreSessionStore
 import org.junit.Assert.assertSame
@@ -59,5 +60,12 @@ class AppContainerTest {
     @Test
     fun course_gateway_is_a_single_instance() {
         assertSame(AppContainer.courseGateway, AppContainer.courseGateway)
+    }
+
+    // 12b-2: la precarga de cursos al inscribirse corre en appScope y es una sola instancia.
+    @Test
+    fun course_copy_is_course_copy_launcher_single_instance() {
+        assertTrue(AppContainer.courseCopy is CourseCopyLauncher)
+        assertSame(AppContainer.courseCopy, AppContainer.courseCopy)
     }
 }

@@ -1,9 +1,9 @@
 # Progreso en la app — histórico de las partes C y D
 
-Lo terminado de `docs/tareas/progreso-app.md`: la parte C (tareas 7–10, cerrada el 2026-11-26) y, al
-final, el detalle de los pasos de la parte D ya revisados (desde la tarea 11). No hace
-falta leerlo para continuar: cómo funciona lo hecho está en `docs/arquitectura-progreso.md`, y las
-decisiones que siguen vigentes, en `progreso-app.md`. Sirve para saber por qué se hizo algo así.
+Lo terminado de `docs/tareas/progreso-app.md`: la parte C (tareas 7–10) y la parte D (tareas 11–13,
+cerrada el 2026-11-26). No hace falta leerlo para continuar: cómo funciona lo hecho está en
+`docs/arquitectura-progreso.md`, y las decisiones que siguen vigentes, en `progreso-app.md`. Sirve
+para saber por qué se hizo algo así.
 
 ## Tareas y pasos (todos hechos y revisados)
 
@@ -105,3 +105,60 @@ Commits: `add: … (progress task 11a)`, `… 11b`, `… 11c-1`, `… 11c-2` y `
   atrás de Login; sin componente nuevo para `Loading`; test de recrear tras iniciar sesión. Decisión del
   implementador: al iniciar sesión, `enterHome()` espera también a `start == SignedIn` (si no, un fotograma
   de desfase devolvería a Login); probada.
+
+## Parte D — tarea 13 (WorkManager): detalle de los pasos
+
+Modelos usados: 13a Gemini Hydrogen · bajo; 13b (en dos subpasos) Gemini Carbon · medio.
+Commits: `add: background sync retry decision in sharedLogic (progress task 13)`,
+`add: WorkManager progress sync worker and requester (progress task 13)` y
+`add: wire WorkManager sync into app and startup (progress task 13)`.
+
+- **13a** (`sharedLogic`, 10 tests; 61 clases / 781 tests en verde). `course/progress/BackgroundSyncDecision.kt`:
+  `MAX_SERVER_FAILURE_ATTEMPTS = 5`, `BackgroundSyncDecision` (`Done` | `Retry` | `GiveUp`) y función pura
+  `backgroundSyncDecision(result, attempt)`. `require(attempt >= 0)` (*fail-fast*); `NoSession` y `Synced`
+  → `Done`; `Unreachable` → `Retry` siempre; `ServerFailure` → `Retry` en `0..3` y `GiveUp` desde `4` (5.º
+  intento); `SessionExpired` → `GiveUp`. Revisión: comprobados también intentos `0` y `10` en `Synced` y
+  `SessionExpired` para documentar que no dependen del contador.
+- **13b-1** (`app` + Gradle: WorkManager `2.12.0` y `work-testing` `2.12.0`; 18 instrumentados).
+  `ProgressModule.sessionSync`, `AppContainer.sessionProgressSync`, `ProgressSyncWorker` (`CoroutineWorker`
+  con constructor público de 2 argumentos para producción y constructor `internal` + `factory(sessionSync)`
+  para pruebas sin tocar `AppContainer`) y `WorkSyncRequester` (`progress-sync`, `REPLACE`,
+  `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL` de 30 s). `checkAarMetadata` en verde con
+  `compileSdk 37` y cero avisos nuevos (ni deprecación en `REPLACE`). Backoff exponencial verificado de
+  forma determinista (`30 s → 60 s → 120 s`) con `Configuration.Builder.setClock`; `@After` limpia con
+  `cancelAllWork()` sin romper el singleton.
+- **13b-2** (JVM 300/300 en 21 clases; 34 instrumentados pasando juntos `AppContainerTest`,
+  `GradusNavHostStartTest`, `ProgressSyncWorkerTest` y `WorkSyncRequesterTest`). `AppContainer.progressSync`
+  (`WorkSyncRequester`), borrados `ProgressSyncLauncher`, `ProgressSyncLauncherTest` y `appScope` sin usar;
+  `StartViewModel` añade `ProgressSyncRequester` y pide sincronizar una única vez solo si el primer estado
+  resuelto tras `Loading` es `SignedIn` (`initialHandled` en `.onEach` antes de `.stateIn`, evitando pisar
+  a `LoginViewModel` en `SignedOut → SignedIn` y carreras por *conflation* de `StateFlow`); cableado en
+  `MainActivity` y `MainNavGraph`. Probado de punta a punta en el emulador por los usuarios (2026-11-26).
+
+## Parte D — tarea 12 (copia local del curso al inscribirse): detalle de los pasos
+
+Modelos usados: 12a y 12b (en dos subpasos) Gemini Neon · alto.
+Commits: `add: course JSON encoder and offline course gateway in sharedLogic (progress task 12)`,
+`add: Room course copy store and offline gateway chain (progress task 12)` y
+`add: prefetch local course copy on enrollment (progress task 12)`.
+
+- **12a** (`sharedLogic`, 25 tests; 64 clases / 806 tests en verde). `course/http/CourseDtoEncoder.kt`
+  (`encodeCourseVersion`, compartiendo `internal val courseJson` de `CourseDtoMappers.kt`, ids estables
+  `"o$index"`, `MultipleChoice.correct.sorted()`, `formatVersion = 1`, `mastery` omitido cuando es `null`),
+  puerto `CourseCopyStore` + `InMemoryCourseCopyStore` (`MutableStateFlow`) y *Decorator*
+  `OfflineCourseGateway(delegate, copies)` (red primero, guarda bajo el `id` pedido, respaldo solo en
+  `Unreachable`, copia ilegible o versión futura → `Unreachable` sin borrarla, resto y `search` intactos,
+  sin tragar fallos del almacén).
+- **12b-1** (`app`; 8 instrumentados nuevos + 1 JVM + 1 instrumentado en `AppContainerTest`, verificados
+  junto a `RoomProgressSyncTest` = 21/21). `data/course/`: `CourseCopyEntity` (tabla `course_copies`, sin
+  `user_id` ni clave foránea), `CourseCopyDao` (`@Insert(REPLACE)`, compatible con SQLite 3.22 / `minSdk`
+  29) y `RoomCourseCopyStore`. `ProgressDatabase` sube a versión 2; `AppContainer` comparte una sola
+  instancia `progressDatabase` entre `progress` y `courseGateway = CachingCourseGateway(OfflineCourseGateway(
+  http, RoomCourseCopyStore))` sin acoplar `courseGateway` a `sessionStore`.
+- **12b-2** (JVM 316/316 en 22 clases; instrumentados `AppContainerTest` + `RoomCourseCopyStoreTest` =
+  16/16). `CourseCopyRequester` (`fun interface`) y `CourseCopyLauncher` en `data/course/` sobre `appScope`
+  (`SupervisorJob() + Dispatchers.Default`): descarga oportunista (*best effort*) que relanza siempre
+  `CancellationException` y captura `Exception` (no `Throwable`) para que un error de disco no cierre la
+  app tras inscribirse bien. `EnrollmentViewModel` la dispara tras terminar `enroll(courseId)`; cambio
+  quirúrgico de 1 llamada en `MainNavGraph`. Probado de punta a punta en el emulador por los usuarios
+  (2026-11-26).

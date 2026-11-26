@@ -5,40 +5,40 @@ Referencia viva de cómo funciona lo que ya hay: `docs/arquitectura-progreso.md`
 detalle (la parte C y los pasos de D ya revisados): `docs/tareas/progreso-app-historico.md` (no hace falta
 leerlo para continuar). Rama: `dev/course-progress-tracking`.
 
-Estado: **parte C terminada (tareas 7–10). Parte D: tarea 11 terminada; tarea 13 hecha y revisada en código; paso 12a y subpaso 12b-1 terminados y revisados (2026-11-26). Siguiente paso: 12b-2 (último subpaso de código de D).**
+Estado: **partes C (tareas 7–10) y D (tareas 11–13) terminadas y probadas en el emulador (2026-11-26). Siguiente: tarea 14 (cierre) en `docs/tareas/seguimiento-progreso.md`.**
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-26):** parte C terminada y en commits. **Parte D:** decisiones D-1 a D-5,
-  criterios de 11–13 y pasos aprobados (abajo, en «Tareas»). **Tarea 11 terminada y en commits.**
-  **Tarea 13 y paso 12a hechos, revisados y en commits.** **Subpaso 12b-1 terminado y revisado** (a falta
-  del commit de los usuarios): tabla `course_copies` (`CourseCopyEntity`, `CourseCopyDao`,
-  `RoomCourseCopyStore` en `app/.../data/course/`), `ProgressDatabase` v2 y cadena
-  `CachingCourseGateway(OfflineCourseGateway(http, RoomCourseCopyStore))` en `AppContainer` compartiendo
-  una única instancia `progressDatabase` (sin acoplar `courseGateway` a `sessionStore`).
-- **Paso que toca:** **12b-2** (propuesta ya aprobada; mismo chat o Gemini Neon · alto):
-  `CourseCopyRequester`, `CourseCopyLauncher` sobre `appScope` (relanza `CancellationException`, captura
-  `Exception` como precarga *best-effort*), `EnrollmentViewModel`, cableado quirúrgico en `MainNavGraph`,
-  tests (`CourseCopyLauncherTest`, `EnrollmentViewModelTest`, `AppContainerInitTest`, `AppContainerTest`) y
-  pasos de prueba en el emulador.
-- **Pruebas de emulador al cierre de D (tras 12b):** las dos de la tarea 13 (modo avión cerrando desde
-  Recientes + 401 borrando la fila de sesión) y la de 12b (inscribirse, abrir camino, modo avión, fondo,
-  `am kill`, volver → el camino sale de la copia y la práctica abre). Todas escriben en la base de
-  desarrollo: las ejecutan los usuarios.
-- **Lo que hay que saber para seguir:**
-  - El orden es 11a → 11b → 11c → 13a → 13b → 12a → 12b (D-5). Queda solo la tarea **12** (12a y 12b).
-  - `SessionProgressSync` (11a) es el único sitio que trata el 401 (borra la sesión con `clearIfCurrent`);
-    lo ejecuta `ProgressSyncWorker` (13b) y la interfaz reacciona a «no hay sesión estando en `Main`» (11c-3).
+- **Dónde estamos (2026-11-26):** **partes C y D terminadas** (a falta del commit de los usuarios para
+  `12b-2` + cierre de D). Todas las tareas 7–13 están implementadas, revisadas, probadas con tests
+  automáticos y verificadas de punta a punta en el emulador por los usuarios:
+  - **11 (sesión cifrada):** DataStore 1.3.0 + Keystore (AES-256-GCM en `noBackupFilesDir`), arranque según
+    sesión (`StartViewModel`, `StartNavigation`, `GradusNavHost`) y `SessionProgressSync` para el 401.
+  - **13 (WorkManager):** WorkManager 2.12.0 (`ProgressSyncWorker`, `WorkSyncRequester`,
+    `backgroundSyncDecision`), `StartViewModel` sincroniza al arrancar con sesión, borrado
+    `ProgressSyncLauncher`.
+  - **12 (copia local de cursos):** `encodeCourseVersion`, `CourseCopyStore`, `OfflineCourseGateway`, tabla
+    `course_copies` en `ProgressDatabase` v2, cadena en `AppContainer` y precarga *best effort* en `appScope`
+    tras inscribirse (`CourseCopyRequester`, `CourseCopyLauncher`, `EnrollmentViewModel`).
+  - Detalle de todos los pasos de C y D: `docs/tareas/progreso-app-historico.md`. Referencia viva:
+    `docs/arquitectura-progreso.md`.
+- **Tests en verde al cerrar D:** `sharedLogic` 64 clases / 806 tests (0 fallos); `app` JVM 22 clases / 316
+  tests (0 fallos); instrumentados de D verificados por paso + pruebas de punta a punta en el emulador.
+- **Siguiente (tarea 14 — cierre, coordinada desde `seguimiento-progreso.md`):**
+  1. Congelar el esquema de `ProgressDatabase` v2 (C-4): exportar el esquema (`exportSchema = true` + carpeta
+     de esquemas en Room/KSP) y quitar `fallbackToDestructiveMigration(dropAllTables = true)`.
+  2. Ejecutar la **batería completa** de tests (`:sharedLogic:testAndroidHostTest`, `:app:testDebugUnitTest`,
+     `:app:connectedDebugAndroidTest` sin filtro y `mvn test` en `backend/`).
+  3. Repaso final y actualizar `docs/especificacion.md` (§4.4 y §8).
+- **Lo que hay que saber al continuar o mergear:**
   - Al iniciar sesión, `GradusNavHost` espera a `start == SignedIn` antes de `enterHome()` (11c-3) y
-    `StartViewModel` solo pide sincronizar si el primer estado tras `Loading` es `SignedIn` (13b-2): si se
-    toca el flujo de Login, conservar ambos.
-  - En 12b, `ProgressDatabase` pasa a la versión 2 (tabla `course_copies`): en desarrollo, el destructivo
-    borra lo local una vez; volverá del servidor al sincronizar. También volverá `appScope` a `AppContainer`
-    (quitado en 13b-2 por no tener uso) para lanzar la descarga de la copia del curso tras inscribirse.
-  - Gradle: DataStore 1.3.0 (11b) y WorkManager 2.12.0 + `work-testing` 2.12.0 (13b-1) ya están añadidos.
-    12a y 12b no necesitan dependencias nuevas.
+    `StartViewModel` solo pide sincronizar si el primer estado tras `Loading` es `SignedIn` (13b-2):
+    conservar ambos.
+  - Gradle: Room 2.8.5 + KSP 2.3.14 (C-1), DataStore 1.3.0 (11b) y WorkManager 2.12.0 + `work-testing`
+    2.12.0 (13b-1) ya están añadidos. Todo lo que hay que vigilar al mergear con `dev/joel` está en
+    `docs/arquitectura-progreso.md` («Qué cuidar al mergear»).
 - **Abierto (para después, no es de D):** inscribirse desde el camino (C-6); la página definitiva del
   curso; «Mis cursos» con los cursos inscritos (D-3: sin ella, la copia solo se usa cuando Android
   restaura el camino); «cerrar sesión» (D-2); en la tarea 14, congelar el esquema de Room (C-4).
@@ -237,7 +237,7 @@ Pasos:
     `enterHome` ni la flecha de Login). `Loading` = un `Box` con el fondo del tema (sin componente nuevo).
     Tests de restauración con `StateRestorationTester`, incluido girar tras iniciar sesión.
 
-### [ ] 12. Copia local del curso al inscribirse (parte D)
+### [x] 12. Copia local del curso al inscribirse (parte D)
 
 Sin red, el camino y la práctica abren desde la copia del curso. *Acepta si:*
 
@@ -258,7 +258,7 @@ Pasos:
   versión en memoria y `OfflineCourseGateway`. Tests: ida y vuelta de cada tipo de paso y ejercicio y del
   curso de ejemplo; `Found` guarda y otro `Found` sustituye; `Unreachable` con copia → `Found` igual; sin
   copia o ilegible → `Unreachable`; los demás desenlaces pasan y no usan la copia; `search` se delega.
-- [ ] **12b** (app; Sonnet 5.5 · alto). Tabla y DAO, `RoomCourseCopyStore`, `ProgressDatabase` versión 2,
+- [x] **12b** (app; Gemini Neon · alto; revisado el 2026-11-26). Tabla y DAO, `RoomCourseCopyStore`, `ProgressDatabase` versión 2,
   la cadena en `AppContainer` y la descarga tras inscribirse (`EnrollmentViewModel` recibe una
   `fun interface`). Tests: instrumentados del almacén (guardar, leer, sobrescribir, desconocido → `null`);
   `EnrollmentViewModelTest` (pide descargar tras `enroll`; no si no actúa ni si `enroll` lanza).
@@ -267,11 +267,11 @@ Pasos:
   - [x] **12b-1** (revisado el 2026-11-26) `CourseCopyEntity`, `CourseCopyDao` y `RoomCourseCopyStore` en `data/course/`,
     `ProgressDatabase` versión 2, base única y cadena `CachingCourseGateway(OfflineCourseGateway(…))` en
     `AppContainer`, y tests (`RoomCourseCopyStoreTest`, `AppContainerInitTest`, `AppContainerTest`).
-  - [ ] **12b-2** `CourseCopyRequester`, `CourseCopyLauncher` (sobre `appScope`, captura *best-effort* de
+  - [x] **12b-2** (revisado el 2026-11-26) `CourseCopyRequester`, `CourseCopyLauncher` (sobre `appScope`, captura *best-effort* de
     `Exception` relanzando `CancellationException`), `EnrollmentViewModel`, `MainNavGraph`, y tests
     (`CourseCopyLauncherTest`, `EnrollmentViewModelTest`, `AppContainerInitTest`, `AppContainerTest`).
 
-### [ ] 13. WorkManager (parte D)
+### [x] 13. WorkManager (parte D)
 
 Sincronización en segundo plano, también con la app cerrada. *Acepta si:*
 
@@ -293,7 +293,7 @@ Pasos:
 - [x] **13a** (`sharedLogic`, test primero; Gemini Hydrogen · bajo; revisado el 2026-11-26). `backgroundSyncDecision`. Tests: cada
   desenlace; `ServerFailure` en los intentos 0–3 reintenta y en el 4 (el 5.º) se rinde (`runAttemptCount`
   empieza en 0); `Unreachable` reintenta aunque sea el intento 100.
-- [ ] **13b** (app + Gradle: WorkManager; Opus 5.5 · medio). `ProgressSyncWorker`, `WorkSyncRequester`,
+- [x] **13b** (app + Gradle: WorkManager; Gemini Carbon · medio; revisado el 2026-11-26). `ProgressSyncWorker`, `WorkSyncRequester`,
   `AppContainer`, `MainActivity` y `MainNavGraph` con el requester nuevo, `StartViewModel` pide sincronizar
   al arrancar con sesión, y borrar `ProgressSyncLauncher` y su test. Tests: con `WorkManagerTestInitHelper`,
   un solo trabajo con red y espera creciente, dos peticiones dejan uno, sin red no corre y con las
@@ -313,50 +313,15 @@ Pasos:
 
 ## Progreso
 
-- 2026-11-25/26: parte C terminada (detalle en `progreso-app-historico.md`).
-- 2026-11-26: parte D planificada: decisiones D-1 a D-5, criterios de 11–13 y pasos aprobados por los
-  usuarios.
-- 2026-11-26: **tarea 11 terminada** (11a, 11b, 11c-1, 11c-2 y 11c-3; detalle de cada paso, decisiones de
-  revisión y modelos en `progreso-app-historico.md`). Última pasada del orquestador (11c-3): JVM de `app`
-  300/300 (22 clases) e instrumentados `GradusNavHostStartTest` + `AppContainerTest` 14/14. Probada
-  parcialmente en el emulador por los usuarios sin fallos; se reconfirmará de punta a punta con modo avión
-  y `am kill` en 13b/12b.
-- 2026-11-26: **13a revisado y aprobado**: `BackgroundSyncDecision` (`Done` | `Retry` | `GiveUp`),
-  `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` en `sharedLogic` (con
-  `require(attempt >= 0)`). Revisión del orquestador: `:sharedLogic:testAndroidHostTest --rerun` en verde
-  (61 clases, 781 tests, 0 fallos; `BackgroundSyncDecisionTest` 10/10).
-- 2026-11-26: **13b-1 revisado y aprobado:** WorkManager `2.12.0` (`work-runtime` + `work-testing`,
-  `checkAarMetadata` en verde con `compileSdk 37`, sin avisos nuevos ni deprecación en
-  `ExistingWorkPolicy.REPLACE`), `ProgressModule.sessionSync` + `AppContainer.sessionProgressSync`,
-  `ProgressSyncWorker` (con `factory(sessionSync)`) y `WorkSyncRequester` (`progress-sync`, `REPLACE`,
-  `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL` de 30 s). Revisión del orquestador: JVM de `app`
-  300/300 (22 clases) e instrumentados `ProgressSyncWorkerTest` (10/10) + `WorkSyncRequesterTest` (8/8) =
-  18/18 (0 fallos).
-- 2026-11-26: **13b-2 revisado y aprobado:** `AppContainer.progressSync` (`WorkSyncRequester`), borrados
-  `ProgressSyncLauncher`, `ProgressSyncLauncherTest` y `appScope` sin usar, `StartViewModel` pide sincronizar
-  una sola vez solo cuando el primer estado tras `Loading` es `SignedIn` (`initialHandled` en `.onEach` antes
-  de `.stateIn`), cableado en `MainActivity` y `MainNavGraph`. Revisión del orquestador: JVM de `app`
-  300/300 (21 clases, 0 fallos) e instrumentados `AppContainerTest` (6) + `GradusNavHostStartTest` (10) +
-  `ProgressSyncWorkerTest` (10) + `WorkSyncRequesterTest` (8) = 34/34 en el mismo proceso (0 fallos).
-  Pendientes las dos pruebas de emulador de los usuarios (modo avión cerrando desde recientes y 401 borrando
-  la sesión en la base) para marcar la tarea 13 `[x]`.
-- 2026-11-26: **12a revisado y aprobado:** `encodeCourseVersion` en `course/http/CourseDtoEncoder.kt`
-  (compartiendo `internal val courseJson` desde `CourseDtoMappers.kt`; ids de opción `"o$index"` y
-  `MultipleChoice.correct.sorted()`, `formatVersion = 1` y `mastery` omitido cuando es `null`), puerto
-  `CourseCopyStore` + `InMemoryCourseCopyStore` (`MutableStateFlow`) y *Decorator*
-  `OfflineCourseGateway(delegate, copies)`. Revisión del orquestador: `:sharedLogic:testAndroidHostTest --rerun`
-  en verde (64 clases, 806 tests, 0 fallos; `CourseDtoEncoderTest` 8/8, `InMemoryCourseCopyStoreTest` 4/4,
-  `OfflineCourseGatewayTest` 13/13).
-- 2026-11-26: **12b-1 revisado y aprobado:** tabla `course_copies` (`CourseCopyEntity`), `CourseCopyDao`
-  (`INSERT OR REPLACE`, SQLite 3.22 / `minSdk` 29) y `RoomCourseCopyStore` en `app/.../data/course/`;
-  `ProgressDatabase` sube a versión 2 con `courseCopyDao()`; `AppContainer` comparte una sola instancia
-  `progressDatabase` entre `progress` y `courseGateway = CachingCourseGateway(OfflineCourseGateway(http,
-  RoomCourseCopyStore(...)))` sin acoplar `courseGateway` a `sessionStore`. Revisión del orquestador:
-  `:app:testDebugUnitTest --rerun` 301/301 (21 clases, 0 fallos) e instrumentados `RoomCourseCopyStoreTest`
-  (8) + `AppContainerTest` (7) + `RoomProgressSyncTest` (6) = 21/21 (0 fallos).
+- 2026-11-25/26: **parte C terminada** (tareas 7–10; detalle en `progreso-app-historico.md`).
+- 2026-11-26: **parte D terminada** (tareas 11, 13 y 12; decisiones D-1 a D-5, pasos 11a–11c-3, 13a–13b-2 y
+  12a–12b-2 revisados en código y probados en el emulador por los usuarios; detalle en
+  `progreso-app-historico.md`). Estado final de tests al cierre de D: `sharedLogic` 64 clases / 806 tests y
+  `app` JVM 22 clases / 316 tests (0 fallos), más todos los instrumentados de D en verde.
 
 ## Siguiente paso
 
-1. Commit de **12b-1** (por los usuarios).
-2. **12b-2** (propuesta ya aprobada): `CourseCopyRequester`, `CourseCopyLauncher` sobre `appScope`,
-   `EnrollmentViewModel`, `MainNavGraph`, tests y pasos de prueba en el emulador.
+1. Commit de **12b-2** + cierre de la parte D (por los usuarios).
+2. **Tarea 14 (cierre)** en `docs/tareas/seguimiento-progreso.md`: congelar el esquema de Room (C-4),
+   batería completa de tests (incluidos todos los instrumentados) y actualizar `docs/especificacion.md`
+   §4.4 y §8.

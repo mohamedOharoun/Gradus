@@ -58,4 +58,12 @@ class AppContainerInitTest {
 
         assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
     }
+
+    // 12b-2: la precarga de cursos usa courseGateway (Room), así que también necesita Context.
+    @Test
+    fun course_copy_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.courseCopy }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
 }

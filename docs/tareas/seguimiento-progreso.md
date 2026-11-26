@@ -6,8 +6,8 @@ Que un usuario se **inscriba** en un curso, estudie (también sin conexión) y s
 Este documento es el **índice común**: decisiones, contrato, reparto en partes y acuerdos. El detalle
 de cada parte vive en su propio documento, para que cada orquestador lea solo lo suyo.
 
-Estado: **partes A (backend), B (`sharedLogic`) y C (app) terminadas; contrato congelado** (2026-11-26).
-Siguiente: parte D. Rama: `dev/course-progress-tracking`.
+Estado: **partes A (backend), B (`sharedLogic`), C (app) y D (sin conexión) terminadas; contrato congelado** (2026-11-26).
+Siguiente: tarea 14 (cierre). Rama: `dev/course-progress-tracking`.
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -38,18 +38,19 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     deja estudiar sin inscripción, guarda el progreso en Room por usuario y lo sincroniza tras iniciar
     sesión, inscribirse y dominar. Probado de punta a punta por los usuarios (con `pm clear`, lo dominado
     vuelve del servidor). Detalle: `docs/tareas/progreso-app.md` y su histórico.
-  - **Parte D en curso:** decisiones D-1 a D-5, criterios y pasos en `docs/tareas/progreso-app.md`. Orden
-    11 → 13 → 12. **Tarea 11 terminada**; **tarea 13 hecha y revisada en código** (pruebas de emulador al
-    cierre de D); **paso 12a terminado y revisado (2026-11-26):** `encodeCourseVersion`, `CourseCopyStore`
-    y `OfflineCourseGateway` en `sharedLogic`.
-- **Lo común que cambia con D:** `SessionStore` ya tiene implementación cifrada en disco sin cambiar el
-  puerto (D-2, hecho); la sincronización ya usa WorkManager y `ProgressSyncLauncher` está borrado (D-4,
-  hecho); falta solo 12b (`ProgressDatabase` v2 con `course_copies`, cadena en `AppContainer` y descarga al
-  inscribirse). Lo nuevo de `sharedLogic` va en ficheros nuevos; los puertos de la parte B no cambian.
-- **Siguiente:** commit de 12a y paso 12b (último paso de código de D; pruebas de emulador de D al cierre).
+  - **Parte D terminada (2026-11-26):** tareas 11 (sesión cifrada y arranque según sesión), 13
+    (sincronización con WorkManager 2.12.0) y 12 (copia local de cursos en `ProgressDatabase` v2 y precarga
+    al inscribirse) terminadas, revisadas y probadas de punta a punta en el emulador por los usuarios.
+    Detalle en `docs/tareas/progreso-app-historico.md` y referencia viva en `docs/arquitectura-progreso.md`.
+- **Lo común que cambió con D (hecho):** `SessionStore` cifrado en disco sin cambiar el puerto (D-2);
+  sincronización con WorkManager 2.12.0 y `ProgressSyncLauncher` borrado (D-4); `ProgressDatabase` en
+  versión 2 con `course_copies` y precarga al inscribirse (D-3). Los puertos de la parte B y el contrato
+  siguen intactos.
+- **Siguiente:** commit de `12b-2` + cierre de D (por los usuarios) y **tarea 14 (cierre)**: congelar el
+  esquema de Room (C-4), pasar la batería completa de tests (`sharedLogic`, `app` JVM + todos los
+  instrumentados y `backend`), repaso final y actualizar `docs/especificacion.md` §4.4 y §8.
 - **Dependencias entre partes:**
-  - A, B y C: **terminadas**.
-  - D: lo que necesitaba de C está hecho. WorkManager (D13) necesita la sesión persistente (D11).
+  - A, B, C y D: **terminadas**. Solo queda el cierre (tarea 14).
 - **Cambios de contrato:** quien necesite cambiar `api-progreso.md` lo propone a los usuarios, lo
   apunta aquí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador. Ningún
   orquestador cambia el contrato por su cuenta después de congelarlo.
@@ -160,5 +161,6 @@ Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquesta
   `docs/arquitectura-progreso.md`. Lo que necesita la parte C, en el Relevo general.
 - 2026-11-26: **parte C terminada** (tareas 7–10 de `progreso-app.md`; lo terminado, en
   `progreso-app-historico.md`). Lo que necesita la parte D, en el Relevo general y en el de `progreso-app.md`.
-- 2026-11-26: parte D planificada (D-1 a D-5) y **tarea 11 terminada** (sesión guardada cifrada y arranque
-  según la sesión; probada parcialmente en el emulador sin fallos, se reconfirmará con 13b/12b).
+- 2026-11-26: **parte D terminada** (tareas 11, 13 y 12: sesión cifrada, WorkManager 2.12.0 y copia local
+  de cursos en Room v2; detalle en `progreso-app-historico.md`). Probada en el emulador por los usuarios.
+  Siguiente: tarea 14 (cierre).

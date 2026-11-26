@@ -4,6 +4,7 @@ import androidx.lifecycle.viewmodel.MutableCreationExtras
 import es.ulpgc.pamn.dominio.account.InMemorySessionStore
 import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.InMemoryProgressStore
+import es.ulpgc.pamn.dominio.data.course.CourseCopyRequester
 import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import es.ulpgc.pamn.dominio.ui.components.EnrollmentState
 import es.ulpgc.pamn.dominio.ui.screens.course.SilentEnrollmentStore
@@ -38,6 +39,10 @@ class EnrollmentViewModelTest {
     private var requests = 0
     private val requester = ProgressSyncRequester { requests++ }
 
+    // 12b-2: recuerda los cursos cuya copia se pidió descargar tras inscribirse.
+    private val requestedCopies = mutableListOf<String>()
+    private val copyRequester = CourseCopyRequester { requestedCopies += it }
+
     @Before
     fun setUp() {
         Dispatchers.setMain(StandardTestDispatcher())
@@ -52,7 +57,7 @@ class EnrollmentViewModelTest {
 
     @Test
     fun `before the first value the state is unknown`() = runTest {
-        val viewModel = EnrollmentViewModel(courseId, SilentEnrollmentStore(), requester)
+        val viewModel = EnrollmentViewModel(courseId, SilentEnrollmentStore(), requester, copyRequester)
         runCurrent()
         assertEquals(EnrollmentState.Unknown, viewModel.state)
     }
@@ -225,6 +230,71 @@ class EnrollmentViewModelTest {
         assertEquals(0, requests)
     }
 
+    // --- Copia del curso (12b-2, D-3) ---
+
+    @Test
+    fun `enrolling requests a course copy once with the courseId`() = runTest {
+        val viewModel = open(loggedInStore())
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(listOf(courseId), requestedCopies)
+    }
+
+    @Test
+    fun `the course copy is requested after enroll finishes, not before`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val viewModel = open(CountingEnrollmentStore(loggedInStore(), gate))
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(emptyList<String>(), requestedCopies)
+        gate.complete(Unit)
+        runCurrent()
+        assertEquals(listOf(courseId), requestedCopies)
+    }
+
+    @Test
+    fun `two taps in a row while enrolling request no copy until finished and then once`() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        val viewModel = open(CountingEnrollmentStore(loggedInStore(), gate))
+        viewModel.onEnroll()
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(emptyList<String>(), requestedCopies)
+        gate.complete(Unit)
+        runCurrent()
+        assertEquals(listOf(courseId), requestedCopies)
+    }
+
+    @Test
+    fun `tapping while the state is unknown requests no course copy`() = runTest {
+        val viewModel = open(SilentEnrollmentStore())
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(emptyList<String>(), requestedCopies)
+    }
+
+    @Test
+    fun `tapping when already enrolled requests no course copy`() = runTest {
+        val store = loggedInStore()
+        store.enroll(courseId)
+        val viewModel = open(store)
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(emptyList<String>(), requestedCopies)
+    }
+
+    @Test
+    fun `when enroll fails no course copy is requested`() {
+        assertThrows(IllegalStateException::class.java) {
+            runTest {
+                val viewModel = open(InMemoryProgressStore(InMemorySessionStore()))
+                viewModel.onEnroll()
+                runCurrent()
+            }
+        }
+        assertEquals(emptyList<String>(), requestedCopies)
+    }
+
     // --- Sin sesión: fallo de programación, no se captura ---
 
     @Test
@@ -246,16 +316,28 @@ class EnrollmentViewModelTest {
     fun `the factory builds a view model that uses the given store`() = runTest {
         val store = loggedInStore()
         store.enroll(courseId)
-        val viewModel = EnrollmentViewModel.factory(courseId, store, requester)
+        val viewModel = EnrollmentViewModel.factory(courseId, store, requester, copyRequester)
             .create(EnrollmentViewModel::class.java, MutableCreationExtras())
         runCurrent()
         assertEquals(EnrollmentState.Enrolled, viewModel.state)
     }
 
+    @Test
+    fun `the factory connects the sync and course copy requesters`() = runTest {
+        val store = loggedInStore()
+        val viewModel = EnrollmentViewModel.factory(courseId, store, requester, copyRequester)
+            .create(EnrollmentViewModel::class.java, MutableCreationExtras())
+        runCurrent()
+        viewModel.onEnroll()
+        runCurrent()
+        assertEquals(1, requests)
+        assertEquals(listOf(courseId), requestedCopies)
+    }
+
     // --- Ayudantes ---
 
     private fun TestScope.open(store: EnrollmentStore): EnrollmentViewModel {
-        val viewModel = EnrollmentViewModel(courseId, store, requester)
+        val viewModel = EnrollmentViewModel(courseId, store, requester, copyRequester)
         runCurrent()
         return viewModel
     }

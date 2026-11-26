@@ -24,7 +24,7 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `ProgressStore` | Puerto: `mastered(courseId): Flow<Set<String>>` y `suspend markMastered(courseId, moduleId)` | *Strategy* |
 | `ProgressSnapshot(enrollments)` → `EnrollmentSnapshot(enrollment, mastered)` | Lo que se envía o se recibe al sincronizar, con la forma del contrato (lo dominado dentro de su inscripción). Las listas no tienen orden garantizado; `isEmpty` = nada que subir (`ProgressSync` llama igual, B-10) | *Value object* / DTO de dominio |
 | `ProgressSyncStore` | Puerto de la sincronización: `suspend pending(userId)` y `suspend settle(userId, sent, remote)`; el usuario va por parámetro (decisión 11) | *Strategy* |
-| `InMemoryProgressStore(sessions, clock)` | Implementa **los tres puertos** con un solo `MutableStateFlow`; la parte C pondrá Room en su lugar | *Interface Segregation* (un objeto, tres puertos pequeños); inyección de dependencias (`SessionStore`, `Clock`) |
+| `InMemoryProgressStore(sessions, clock)` | Implementa **los tres puertos** con un solo `MutableStateFlow`; en la app se usa `RoomProgressStore` (queda para tests en `sharedLogic`) | *Interface Segregation* (un objeto, tres puertos pequeños); inyección de dependencias (`SessionStore`, `Clock`) |
 | `UserProgress` → `CourseProgress` (`internal`) | El estado de un usuario: `courses: courseId → CourseProgress(enrollment, mastered, enrollmentPending, pendingModules)` | Valor inmutable con transformaciones puras (enfoque funcional) |
 | `UserProgress.pending()` y `.settled(sent, remote)` (`internal`, `UserProgressSync.kt`) | Las transformaciones puras de la sincronización | Funciones puras (extensión) |
 | `SyncResponse(remote, skipped)` | Un 200 de la sincronización en el modelo de la app: todo el progreso remoto (`ProgressSnapshot`) y lo omitido | *Value object* |
@@ -34,7 +34,7 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `ProgressGateways.http(baseUrl)` | La única forma de obtener el gateway real desde fuera de `sharedLogic`. `AppContainer` se lo pasa a `ProgressModule` (C8a) | *Factory method* |
 | `FakeProgressGateway(answer)` y `SyncCall(userId, sent)` | Gateway sin red para los tests de `ProgressSync`: responde lo configurado y recuerda **el id del usuario** y lo enviado, nunca la `Session` (el token no queda guardado). `answer` es `suspend` (puede esperar a un `CompletableDeferred`: el test decide cuándo llega la respuesta) y la llamada se apunta antes de responder | *Test double* (fake) |
 | `ProgressSync(store, gateway)` y `suspend sync(session): SyncOutcome` | Caso de uso de la sincronización: sube lo pendiente del usuario de la sesión, fusiona la respuesta y devuelve el desenlace del gateway tal cual | Caso de uso (*Interactor*) sobre dos puertos inyectados (*Strategy*) |
-| `SessionProgressSync(sessions, sync)` y `suspend run(): SessionSyncResult` (11a) | Sincroniza con la sesión **guardada**: sin sesión devuelve `NoSession` sin llamar; si no, `Finished(outcome)` con el desenlace tal cual. Con `SessionExpired` borra la sesión con `clearIfCurrent(session)` (la que se leyó al empezar). Es **el único sitio que trata el 401**; la interfaz solo reacciona a «la sesión se ha borrado». Lo usará el `Worker` (13b) | Caso de uso que compone dos puertos |
+| `SessionProgressSync(sessions, sync)` y `suspend run(): SessionSyncResult` (11a) | Sincroniza con la sesión **guardada**: sin sesión devuelve `NoSession` sin llamar; si no, `Finished(outcome)` con el desenlace tal cual. Con `SessionExpired` borra la sesión con `clearIfCurrent(session)` (la que se leyó al empezar). Es **el único sitio que trata el 401**; la interfaz solo reacciona a «la sesión se ha borrado». Lo ejecuta `ProgressSyncWorker` (13b) | Caso de uso que compone dos puertos |
 | `SessionSyncResult` (`NoSession \| Finished(outcome)`) | Qué pasó al sincronizar con la sesión guardada | Jerarquía sellada (tipo suma) |
 | `BackgroundSyncDecision` (`Done \| Retry \| GiveUp`), `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` (13a) | Política de reintento del trabajo en segundo plano (sin acoplar a WorkManager): `NoSession` o `Synced` → `Done`; `Unreachable` → `Retry` siempre; `ServerFailure` → `Retry` en intentos `0..3` y `GiveUp` desde `4` (5.º intento, `runAttemptCount` 0-based); `SessionExpired` → `GiveUp`. `attempt < 0` lanza `IllegalArgumentException` | Jerarquía sellada (tipo suma) y función pura |
 
@@ -86,6 +86,8 @@ Paquete `app/.../data/course/` (copias locales de cursos en Room; solo Android, 
 | `CourseCopyEntity` | Tabla `course_copies(course_id, json)`, clave primaria `course_id`. Sin `user_id` ni clave foránea a `enrollments`: las copias son globales al dispositivo | Entidad de persistencia |
 | `CourseCopyDao` | `save(copy)` con `@Insert(onConflict = OnConflictStrategy.REPLACE)` (compatible con SQLite 3.22 / `minSdk` 29) y `loadJson(courseId): String?` | *DAO* |
 | `RoomCourseCopyStore(dao)` | Implementa `CourseCopyStore` sobre `CourseCopyDao`. En `AppContainer`, `courseGateway` es `CachingCourseGateway(OfflineCourseGateway(http, RoomCourseCopyStore))` | *Adapter* del puerto |
+| `CourseCopyRequester` (12b-2) | `fun interface` con `requestCopy(courseId)` (no `suspend`): pide precargar la copia local sin esperar al resultado. Es lo único que recibe `EnrollmentViewModel` | *Command* |
+| `CourseCopyLauncher(gateway, scope)` (12b-2) | Implementa `CourseCopyRequester` lanzando `gateway.course(courseId)` en `appScope` (no se cancela al salir de `ScreenCourseOverview`). Precarga oportunista (*best effort*): descarta desenlaces de fallo sin reintentar, relanza siempre `CancellationException` y captura `Exception` (no `Throwable`) para que un fallo de disco no tumbe la app tras inscribirse bien | *Command*; inyección de dependencias |
 
 Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, conectada a `AppContainer` en
 11c-1):
@@ -133,7 +135,7 @@ Cómo está hecho `InMemoryProgressStore`:
 - **Lo pendiente es estado interno**, no va en `Enrollment` ni en `MasteredModule`:
   `CourseProgress.enrollmentPending` y `CourseProgress.pendingModules` (ids, siempre ⊆
   `mastered.keys`). `enroll` y `markMastered` lo marcan; lo que llega del servidor entra sin marcar.
-  En Room serán una columna `pending` en la tabla de inscripciones y otra en la de dominados.
+  En Room son una columna `pending` en la tabla de inscripciones y otra en la de dominados.
 - **`settle`** es `update { … settled(sent, remote) }`: una sola transformación pura, atómica.
   Como cambia el mismo `StateFlow`, quien escucha `mastered` o `enrolled` se entera de lo fusionado.
 - `progressOf(userId)` es `internal` y de solo lectura: existe para que los tests vean todo el estado
@@ -332,11 +334,12 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   3. **No captures** la `IllegalStateException` de `markMastered`: es el invariante y avisa de un fallo
      de programación (se llegó a dominar sin comprobar `studyAccess`). Taparla escondería el fallo.
   4. Nunca escribas lo dominado por otro camino que no sea `markMastered`.
-- **Inscribirse desde otra pantalla:** `EnrollmentViewModel(courseId, enrollmentStore)` (en
-  `ui/screens/enrollment/`, con su `factory`) + `EnrollButton(state, onEnroll)` (en `ui/components/`).
-  El ViewModel expone un `EnrollmentState` (`Unknown`, `NotEnrolled`, `Enrolling`, `Enrolled`) y el
-  botón solo lo pinta: ninguno navega ni sabe en qué página están. No captures la
-  `IllegalStateException` de `enroll` sin sesión (fallo de programación).
+- **Inscribirse desde otra pantalla:** `EnrollmentViewModel(courseId, enrollmentStore, progressSync,
+  courseCopy)` (en `ui/screens/enrollment/`, con su `factory`) + `EnrollButton(state, onEnroll)` (en
+  `ui/components/`). El ViewModel expone un `EnrollmentState` (`Unknown`, `NotEnrolled`, `Enrolling`,
+  `Enrolled`), pide sincronizar y precargar la copia local tras terminar `enroll`, y el botón solo lo
+  pinta: ninguno navega ni sabe en qué página están. No captures la `IllegalStateException` de `enroll`
+  sin sesión (fallo de programación).
 - **Otra forma de guardar el progreso (otra base de datos, otro servidor):** implementa
   `ProgressStore` y `EnrollmentStore` cumpliendo los invariantes de arriba (por usuario, nada escrito
   si falla, primera fecha, sin sesión). Para sincronizar, implementa también `ProgressSyncStore`:
@@ -398,7 +401,7 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   `&& start == StartState.SignedIn` en la entrada de Login. Lo prueban `GradusNavHostStartTest` y
   `StartNavigationTest`.
 - **Gradle con DataStore (11b) y WorkManager (13b-1):** `datastore = "1.3.0"` (`androidx-datastore`), `work = "2.12.0"` (`androidx-work-runtime` y `androidx-work-testing`) en `gradle/libs.versions.toml`, e `implementation(libs.androidx.datastore)`, `implementation(libs.androidx.work.runtime)` y `androidTestImplementation(libs.androidx.work.testing)` en `app/build.gradle.kts`.
-- **`app/.../data/AppContainer.kt`, progreso y copias (desde 7d; WorkManager 13b; copias 12b-1):**
+- **`app/.../data/AppContainer.kt`, progreso y copias (desde 7d; WorkManager 13b; copias 12b):**
   `private var appContext: Context?`, `private fun requireContext()` y `fun init(context)` (solo cuenta la
   primera llamada). `private val progressDatabase by lazy { ProgressDatabase.create(requireContext()) }` es
   la **única** instancia de Room, compartida entre `progress` (`ProgressModule(progressDatabase, sessionStore,
@@ -407,28 +410,32 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   `courseGateway` a `sessionStore`. Encima de `progress`: `val progressStore: ProgressStore`,
   `val enrollmentStore: EnrollmentStore` y `val sessionProgressSync: SessionProgressSync` (tienen que salir
   del **mismo** `ProgressModule`; lo comprueba `AppContainerTest`). Desde 13b-2, `val progressSync:
-  ProgressSyncRequester by lazy { WorkSyncRequester(WorkManager.getInstance(requireContext())) }`. La sesión
+  ProgressSyncRequester by lazy { WorkSyncRequester(WorkManager.getInstance(requireContext())) }`. Desde
+  12b-2, `private val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)` y
+  `val courseCopy: CourseCopyRequester by lazy { CourseCopyLauncher(courseGateway, appScope) }`. La sesión
   (desde 11c-1): `private val sessions by lazy { DataStoreSessionStore.create(requireContext()) }` (**un solo
   objeto**: DataStore no admite dos activos sobre el mismo fichero), `val sessionStore: SessionStore get() =
   sessions` y `val sessionUpdates: Flow<Session?> get() = sessions.session` (solo para el arranque). Si
   `dev/joel` también toca `AppContainer`, conserva `init`, `requireContext`, `progressDatabase`,
   `courseGateway` (con `OfflineCourseGateway`), `progress`, `progressStore`, `enrollmentStore`,
-  `sessionProgressSync`, `progressSync`, `sessions`, `sessionStore` y `sessionUpdates`. Todo ello (salvo
-  `accountGateway`) necesita `init` (lo comprueban `AppContainerInitTest` y `AppContainerTest`).
+  `sessionProgressSync`, `progressSync`, `appScope`, `courseCopy`, `sessions`, `sessionStore` y
+  `sessionUpdates`. Todo ello (salvo `accountGateway`) necesita `init` (lo comprueban `AppContainerInitTest`
+  y `AppContainerTest`).
 - **`GradusApplication` y el manifiesto (7d):** `GradusApplication : Application` llama a
   `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
-  en `<application>` (una sola línea añadida). Sin ella, usar el progreso o la sesión lanza
-  `IllegalStateException` («AppContainer.init(context) must be called first»). El catálogo y la cuenta no
-  necesitan `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso los
-  tests instrumentados pueden pedir `AppContainer.progressStore` sin tocar los datos.
-- **Fábricas con parámetros nuevos (9b, 8b y 13b-2):** `CourseViewModel.factory(…, progress, enrollment)`,
+  en `<application>` (una sola línea añadida). Sin ella, usar el progreso, la sesión o las copias de cursos
+  lanza `IllegalStateException` («AppContainer.init(context) must be called first»). Solo `accountGateway`
+  no necesita `Context`. Crear el `RoomDatabase` no abre el fichero (lo hace la primera consulta), por eso
+  los tests instrumentados pueden pedir `AppContainer.progressStore` o `AppContainer.courseGateway` sin
+  tocar los datos.
+- **Fábricas con parámetros nuevos (9b, 8b, 13b-2 y 12b-2):** `CourseViewModel.factory(…, progress, enrollment)`,
   `ExerciseViewModel.factory(course, moduleId, progress, enrollment, progressSync, random)`,
-  `EnrollmentViewModel.factory(courseId, enrollment, progressSync)`,
+  `EnrollmentViewModel.factory(courseId, enrollment, progressSync, courseCopy)`,
   `LoginViewModel.factory(accountGateway, sessionStore, progressSync)` y
   `StartViewModel.factory(sessions, progressSync)`. `GradusNavHost` recibe `progressSync` que rellena
   `MainActivity` con `AppContainer.progressSync`. Si `dev/joel` crea estos ViewModel o llama a
-  `GradusNavHost` en otro sitio, tiene que pasar `AppContainer.enrollmentStore` y `AppContainer.progressSync`
-  (si no, no se sincroniza nada y no hay error que lo avise).
+  `GradusNavHost` en otro sitio, tiene que pasar `AppContainer.enrollmentStore`, `AppContainer.progressSync`
+  y `AppContainer.courseCopy` (si no, no se sincroniza ni precarga nada).
 - **`ExerciseViewModel` ya no se alcanza sin inscripción (9b):** el camino no abre la práctica sin
   inscripción (`tapModule`), y la entrada de `Route.Exercise` en `MainNavGraph` vuelve atrás según
   `exerciseViewModel.access` antes de componer `ScreenExercise`. Por eso `markMastered` ya no lanza en
