@@ -14,6 +14,8 @@ import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.course.search.ActiveFilter
 import es.ulpgc.pamn.dominio.ui.components.FiltersButton
 import es.ulpgc.pamn.dominio.ui.components.RemovableFilterChip
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // La fila bajo la caja de búsqueda (Figma «3 · Buscar»): «Filtros n» y un chip quitable por cada
 // filtro aplicado. Si no caben, la fila se desplaza en horizontal.
@@ -42,14 +44,14 @@ fun FilterBar(
             // creador y fecha), así que si se añade otro filtro este código no compilará hasta cubrirlo.
             // Cada rama da lo que se ve y lo que lee TalkBack; el chip es el mismo para todos.
             val (label, removeDescription) = when (filter) {
-                is ActiveFilter.Tag -> tagChipLabel(filter.name) to removeFilterDescription(filter.name)
+                is ActiveFilter.Tag -> UiText.raw(tagChipLabel(filter.name)) to removeFilterDescription(filter.name)
                 is ActiveFilter.Author -> authorChipLabel(filter.name) to removeAuthorFilterDescription(filter.name)
                 is ActiveFilter.Published ->
                     publishedLabel(filter.within) to removePublishedFilterDescription(filter.within)
             }
             RemovableFilterChip(
-                label = label,
-                removeDescription = removeDescription,
+                label = label.asString(),
+                removeDescription = removeDescription.asString(),
                 onRemove = { actions.onRemoveFilter(filter) },
             )
         }

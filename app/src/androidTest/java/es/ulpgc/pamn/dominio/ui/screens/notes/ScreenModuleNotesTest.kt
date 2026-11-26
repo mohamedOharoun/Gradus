@@ -13,12 +13,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.notes.Note
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 // «Mis notas» de un módulo (docs/tareas/notas-camara.md, tarea 4): qué enseña y qué se toca.
 // Las fotos no existen (recuadro gris): aquí se prueba la pantalla, no la lectura de ficheros.
@@ -34,7 +35,7 @@ class ScreenModuleNotesTest {
     private val withoutCaption = Note("n1", "g", "bfs", "notes/n1.jpg", null, now - 86_400_000L)
 
     private fun show(state: ModuleNotesUiState = ModuleNotesUiState("BFS"), actions: ModuleNotesActions = ModuleNotesActions(onTakePhoto = {})) =
-        composeRule.setContent { GradusTheme { ScreenModuleNotes(state, actions, photoFile = { File("no-existe") }) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenModuleNotes(state, actions, photoFile = { File("no-existe") }) } }
 
     private fun button(text: String) = composeRule.onNode(hasClickAction() and hasText(text))
 

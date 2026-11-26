@@ -21,17 +21,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.course.search.SearchStatus
 import es.ulpgc.pamn.dominio.ui.components.CourseCard
 import es.ulpgc.pamn.dominio.ui.components.ProblemMessage
 import es.ulpgc.pamn.dominio.ui.components.RetryButton
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // Lo que hay debajo de la caja de búsqueda según el estado de CourseSearchState (decide aquí, en un
 // solo `if`, qué se enseña). Sin estado: no busca nada, solo avisa con `actions`.
@@ -42,24 +45,23 @@ fun SearchResultsContent(
     modifier: Modifier = Modifier,
 ) {
     val status = search.status
+    val searching = stringResource(R.string.search_searching)
     when {
         // Primera carga: no hay nada que enseñar todavía.
         status is SearchStatus.Loading && search.results.isEmpty() -> Centered(modifier) {
-            CircularProgressIndicator(Modifier.semantics { contentDescription = SEARCHING })
+            CircularProgressIndicator(Modifier.semantics { contentDescription = searching })
         }
         status is SearchStatus.Failed -> Centered(modifier) {
             val message = status.problem.toText()
-            ProblemMessage(message.title, body = message.body, onRetry = actions.onRetry)
+            ProblemMessage(message.title.asString(), body = message.body?.asString().orEmpty(), onRetry = actions.onRetry)
         }
         search.isEmpty -> Centered(modifier) {
             val message = emptyResultsText(search.query)
-            ProblemMessage(message.title, body = message.body)
+            ProblemMessage(message.title.asString(), body = message.body?.asString().orEmpty())
         }
         else -> ResultsList(search, actions, modifier)
     }
 }
-
-private const val SEARCHING = "Buscando cursos"
 
 @Composable
 private fun Centered(modifier: Modifier, content: @Composable () -> Unit) {
@@ -73,15 +75,16 @@ private fun ResultsList(search: CourseSearchState, actions: SearchActions, modif
     // Una posición de lista por consulta: con otra consulta empieza arriba; al volver de un curso
     // (misma consulta) se recupera donde estaba. rememberSaveable la guarda al salir de la pantalla.
     val listState = rememberSaveable(search.query, saver = LazyListState.Saver) { LazyListState() }
+    val searching = stringResource(R.string.search_searching)
     Column(modifier) {
         // Hueco fijo de 4 dp (con 8 dp de aire encima): la barra aparece y desaparece sin empujar la lista.
         Box(Modifier.fillMaxWidth().padding(top = 8.dp).heightIn(min = 4.dp)) {
             if (status is SearchStatus.Loading) {
-                LinearProgressIndicator(Modifier.fillMaxWidth().semantics { contentDescription = SEARCHING })
+                LinearProgressIndicator(Modifier.fillMaxWidth().semantics { contentDescription = searching })
             }
         }
         Text(
-            text = resultsCountText(search.total),
+            text = resultsCountText(search.total).asString(),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             // liveRegion: TalkBack anuncia el número cuando cambia (al acabar cada búsqueda).
@@ -110,10 +113,12 @@ private fun ResultsList(search: CourseSearchState, actions: SearchActions, modif
 // El final de la lista: «Cargar más», su carga o su fallo.
 @Composable
 private fun ListFooter(search: CourseSearchState, actions: SearchActions) {
+    // Fuera de semantics {}: ahí no se puede leer strings.xml.
+    val loadingMore = stringResource(R.string.search_loading_more)
     Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
         when (search.status) {
             is SearchStatus.LoadingMore -> CircularProgressIndicator(
-                Modifier.padding(12.dp).size(24.dp).semantics { contentDescription = "Cargando más cursos" },
+                Modifier.padding(12.dp).size(24.dp).semantics { contentDescription = loadingMore },
             )
             is SearchStatus.MoreFailed -> Column(
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -121,7 +126,7 @@ private fun ListFooter(search: CourseSearchState, actions: SearchActions) {
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(
-                    MORE_FAILED_TEXT,
+                    MORE_FAILED_TEXT.asString(),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -129,7 +134,7 @@ private fun ListFooter(search: CourseSearchState, actions: SearchActions) {
                 RetryButton(onClick = actions.onRetry)
             }
             else -> OutlinedButton(onClick = actions.onLoadMore, modifier = Modifier.heightIn(min = 48.dp)) {
-                Text("Cargar más")
+                Text(stringResource(R.string.search_load_more))
             }
         }
     }

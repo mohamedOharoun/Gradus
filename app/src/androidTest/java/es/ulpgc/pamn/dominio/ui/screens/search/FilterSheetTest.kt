@@ -44,6 +44,7 @@ import es.ulpgc.pamn.dominio.course.search.TagSuggestions
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,7 +70,7 @@ class FilterSheetTest {
         state: FilterSheetState,
         actions: SearchActions = SearchActions(),
         count: DraftCount = DraftCount.Counting,
-    ) = composeRule.setContent { GradusTheme { FilterSheet(state = state, count = count, actions = actions) } }
+    ) = composeRule.setContentInSpanish { GradusTheme { FilterSheet(state = state, count = count, actions = actions) } }
 
     private val heading = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
 
@@ -698,7 +699,7 @@ class FilterSheetTest {
 
     // Las secciones aceptan un `modifier` (AGENTS.md) y lo aplican a la sección entera, no solo a un elemento.
     private fun showSection(section: @Composable (Modifier) -> Unit) =
-        composeRule.setContent { GradusTheme { section(Modifier.width(200.dp).testTag("section")) } }
+        composeRule.setContentInSpanish { GradusTheme { section(Modifier.width(200.dp).testTag("section")) } }
 
     @Test
     fun the_tags_section_applies_the_modifier_it_receives() {

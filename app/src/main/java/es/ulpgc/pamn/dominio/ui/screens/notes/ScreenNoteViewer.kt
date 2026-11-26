@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -31,6 +32,7 @@ import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.notes.Note
 import es.ulpgc.pamn.dominio.ui.components.BackButton
 import es.ulpgc.pamn.dominio.ui.components.ZoomablePhoto
+import es.ulpgc.pamn.dominio.ui.text.asString
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
@@ -61,16 +63,16 @@ fun ScreenNoteViewer(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BackButton(onClick = actions.onBack)
                 Text(
-                    noteFullDate(note.createdAt, today, zone),
+                    noteFullDate(note.createdAt, today, zone).asString(),
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.weight(1f).padding(horizontal = 12.dp).semantics { heading() },
                 )
                 // IconButton mide 40 dp: se agranda a 48 dp (zona táctil mínima).
                 IconButton(onClick = actions.onDelete, modifier = Modifier.size(48.dp)) {
-                    Icon(painterResource(R.drawable.ic_delete), contentDescription = "Eliminar nota", tint = MaterialTheme.colorScheme.error)
+                    Icon(painterResource(R.drawable.ic_delete), contentDescription = stringResource(R.string.note_delete_description), tint = MaterialTheme.colorScheme.error)
                 }
             }
-            val description = noteDescription(note.createdAt, note.caption, today, zone)
+            val description = noteDescription(note.createdAt, note.caption, today, zone).asString()
             ZoomablePhoto(
                 photoFile(note),
                 maxSidePx = side,
@@ -87,15 +89,15 @@ fun ScreenNoteViewer(
 private fun DeleteNoteDialog(deleting: Boolean, actions: NoteViewerActions) {
     AlertDialog(
         onDismissRequest = actions.onDeleteCancel,
-        title = { Text("¿Eliminar esta nota?") },
-        text = { Text("Se borrará la foto de tu móvil. No se puede deshacer.") },
+        title = { Text(stringResource(R.string.note_delete_title)) },
+        text = { Text(stringResource(R.string.note_delete_body)) },
         confirmButton = {
             TextButton(
                 onClick = actions.onDeleteConfirm,
                 enabled = !deleting,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
-            ) { Text(if (deleting) "Eliminando…" else "Eliminar") }
+            ) { Text(stringResource(if (deleting) R.string.action_deleting else R.string.action_delete)) }
         },
-        dismissButton = { TextButton(onClick = actions.onDeleteCancel, enabled = !deleting) { Text("Cancelar") } },
+        dismissButton = { TextButton(onClick = actions.onDeleteCancel, enabled = !deleting) { Text(stringResource(R.string.action_cancel)) } },
     )
 }

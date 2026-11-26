@@ -21,14 +21,15 @@ import es.ulpgc.pamn.dominio.course.Step
 import es.ulpgc.pamn.dominio.course.study.ModuleStudy
 import es.ulpgc.pamn.dominio.course.study.PhotoStep
 import es.ulpgc.pamn.dominio.submission.PhotoRejection
-import es.ulpgc.pamn.dominio.submission.SubmitOutcome
 import es.ulpgc.pamn.dominio.submission.Submission
+import es.ulpgc.pamn.dominio.submission.SubmitOutcome
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
+import kotlin.random.Random
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import kotlin.random.Random
 
 // El paso con foto en pantalla (docs/tareas/ejercicio-foto.md, paso 5c): qué se ve y qué botón avisa de
 // qué en cada estado, y lo que TalkBack necesita. Se ejecuta en el emulador:
@@ -60,7 +61,7 @@ class PhotoStepScreenTest {
         withActions: ExerciseActions = actions,
     ) {
         val study = ModuleStudy.start(course, "bfs", Random(1))!!.updatePhoto("foto", change)
-        composeRule.setContent { GradusTheme { ScreenExercise(study, withActions, photo = ui) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenExercise(study, withActions, photo = ui) } }
     }
 
     private fun PhotoStep.sending() = take("no-existe.jpg").send()

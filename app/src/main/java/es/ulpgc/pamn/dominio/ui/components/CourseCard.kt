@@ -13,12 +13,15 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.data.demoSearchResults
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Un resultado de la búsqueda: título, autor, hasta 3 etiquetas y «20 módulos · oct 2026».
@@ -30,6 +33,9 @@ fun CourseCard(
     modifier: Modifier = Modifier,
 ) {
     val tags = course.tagsPreview()
+    // Fuera de semantics {}: ahí no se puede leer strings.xml (no es un composable).
+    val spoken = course.spokenText().asString()
+    val openLabel = stringResource(R.string.course_open)
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -40,9 +46,9 @@ fun CourseCard(
             modifier = Modifier
                 // Toda la tarjeta se pulsa. Va dentro de la Surface para que la ondulación del
                 // toque se vea encima del fondo y siga sus esquinas redondeadas.
-                .clickable(role = Role.Button, onClickLabel = "Abrir curso", onClick = onClick)
+                .clickable(role = Role.Button, onClickLabel = openLabel, onClick = onClick)
                 // Una sola cosa para TalkBack: lee la frase entera en vez de cada texto suelto.
-                .clearAndSetSemantics { contentDescription = course.spokenText() }
+                .clearAndSetSemantics { contentDescription = spoken }
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
@@ -52,7 +58,7 @@ fun CourseCard(
                 color = MaterialTheme.colorScheme.onSurface,
             )
             Text(
-                text = "por ${course.author.name}",
+                text = stringResource(R.string.detail_by_author, course.author.name),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -66,7 +72,7 @@ fun CourseCard(
                 }
             }
             Text(
-                text = course.metaText(),
+                text = course.metaText().asString(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

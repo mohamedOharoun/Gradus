@@ -30,8 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
@@ -41,6 +42,7 @@ import es.ulpgc.pamn.dominio.notes.Note
 import es.ulpgc.pamn.dominio.ui.components.ErrorText
 import es.ulpgc.pamn.dominio.ui.components.FormTopBar
 import es.ulpgc.pamn.dominio.ui.components.NotePhoto
+import es.ulpgc.pamn.dominio.ui.text.asString
 import java.io.File
 import java.time.LocalDate
 import java.time.ZoneId
@@ -70,7 +72,7 @@ fun ScreenModuleNotes(
     val today = remember { LocalDate.now(zone) }
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
         Column(Modifier.safeDrawingPadding().padding(horizontal = 24.dp, vertical = 16.dp)) {
-            FormTopBar(title = notesTitle(state.moduleTitle), onBack = actions.onBack)
+            FormTopBar(title = notesTitle(state.moduleTitle).asString(), onBack = actions.onBack)
             if (state.notes.isEmpty()) {
                 EmptyNotes(Modifier.weight(1f))
             } else {
@@ -86,7 +88,7 @@ fun ScreenModuleNotes(
                 }
             }
             Spacer(Modifier.height(16.dp))
-            if (state.addFailed) ErrorText(ADD_FAILED, Modifier.padding(bottom = 8.dp))
+            if (state.addFailed) ErrorText(stringResource(R.string.notes_add_failed), Modifier.padding(bottom = 8.dp))
             AddButtons(state.adding, actions)
         }
     }
@@ -96,7 +98,7 @@ fun ScreenModuleNotes(
 private fun EmptyNotes(modifier: Modifier) {
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
         Text(
-            "Aún no tienes notas de este módulo. Haz una foto de tus apuntes.",
+            stringResource(R.string.notes_empty),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -107,21 +109,22 @@ private fun EmptyNotes(modifier: Modifier) {
 // con la acción «Ver la nota».
 @Composable
 private fun NoteCell(note: Note, file: File, today: LocalDate, zone: ZoneId, onOpen: () -> Unit) {
-    val description = noteDescription(note.createdAt, note.caption, today, zone)
+    val description = noteDescription(note.createdAt, note.caption, today, zone).asString()
+    val openLabel = stringResource(R.string.notes_open)
     val side = with(LocalDensity.current) { 160.dp.roundToPx() }
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .clickable(onClickLabel = "Ver la nota", role = Role.Button, onClick = onOpen)
+            .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onOpen)
             .clearAndSetSemantics {
                 contentDescription = description
                 role = Role.Button
-                onClick(label = "Ver la nota") { onOpen(); true }
+                onClick(label = openLabel) { onOpen(); true }
             },
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         NotePhoto(file, maxSidePx = side, modifier = Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(12.dp)))
-        Text(noteDateText(note.createdAt, today, zone), style = MaterialTheme.typography.bodySmall)
+        Text(noteDateText(note.createdAt, today, zone).asString(), style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -134,12 +137,12 @@ private fun AddButtons(adding: Boolean, actions: ModuleNotesActions) {
             onClick = { takePhoto?.invoke() },
             enabled = takePhoto != null && !adding,
             modifier = Modifier.weight(1f).height(56.dp),
-        ) { ButtonLabel(R.drawable.ic_photo_camera, "Hacer foto") }
+        ) { ButtonLabel(R.drawable.ic_photo_camera, stringResource(R.string.photo_take)) }
         OutlinedButton(
             onClick = actions.onFromGallery,
             enabled = !adding,
             modifier = Modifier.weight(1f).height(56.dp),
-        ) { ButtonLabel(R.drawable.ic_add, if (adding) "Añadiendo…" else "De la galería") }
+        ) { ButtonLabel(R.drawable.ic_add, stringResource(if (adding) R.string.notes_adding else R.string.photo_from_gallery)) }
     }
 }
 
@@ -149,5 +152,3 @@ private fun ButtonLabel(icon: Int, text: String) {
     Spacer(Modifier.width(8.dp))
     Text(text)
 }
-
-private const val ADD_FAILED = "No se ha podido añadir la foto. Prueba con otra."

@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
+import es.ulpgc.pamn.dominio.ui.testing.inSpanish
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -38,15 +40,15 @@ class CreatorFieldTest {
     val composeRule = createComposeRule()
 
     private fun show(value: String, onValueChange: (String) -> Unit = {}) =
-        composeRule.setContent { GradusTheme { CreatorField(value, onValueChange) } }
+        composeRule.setContentInSpanish { GradusTheme { CreatorField(value, onValueChange) } }
 
     private fun field() = composeRule.onNode(hasSetTextAction())
 
     // La ayuda es un nodo suelto: se busca en el árbol sin fusionar.
-    private fun hintNode() = composeRule.onNodeWithText(CREATOR_HINT, useUnmergedTree = true)
+    private fun hintNode() = composeRule.onNodeWithText(CREATOR_HINT.inSpanish(), useUnmergedTree = true)
 
     private fun hasFieldDescription() =
-        SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf(CREATOR_FIELD_DESCRIPTION))
+        SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf(CREATOR_FIELD_DESCRIPTION.inSpanish()))
 
     @Test
     fun the_hint_is_shown_when_empty() {
@@ -66,14 +68,14 @@ class CreatorFieldTest {
     fun without_text_there_is_no_clear_button() {
         show(value = "")
 
-        composeRule.onNodeWithContentDescription(CLEAR_CREATOR_DESCRIPTION).assertDoesNotExist()
+        composeRule.onNodeWithContentDescription(CLEAR_CREATOR_DESCRIPTION.inSpanish()).assertDoesNotExist()
     }
 
     @Test
     fun with_text_the_clear_button_is_at_least_48dp() {
         show(value = "Ana")
 
-        composeRule.onNodeWithContentDescription(CLEAR_CREATOR_DESCRIPTION)
+        composeRule.onNodeWithContentDescription(CLEAR_CREATOR_DESCRIPTION.inSpanish())
             .assertWidthIsAtLeast(48.dp)
             .assertHeightIsAtLeast(48.dp)
     }
@@ -83,7 +85,7 @@ class CreatorFieldTest {
         val received = mutableListOf<String>()
         show(value = "Ana", onValueChange = { received += it })
 
-        composeRule.onNodeWithContentDescription(CLEAR_CREATOR_DESCRIPTION).performClick()
+        composeRule.onNodeWithContentDescription(CLEAR_CREATOR_DESCRIPTION.inSpanish()).performClick()
 
         assertEquals(listOf(""), received)
     }
@@ -117,7 +119,7 @@ class CreatorFieldTest {
     @Test
     fun it_follows_the_value_when_the_owner_changes_it() {
         var text by mutableStateOf("Ana")
-        composeRule.setContent { GradusTheme { CreatorField(text, onValueChange = {}) } }
+        composeRule.setContentInSpanish { GradusTheme { CreatorField(text, onValueChange = {}) } }
 
         composeRule.runOnIdle { text = "Jorge" }
 
@@ -157,7 +159,7 @@ class CreatorFieldTest {
             override fun show() {}
             override fun hide() { events += "hide" }
         }
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             CompositionLocalProvider(LocalSoftwareKeyboardController provides keyboard) {
                 GradusTheme { CreatorField("Ana", onValueChange = { events += "change:$it" }) }
             }

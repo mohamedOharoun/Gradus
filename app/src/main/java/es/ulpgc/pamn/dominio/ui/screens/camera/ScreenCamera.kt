@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.ui.screens.camera
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -90,17 +92,17 @@ private fun ColumnScope.PermissionContent(stage: CameraStage.NeedsPermission, fo
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, modifier = Modifier.size(48.dp))
-        Text(permissionText(stage, forSubmission), style = MaterialTheme.typography.bodyLarge)
+        Text(stringResource(permissionText(stage, forSubmission)), style = MaterialTheme.typography.bodyLarge)
         Text(
-            if (forSubmission) "Si no, puedes elegirla «De la galería»." else "Si no, puedes añadir fotos «De la galería».",
+            stringResource(if (forSubmission) R.string.camera_gallery_submission else R.string.camera_gallery_notes),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
     if (stage.permanently) {
-        PrimaryButton(text = "Abrir ajustes", onClick = actions.onOpenSettings)
+        PrimaryButton(text = stringResource(R.string.camera_open_settings), onClick = actions.onOpenSettings)
     } else {
-        PrimaryButton(text = "Permitir la cámara", onClick = actions.onAllowCamera)
+        PrimaryButton(text = stringResource(R.string.camera_allow), onClick = actions.onAllowCamera)
     }
 }
 
@@ -111,20 +113,21 @@ private fun ColumnScope.ShootingContent(capturing: Boolean, failed: Boolean, act
         preview(Modifier.fillMaxSize())
     }
     Spacer(Modifier.height(16.dp))
-    if (failed) ErrorText(CAPTURE_FAILED, Modifier.padding(bottom = 8.dp))
+    if (failed) ErrorText(stringResource(R.string.camera_capture_failed), Modifier.padding(bottom = 8.dp))
     ShutterButton(enabled = !capturing, onClick = actions.onShutter, modifier = Modifier.align(Alignment.CenterHorizontally))
 }
 
 // El disparador: un círculo de 72 dp (más que los 48 dp táctiles). TalkBack lo lee «Hacer foto».
 @Composable
 private fun ShutterButton(enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val shutterLabel = stringResource(R.string.photo_take)
     Surface(
         onClick = onClick,
         enabled = enabled,
         shape = CircleShape,
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
-        modifier = modifier.size(72.dp).semantics { contentDescription = "Hacer foto" },
+        modifier = modifier.size(72.dp).semantics { contentDescription = shutterLabel },
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, modifier = Modifier.size(32.dp))
@@ -149,25 +152,25 @@ private fun ColumnScope.ReviewContent(review: CameraStage.Reviewing, forSubmissi
         )
         if (!forSubmission) {
             FormField(
-                label = "Pie de foto (opcional)",
+                label = stringResource(R.string.camera_caption),
                 value = review.caption,
                 onValueChange = actions.onCaptionChange,
-                error = CAPTION_TOO_LONG.takeIf { review.captionTooLong },
+                error = stringResource(R.string.camera_caption_too_long, MAX_CAPTION_LENGTH).takeIf { review.captionTooLong },
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Done),
             )
         }
     }
     Spacer(Modifier.height(16.dp))
-    if (review.saveFailed) ErrorText(SAVE_FAILED, Modifier.padding(bottom = 8.dp))
+    if (review.saveFailed) ErrorText(stringResource(R.string.camera_save_failed), Modifier.padding(bottom = 8.dp))
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         OutlinedButton(onClick = actions.onRetake, enabled = !review.saving, modifier = Modifier.weight(1f).height(56.dp)) {
-            Text("Repetir")
+            Text(stringResource(R.string.camera_retake))
         }
         PrimaryButton(
             text = when {
-                forSubmission -> "Usar foto"
-                review.saving -> "Guardando…"
-                else -> "Guardar"
+                forSubmission -> stringResource(R.string.camera_use_photo)
+                review.saving -> stringResource(R.string.action_saving)
+                else -> stringResource(R.string.action_save)
             },
             onClick = actions.onSave,
             enabled = !review.saving,
@@ -176,15 +179,11 @@ private fun ColumnScope.ReviewContent(review: CameraStage.Reviewing, forSubmissi
     }
 }
 
-internal fun permissionText(stage: CameraStage.NeedsPermission, forSubmission: Boolean = false): String = when {
-    forSubmission && stage.permanently ->
-        "Para fotografiar tu ejercicio, activa el permiso de cámara en los ajustes del móvil. La foto solo se envía al pulsar «Entregar»."
-    forSubmission -> "Para fotografiar tu ejercicio, Gradus necesita usar la cámara. La foto solo se envía al pulsar «Entregar»."
-    stage.permanently ->
-        "Para fotografiar tus apuntes, activa el permiso de cámara en los ajustes del móvil. Las fotos se quedan en tu móvil."
-    else -> "Para fotografiar tus apuntes, Gradus necesita usar la cámara. Las fotos se quedan en tu móvil."
+@StringRes
+internal fun permissionText(stage: CameraStage.NeedsPermission, forSubmission: Boolean = false): Int = when {
+    forSubmission && stage.permanently -> R.string.camera_permission_submission_settings
+    forSubmission -> R.string.camera_permission_submission
+    stage.permanently -> R.string.camera_permission_notes_settings
+    else -> R.string.camera_permission_notes
 }
 
-private const val CAPTURE_FAILED = "No se ha podido hacer la foto. Inténtalo otra vez."
-private const val SAVE_FAILED = "No se ha podido guardar la foto. Inténtalo otra vez."
-private val CAPTION_TOO_LONG = "Como mucho $MAX_CAPTION_LENGTH caracteres"

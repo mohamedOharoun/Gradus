@@ -17,36 +17,39 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.components.BackButton
 import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // La pantalla del curso mientras no hay camino: descargando o con un problema.
 // Siempre con «atrás», para no quedarse atrapado si el servidor no responde.
 
-data class CourseProblemText(val title: String, val body: String)
+data class CourseProblemText(val title: UiText, val body: UiText)
 
 fun CourseProblem.toText(): CourseProblemText = when (this) {
-    CourseProblem.NOT_FOUND ->
-        CourseProblemText("Este curso no existe", "Puede que su autor lo haya retirado.")
-    CourseProblem.UNREACHABLE ->
-        CourseProblemText("Sin conexión", "No se ha podido descargar el curso. Comprueba la conexión y vuelve a intentarlo.")
-    CourseProblem.UNSUPPORTED_FORMAT ->
-        CourseProblemText("Actualiza Gradus", "Este curso usa un formato más nuevo que esta versión de la app.")
-    CourseProblem.SERVER_FAILURE ->
-        CourseProblemText("Algo ha fallado", "El servidor no ha respondido bien. Vuelve a intentarlo en un momento.")
+    CourseProblem.NOT_FOUND -> problemText(R.string.course_not_found_title, R.string.course_not_found_body)
+    CourseProblem.UNREACHABLE -> problemText(R.string.course_unreachable_title, R.string.course_unreachable_body)
+    CourseProblem.UNSUPPORTED_FORMAT -> problemText(R.string.course_unsupported_title, R.string.course_unsupported_body)
+    CourseProblem.SERVER_FAILURE -> problemText(R.string.course_server_failure_title, R.string.course_server_failure_body)
 }
+
+private fun problemText(title: Int, body: Int) = CourseProblemText(UiText.of(title), UiText.of(body))
 
 @Composable
 fun CourseLoadingContent(onBack: () -> Unit, modifier: Modifier = Modifier) {
     CourseStatusFrame(onBack, modifier) {
-        CircularProgressIndicator(Modifier.semantics { contentDescription = "Descargando el curso" })
+        val loading = stringResource(R.string.course_loading)
+        CircularProgressIndicator(Modifier.semantics { contentDescription = loading })
     }
 }
 
@@ -60,16 +63,16 @@ fun CourseProblemContent(problem: CourseProblem, onRetry: () -> Unit, onBack: ()
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(text.title, style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
+            Text(text.title.asString(), style = MaterialTheme.typography.titleLarge, textAlign = TextAlign.Center)
             Text(
-                text.body,
+                text.body.asString(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
             if (problem.canRetry) {
                 OutlinedButton(onClick = onRetry, modifier = Modifier.padding(top = 8.dp).heightIn(min = 48.dp)) {
-                    Text("Reintentar")
+                    Text(stringResource(R.string.action_retry))
                 }
             }
         }

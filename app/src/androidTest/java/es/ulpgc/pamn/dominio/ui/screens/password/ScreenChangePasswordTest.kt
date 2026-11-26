@@ -22,6 +22,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.model.FailureReason
 import es.ulpgc.pamn.dominio.model.PasswordForm
 import es.ulpgc.pamn.dominio.model.PasswordProblem
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -39,7 +40,7 @@ class ScreenChangePasswordTest {
     private val filled = PasswordForm().withCurrent("Gradus2026!").withNext("Nueva2026?").withConfirmation("Nueva2026?")
 
     private fun show(form: PasswordForm = PasswordForm(), actions: ChangePasswordActions = ChangePasswordActions()) =
-        composeRule.setContent { GradusTheme { ScreenChangePassword(form = form, actions = actions) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenChangePassword(form = form, actions = actions) } }
 
     // Los tres campos de contraseña, en orden.
     private fun field(index: Int) = composeRule.onAllNodes(hasSetTextAction())[index]
@@ -56,7 +57,7 @@ class ScreenChangePasswordTest {
     @Test
     fun each_field_tells_what_is_typed_in_it() {
         var form by mutableStateOf(PasswordForm())
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme {
                 ScreenChangePassword(
                     form = form,

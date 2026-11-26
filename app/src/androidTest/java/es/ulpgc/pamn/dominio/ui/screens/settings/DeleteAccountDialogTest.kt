@@ -17,6 +17,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.model.DeleteAccountForm
 import es.ulpgc.pamn.dominio.model.DeleteProblem
 import es.ulpgc.pamn.dominio.model.FailureReason
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -34,7 +35,7 @@ class DeleteAccountDialogTest {
     private val typed = DeleteAccountForm().withPassword("Gradus2026!")
 
     private fun show(form: DeleteAccountForm = DeleteAccountForm(), actions: DeleteAccountActions = DeleteAccountActions()) =
-        composeRule.setContent { GradusTheme { DeleteAccountDialog(form, actions) } }
+        composeRule.setContentInSpanish { GradusTheme { DeleteAccountDialog(form, actions) } }
 
     private fun button(text: String) = composeRule.onNode(hasClickAction() and hasText(text))
 
@@ -50,7 +51,7 @@ class DeleteAccountDialogTest {
     @Test
     fun typing_the_password_tells_it() {
         var form by mutableStateOf(DeleteAccountForm())
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme { DeleteAccountDialog(form, DeleteAccountActions(onPasswordChange = { form = form.withPassword(it) })) }
         }
 

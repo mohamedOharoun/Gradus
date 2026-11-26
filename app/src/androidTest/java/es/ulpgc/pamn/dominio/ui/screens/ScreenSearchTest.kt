@@ -47,6 +47,9 @@ import es.ulpgc.pamn.dominio.ui.screens.search.SearchActions
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import es.ulpgc.pamn.dominio.ui.testing.InSpanish
+import es.ulpgc.pamn.dominio.ui.testing.inSpanish
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,11 +72,11 @@ class ScreenSearchTest {
         text: String = "",
         actions: SearchActions = SearchActions(),
         filters: FilterSheetState? = null,
-    ) = composeRule.setContent {
+    ) = composeRule.setContentInSpanish {
         GradusTheme { ScreenSearch(text = text, search = search, filters = filters, actions = actions) }
     }
 
-    private fun card(index: Int) = composeRule.onNodeWithContentDescription(demoSearchResults[index].spokenText())
+    private fun card(index: Int) = composeRule.onNodeWithContentDescription(demoSearchResults[index].spokenText().inSpanish())
 
     private fun searching() = composeRule.onNodeWithContentDescription("Buscando cursos")
 
@@ -501,7 +504,7 @@ class ScreenSearchTest {
     @Test
     fun a_new_query_starts_at_the_top_of_the_list() {
         var state by mutableStateOf(searchOf("a", 12, CourseQuery(text = "a")))
-        composeRule.setContent { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } }
         resultsList().performScrollToIndex(11)
         courseCard("a", 11).assertIsDisplayed()
 
@@ -514,7 +517,7 @@ class ScreenSearchTest {
     fun more_results_of_the_same_query_keep_the_position() {
         val query = CourseQuery(text = "a")
         var state by mutableStateOf(searchOf("a", 12, query))
-        composeRule.setContent { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } }
         resultsList().performScrollToIndex(11)
 
         // «Cargar más»: los mismos 12 cursos y 6 más al final.
@@ -530,7 +533,7 @@ class ScreenSearchTest {
         // hace lo mismo (guarda el estado y lo restaura), con la misma consulta.
         val restoration = StateRestorationTester(composeRule)
         val state = searchOf("a", 12, CourseQuery(text = "a"))
-        restoration.setContent { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } }
+        restoration.setContent { InSpanish { GradusTheme { ScreenSearch(text = "", search = state, filters = null, actions = SearchActions()) } } }
         resultsList().performScrollToIndex(11)
 
         restoration.emulateSavedInstanceStateRestore()

@@ -1,0 +1,373 @@
+<!-- English translation of values/strings.xml (docs/tareas/ajustes.md, phase 3, decisions S and W).
+     Same names as in Spanish. Course content is never translated (decision R). -->
+<resources>
+    <string name="app_name">Dominio</string>
+
+    <!-- Settings: language -->
+    <string name="settings_language">Language</string>
+    <string name="language_dialog_title">App language</string>
+    <string name="language_dialog_note">Only the app changes: each course stays in the language its author wrote it in.</string>
+    <string name="language_system">System default</string>
+    <string name="language_spanish">Español</string>
+    <string name="language_english">English</string>
+    <string name="action_cancel">Cancel</string>
+
+    <!-- Common form actions and messages (step 6) -->
+    <string name="action_back">Back</string>
+    <string name="action_retry">Retry</string>
+    <string name="action_next">Next</string>
+    <string name="error_required">This field is required</string>
+    <string name="error_too_short">Write at least %1$d characters</string>
+    <string name="error_too_long">It is too long</string>
+    <string name="error_invalid_email">Enter a valid email, like name@example.com</string>
+    <string name="error_weak_password">The password does not meet the requirements</string>
+    <string name="error_passwords_dont_match">The passwords do not match</string>
+    <string name="error_email_taken">There is already an account with this email. Do you want to log in?</string>
+    <string name="error_terms_not_accepted">Accept the terms to create the account</string>
+    <string name="error_invalid_credentials">Wrong email or password</string>
+    <string name="error_unreachable">Can\'t reach the server. Check your connection and try again.</string>
+    <string name="error_server_failure">Something went wrong on the server. Try again in a few minutes.</string>
+
+    <!-- Fields and password -->
+    <string name="field_name">Name</string>
+    <string name="field_email">Email</string>
+    <string name="field_password">Password</string>
+    <string name="field_password_repeat">Repeat the password</string>
+    <string name="password_show">Show password</string>
+    <string name="password_hide">Hide password</string>
+    <string name="password_rule_min_length">At least 8 characters</string>
+    <string name="password_rule_letter_and_digit">A letter and a number</string>
+    <string name="password_rule_special_character">A special character (!, @, #…)</string>
+    <string name="passwords_match">The passwords match</string>
+    <string name="terms_accept">I accept the terms of use and the privacy policy</string>
+    <string name="step_of_with_label">Step %1$d of %2$d: %3$s</string>
+
+    <!-- Welcome -->
+    <string name="welcome_title">Learn step by step, without skipping the basics.</string>
+    <string name="welcome_body">Each course is a map of concepts. One unlocks when you master the ones before it.</string>
+    <string name="action_create_account">Create account</string>
+    <string name="action_log_in">Log in</string>
+    <string name="welcome_explore">Explore courses without an account</string>
+
+    <!-- Log in -->
+    <string name="login_title">Welcome back</string>
+    <string name="login_body">Log in with your email and password to pick up where you left off.</string>
+    <string name="login_no_account">Don\'t have an account?</string>
+    <string name="action_enter">Log in</string>
+    <string name="action_entering">Logging in…</string>
+
+    <!-- Sign up -->
+    <string name="register_have_account">Already have an account?</string>
+    <string name="register_log_in_link">Log in</string>
+    <string name="action_creating_account">Creating account…</string>
+    <string name="register_step_name">Name</string>
+    <string name="register_name_title">What\'s your name?</string>
+    <string name="register_name_help">This is how instructors and other students will see you.</string>
+    <string name="register_name_caption">That\'s how Gradus works: each concept unlocks when you master the ones before it.</string>
+    <string name="register_step_email">Email</string>
+    <string name="register_email_title">What\'s your email?</string>
+    <string name="register_email_help">You\'ll use it to log in. We don\'t share it with anyone.</string>
+    <string name="register_email_caption">One step mastered! Only the last one left.</string>
+    <string name="register_step_password">Password</string>
+    <string name="register_password_title">Create a password</string>
+    <string name="register_password_help">Type it twice to avoid mistakes.</string>
+
+    <!-- Settings form buttons (they share buttonText with the account forms) -->
+    <string name="action_save">Save</string>
+    <string name="action_saving">Saving…</string>
+    <string name="action_change_password">Change password</string>
+    <string name="action_changing">Changing…</string>
+    <string name="action_delete_account">Delete account</string>
+    <string name="action_deleting">Deleting…</string>
+
+    <!-- Settings (step 7) -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_section_account">Account</string>
+    <string name="settings_section_appearance">Appearance and language</string>
+    <string name="settings_section_interests">Topics you like</string>
+    <string name="settings_section_session">Session</string>
+    <string name="settings_dark_mode">Dark mode</string>
+    <string name="settings_preferred_tags">Preferred tags</string>
+    <string name="settings_log_out">Log out</string>
+    <string name="action_change">Change</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_add">Add</string>
+    <string name="action_understood">Got it</string>
+    <string name="coming_soon">Coming soon</string>
+    <string name="register_added_data">ADDED DETAILS</string>
+
+    <!-- Edit profile -->
+    <string name="profile_title">Edit profile</string>
+    <string name="profile_email_fixed">The email can\'t be changed.</string>
+
+    <!-- Change password -->
+    <string name="password_current">Current password</string>
+    <string name="password_new">New password</string>
+    <string name="password_new_repeat">Repeat the new password</string>
+    <string name="password_wrong_current">The current password is not correct</string>
+    <string name="password_changed_title">Password changed</string>
+    <string name="password_changed_body">We\'ve logged you out on your other devices. You\'re still logged in on this phone.</string>
+    <string name="password_back_to_settings">Back to Settings</string>
+
+    <!-- Delete account -->
+    <string name="delete_title">Delete your account?</string>
+    <string name="delete_body">Your account (name, email and password) will be deleted and you\'ll be logged out on all your devices. This can\'t be undone.</string>
+    <string name="delete_confirm_hint">Enter your password to confirm.</string>
+    <string name="delete_wrong_password">The password is not correct</string>
+    <string name="delete_author_title">It can\'t be deleted</string>
+    <string name="delete_author_body">You have published courses that other people are studying, so your account can\'t be deleted.</string>
+
+    <!-- Preferred tags -->
+    <string name="tags_soon">Soon you\'ll see courses with these tags first in Home and Search.</string>
+    <string name="tags_none">You haven\'t chosen any yet.</string>
+    <string name="tags_new">New tag</string>
+    <string name="tags_yours">Your tags</string>
+    <string name="tags_count">%1$d of %2$d</string>
+    <string name="tags_remove">Remove the tag %1$s</string>
+    <string name="tags_error_empty">Write a tag</string>
+    <string name="tags_error_already_added">You already have that tag</string>
+    <string name="tags_error_full">You can have %1$d at most. Remove one to add another.</string>
+
+    <!-- Course path and course page (step 8a). Course and module titles are written by the author: they
+         are data (%1$s) and are never translated (decision R). -->
+    <string name="list_and">%1$s and %2$s</string>
+    <string name="list_comma">%1$s, %2$s</string>
+    <string name="course_progress">%1$d of %2$d mastered</string>
+    <string name="course_locked">“%1$s” is locked.</string>
+    <string name="course_locked_missing">To unlock “%1$s”, first master %2$s.</string>
+    <string name="course_loading">Downloading the course</string>
+    <string name="course_not_found_title">This course doesn\'t exist</string>
+    <string name="course_not_found_body">Its author may have removed it.</string>
+    <string name="course_unreachable_title">No connection</string>
+    <string name="course_unreachable_body">The course couldn\'t be downloaded. Check your connection and try again.</string>
+    <string name="course_unsupported_title">Update Gradus</string>
+    <string name="course_unsupported_body">This course uses a newer format than this version of the app.</string>
+    <string name="course_server_failure_title">Something went wrong</string>
+    <string name="course_server_failure_body">The server didn\'t respond properly. Try again in a moment.</string>
+    <string name="module_state_mastered">mastered</string>
+    <string name="module_state_frontier">frontier</string>
+    <string name="module_state_locked">locked</string>
+    <string name="module_action_review">review</string>
+    <string name="module_action_practice">practise</string>
+    <string name="module_action_missing">see what\'s missing</string>
+    <string name="sheet_study">Study</string>
+    <string name="sheet_review">Review</string>
+    <string name="sheet_state_to_study">To study</string>
+    <string name="sheet_state_mastered">Mastered</string>
+    <string name="sheet_notes">My notes</string>
+    <string name="sheet_notes_count">My notes · %1$d</string>
+    <string name="sheet_notes_none">My notes, none yet</string>
+    <plurals name="sheet_notes_photos">
+        <item quantity="one">My notes, %1$d photo</item>
+        <item quantity="other">My notes, %1$d photos</item>
+    </plurals>
+    <string name="detail_by_author">by %1$s</string>
+    <string name="detail_start">Start the course</string>
+    <string name="detail_continue">Continue the course</string>
+    <string name="detail_review">Review the course</string>
+    <string name="detail_learn_title">What you\'ll learn</string>
+
+    <!-- Studying a module (step 8b). Questions, options, explanations and titles are the author's: they are
+         data and are never translated (decision R). -->
+    <string name="action_continue">Continue</string>
+    <string name="quoted">“%1$s”</string>
+    <string name="exercise_close">Close and go back to the path</string>
+    <string name="exercise_question_of">Question %1$d of %2$d</string>
+    <string name="exercise_step_of">Step %1$d of %2$d</string>
+    <string name="exercise_check">Check</string>
+    <string name="exercise_correct">Correct!</string>
+    <string name="exercise_wrong">Not correct</string>
+    <string name="exercise_hint_single">Choose one answer.</string>
+    <string name="exercise_hint_multiple">There may be several correct answers: mark them all.</string>
+    <string name="exercise_hint_matching">Tap one item in each column to join them. Tap a joined one to release it.</string>
+    <string name="exercise_solution_single">The answer was “%1$s”.</string>
+    <string name="exercise_solution_multiple_one">The correct one was “%1$s”.</string>
+    <string name="exercise_solution_multiple">The correct ones were %1$s.</string>
+    <string name="exercise_solution_pairs">The pairs were: %1$s.</string>
+    <string name="option_correct">correct</string>
+    <string name="option_wrong">wrong</string>
+    <string name="matching_joined_with">joined with %1$s</string>
+    <string name="matching_not_joined">not joined</string>
+    <string name="check_met">met</string>
+    <string name="check_pending">pending</string>
+    <string name="check_failed">not met</string>
+    <plurals name="test_questions">
+        <item quantity="one">%1$d question</item>
+        <item quantity="other">%1$d questions</item>
+    </plurals>
+    <string name="test_title">Mastery test</string>
+    <string name="test_label">Mastery test · %1$s</string>
+    <string name="test_intro_all">Answer %1$s about “%2$s”. To master it, you need to get them all right.</string>
+    <string name="test_intro_min">Answer %1$s about “%2$s”. To master it, you need at least %3$d right.</string>
+    <string name="test_start">Start the test</string>
+    <string name="test_not_now">Not now</string>
+    <string name="test_see_result">See result</string>
+    <string name="test_passed_title">Module mastered!</string>
+    <plurals name="test_failed_title">
+        <item quantity="one">You were %1$d short of passing</item>
+        <item quantity="other">You were %1$d short of passing</item>
+    </plurals>
+    <string name="test_passed_body">You got %1$d of %2$d right. You now master “%3$s” and what depended on it unlocks.</string>
+    <string name="test_failed_body">You got %1$d of %2$d right. Go over the explanations and try again: you\'ll get other questions.</string>
+    <string name="test_retry">Retake the test</string>
+    <string name="back_to_path">Back to the path</string>
+    <string name="module_done_title">You\'ve finished “%1$s”</string>
+    <string name="module_done_body">This module doesn\'t have a mastery test yet.</string>
+
+    <!-- Photo task -->
+    <string name="photo_instruction">Solve it on paper and take a photo of it for your teacher.</string>
+    <string name="photo_not_published">This course isn\'t published on the server, so photos can\'t be submitted. You can leave it for later.</string>
+    <string name="photo_yours">Your photo</string>
+    <string name="photo_take">Take photo</string>
+    <string name="photo_take_another">Take another</string>
+    <string name="photo_from_gallery">From gallery</string>
+    <string name="photo_remove">Remove the photo</string>
+    <string name="photo_preparing">Preparing the photo…</string>
+    <string name="photo_unreadable">The photo couldn\'t be read. Try another one.</string>
+    <string name="photo_submitted">Submitted · waiting for review</string>
+    <string name="photo_solution">Solution</string>
+    <string name="photo_submit">Submit</string>
+    <string name="photo_submitting">Submitting…</string>
+    <string name="photo_later">Submit later</string>
+    <string name="photo_again">Submit again</string>
+    <string name="photo_go_on">Continue without submitting another</string>
+    <string name="photo_error_unreachable">No connection. Check your network and try again.</string>
+    <string name="photo_error_server">The server couldn\'t receive the photo. Try again in a moment.</string>
+    <string name="photo_error_session_expired">Your session has expired. Log in again to submit.</string>
+    <string name="photo_error_not_found">This exercise is no longer on the server: the course has changed. Leave it for later.</string>
+    <string name="photo_error_missing">The photo is no longer on the phone. Take another.</string>
+    <string name="photo_error_not_jpeg">That image can\'t be submitted. Try another photo.</string>
+    <string name="photo_error_too_large">The photo is too large. Try another one.</string>
+
+    <!-- Notes and camera (step 8c). Each language sets the date order: «24 nov» / «Nov 24». -->
+    <string name="month_short_1">Jan</string>
+    <string name="month_short_2">Feb</string>
+    <string name="month_short_3">Mar</string>
+    <string name="month_short_4">Apr</string>
+    <string name="month_short_5">May</string>
+    <string name="month_short_6">Jun</string>
+    <string name="month_short_7">Jul</string>
+    <string name="month_short_8">Aug</string>
+    <string name="month_short_9">Sep</string>
+    <string name="month_short_10">Oct</string>
+    <string name="month_short_11">Nov</string>
+    <string name="month_short_12">Dec</string>
+    <string name="month_long_1">January</string>
+    <string name="month_long_2">February</string>
+    <string name="month_long_3">March</string>
+    <string name="month_long_4">April</string>
+    <string name="month_long_5">May</string>
+    <string name="month_long_6">June</string>
+    <string name="month_long_7">July</string>
+    <string name="month_long_8">August</string>
+    <string name="month_long_9">September</string>
+    <string name="month_long_10">October</string>
+    <string name="month_long_11">November</string>
+    <string name="month_long_12">December</string>
+    <string name="note_date_short">%2$s %1$d</string>
+    <string name="note_date_short_year">%2$s %1$d, %3$d</string>
+    <string name="note_date_full">%2$s %1$d</string>
+    <string name="note_date_full_year">%2$s %1$d, %3$d</string>
+    <string name="note_description">Note from %1$s</string>
+    <string name="note_description_caption">Note from %1$s: %2$s</string>
+    <string name="notes_title">Notes · %1$s</string>
+    <string name="notes_this_module">this module</string>
+    <string name="notes_empty">You don\'t have notes for this module yet. Take a photo of your notes.</string>
+    <string name="notes_open">Open the note</string>
+    <string name="notes_adding">Adding…</string>
+    <string name="notes_add_failed">The photo couldn\'t be added. Try another one.</string>
+    <string name="note_delete_description">Delete note</string>
+    <string name="note_delete_title">Delete this note?</string>
+    <string name="note_delete_body">The photo will be deleted from your phone. This can\'t be undone.</string>
+    <string name="action_delete">Delete</string>
+    <string name="camera_new_note">New note</string>
+    <string name="camera_new_note_of">New note · %1$s</string>
+    <string name="camera_submission_photo">Exercise photo</string>
+    <string name="camera_submission_photo_of">Exercise photo · %1$s</string>
+    <string name="camera_permission_notes">To photograph your notes, Gradus needs to use the camera. The photos stay on your phone.</string>
+    <string name="camera_permission_notes_settings">To photograph your notes, turn on the camera permission in your phone\'s settings. The photos stay on your phone.</string>
+    <string name="camera_permission_submission">To photograph your exercise, Gradus needs to use the camera. The photo is only sent when you tap “Submit”.</string>
+    <string name="camera_permission_submission_settings">To photograph your exercise, turn on the camera permission in your phone\'s settings. The photo is only sent when you tap “Submit”.</string>
+    <string name="camera_gallery_notes">Otherwise, you can add photos “From gallery”.</string>
+    <string name="camera_gallery_submission">Otherwise, you can choose one “From gallery”.</string>
+    <string name="camera_open_settings">Open settings</string>
+    <string name="camera_allow">Allow the camera</string>
+    <string name="camera_capture_failed">The photo couldn\'t be taken. Try again.</string>
+    <string name="camera_save_failed">The photo couldn\'t be saved. Try again.</string>
+    <string name="camera_caption">Caption (optional)</string>
+    <string name="camera_caption_too_long">%1$d characters at most</string>
+    <string name="camera_retake">Retake</string>
+    <string name="camera_use_photo">Use photo</string>
+
+    <!-- Navigation bar and placeholder screens (step 8c) -->
+    <string name="tab_home">Home</string>
+    <string name="tab_search">Search</string>
+    <string name="tab_my_courses">My courses</string>
+    <string name="tab_settings">Settings</string>
+    <string name="home_hello">Hello!</string>
+    <string name="placeholder_note">Placeholder screen</string>
+
+    <!-- Course card and course page (step 9a). Title, author and tags are written by people: passed as data. -->
+    <plurals name="course_modules">
+        <item quantity="one">%d module</item>
+        <item quantity="other">%d modules</item>
+    </plurals>
+    <string name="month_year_short">%1$s %2$d</string>
+    <string name="month_year_long">%1$s %2$d</string>
+    <string name="course_meta">%1$s · %2$s</string>
+    <string name="course_published">published in %1$s</string>
+    <string name="course_open">Open course</string>
+
+    <!-- Search: results (step 9b) -->
+    <string name="search_title">Search courses</string>
+    <string name="search_placeholder">Search by title or description</string>
+    <string name="search_clear">Clear search</string>
+    <plurals name="search_results">
+        <item quantity="one">%d result</item>
+        <item quantity="other">%d results</item>
+    </plurals>
+    <string name="search_unreachable_title">No connection</string>
+    <string name="search_unreachable_body">The search couldn\'t be done. Check your connection and try again.</string>
+    <string name="search_server_failure_title">Something went wrong</string>
+    <string name="search_server_failure_body">The server didn\'t respond properly. Try again in a moment.</string>
+    <string name="search_no_matches_title">No courses match</string>
+    <string name="search_no_matches_body">Try other words.</string>
+    <string name="search_catalog_empty">No courses have been published yet</string>
+    <string name="search_searching">Searching courses</string>
+    <string name="search_loading_more">Loading more courses</string>
+    <string name="search_more_failed">More courses couldn\'t be loaded.</string>
+    <string name="search_load_more">Load more</string>
+
+    <!-- Search: filters (step 9c). Tags and the creator's name are written by people: passed as data. -->
+    <string name="filters">Filters</string>
+    <plurals name="filters_active">
+        <item quantity="one">Filters, %d active</item>
+        <item quantity="other">Filters, %d active</item>
+    </plurals>
+    <string name="filters_no_tags">There are no tags to choose</string>
+    <string name="filters_reset">Reset</string>
+    <string name="filters_close">Close filters</string>
+    <string name="filters_tags_title">Tags</string>
+    <string name="filters_tags_hint">· choose one or more</string>
+    <string name="filters_show_all_tags">See all</string>
+    <string name="filters_show_courses">Show courses</string>
+    <plurals name="filters_show_count">
+        <item quantity="one">Show %d course</item>
+        <item quantity="other">Show %d courses</item>
+    </plurals>
+    <string name="filters_no_courses_match">No courses match</string>
+    <string name="filters_remove">Remove filter %1$s</string>
+    <string name="filters_creator">Creator</string>
+    <string name="filters_creator_hint">Creator\'s name</string>
+    <string name="filters_clear_creator">Clear creator</string>
+    <string name="filters_author_chip">Creator: %1$s</string>
+    <string name="filters_remove_author">Remove creator filter %1$s</string>
+    <string name="filters_published_title">Publication date</string>
+    <string name="published_any">Any time</string>
+    <string name="published_last_month">Last month</string>
+    <string name="published_last_year">Last year</string>
+    <!-- Dates inside a sentence: «Remove filter last year». -->
+    <string name="published_any_inline">any time</string>
+    <string name="published_last_month_inline">last month</string>
+    <string name="published_last_year_inline">last year</string>
+</resources>

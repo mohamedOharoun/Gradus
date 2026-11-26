@@ -17,6 +17,7 @@ import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.Module
 import es.ulpgc.pamn.dominio.course.Publication
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseProblem
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -47,7 +48,7 @@ class ScreenCourseDetailTest {
     private val isHeading = SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading)
 
     private fun show(state: CourseDetailState, actions: CourseDetailActions = CourseDetailActions()) =
-        composeRule.setContent { GradusTheme { ScreenCourseDetail(state, actions) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenCourseDetail(state, actions) } }
 
     @Test
     fun the_course_data_is_shown_with_its_title_as_heading() {

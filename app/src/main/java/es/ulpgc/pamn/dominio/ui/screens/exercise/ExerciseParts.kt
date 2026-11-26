@@ -1,24 +1,25 @@
 package es.ulpgc.pamn.dominio.ui.screens.exercise
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -29,6 +30,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -40,11 +42,12 @@ import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.exercise.ExerciseState
 import es.ulpgc.pamn.dominio.ui.components.MarkdownText
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.EstadoDominado
 
 // Piezas de ScreenExercise, separadas para que ningún fichero sea largo.
 
-// Arriba: cerrar, barra de progreso y «2 / 5». `itemLabel`: qué se cuenta («Paso» o «Pregunta»).
+// Arriba: cerrar, barra de progreso y «2 / 5». `itemOf`: cómo lo lee TalkBack («Paso 2 de 5» o «Pregunta 2 de 5»).
 @Composable
 fun ExerciseTopBar(
     completed: Int,
@@ -52,8 +55,9 @@ fun ExerciseTopBar(
     total: Int,
     onClose: () -> Unit,
     modifier: Modifier = Modifier,
-    itemLabel: String = "Pregunta",
+    @StringRes itemOf: Int = R.string.exercise_question_of,
 ) {
+    val spoken = stringResource(itemOf, position, total)
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -64,7 +68,7 @@ fun ExerciseTopBar(
     ) {
         // 48 dp: en esta versión de Material 3, IconButton mide 40 dp y no llega a la zona táctil mínima.
         IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
-            Icon(painterResource(R.drawable.ic_close), contentDescription = "Cerrar y volver al camino")
+            Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.exercise_close))
         }
         LinearProgressIndicator(
             progress = { if (total == 0) 1f else completed.toFloat() / total },
@@ -78,7 +82,7 @@ fun ExerciseTopBar(
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             // TalkBack leería «2 barra 5»: mejor una frase.
-            modifier = Modifier.padding(end = 12.dp).semantics { contentDescription = "$itemLabel $position de $total" },
+            modifier = Modifier.padding(end = 12.dp).semantics { contentDescription = spoken },
         )
     }
 }
@@ -94,7 +98,7 @@ fun CloseBar(onClose: () -> Unit, modifier: Modifier = Modifier) {
     ) {
         // 48 dp: en esta versión de Material 3, IconButton mide 40 dp y no llega a la zona táctil mínima.
         IconButton(onClick = onClose, modifier = Modifier.size(48.dp)) {
-            Icon(painterResource(R.drawable.ic_close), contentDescription = "Cerrar y volver al camino")
+            Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.exercise_close))
         }
     }
 }
@@ -113,7 +117,7 @@ fun ExerciseBottomBar(
         if (exercise.isChecked) {
             PrimaryButton(text = continueText, onClick = onContinue)
         } else {
-            PrimaryButton(text = "Comprobar", onClick = onCheck, enabled = exercise.canCheck)
+            PrimaryButton(text = stringResource(R.string.exercise_check), onClick = onCheck, enabled = exercise.canCheck)
         }
     }
 }
@@ -121,7 +125,7 @@ fun ExerciseBottomBar(
 // Abajo, en una lección: solo «Continuar».
 @Composable
 fun ContinueBar(onContinue: () -> Unit, modifier: Modifier = Modifier) {
-    BottomPanel(modifier) { PrimaryButton(text = "Continuar", onClick = onContinue) }
+    BottomPanel(modifier) { PrimaryButton(text = stringResource(R.string.action_continue), onClick = onContinue) }
 }
 
 // El panel de abajo, compartido con el paso con foto (PhotoStepBottomBar).
@@ -150,10 +154,10 @@ private fun ResultMessage(correct: Boolean, exercise: ExerciseState) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (correct) {
-            Text("¡Correcto!", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+            Text(stringResource(R.string.exercise_correct), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
         } else {
-            Text("No es correcto", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.error)
-            Text(exercise.question.solution(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+            Text(stringResource(R.string.exercise_wrong), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.error)
+            Text(exercise.question.solution().asString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
         }
         if (exercise.question.explanation.isNotBlank()) {
             MarkdownText(

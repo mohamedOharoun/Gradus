@@ -22,6 +22,9 @@ import es.ulpgc.pamn.dominio.ui.screens.settings.SettingsActions
 import es.ulpgc.pamn.dominio.ui.screens.settings.SettingsScreenState
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
+import es.ulpgc.pamn.dominio.settings.AppLanguage
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
+import es.ulpgc.pamn.dominio.ui.testing.setContentInEnglish
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,9 +47,13 @@ class ScreenSettingsTest {
         onChangePassword: () -> Unit = {},
         onDeleteAccount: () -> Unit = {},
         onEditTags: () -> Unit = {},
-    ) = composeRule.setContent {
+        onChooseLanguage: () -> Unit = {},
+    ) = composeRule.setContentInSpanish {
         GradusTheme {
-            ScreenSettings(state, SettingsActions(onDarkModeChange, onLogOut, onEditProfile, onChangePassword, onDeleteAccount, onEditTags))
+            ScreenSettings(
+                state,
+                SettingsActions(onDarkModeChange, onLogOut, onEditProfile, onChangePassword, onDeleteAccount, onEditTags, onChooseLanguage),
+            )
         }
     }
 
@@ -108,24 +115,24 @@ class ScreenSettingsTest {
         assertEquals(1, logOuts)
     }
 
-    // Decisión A: lo que aún no funciona se ve, pero desactivado.
+    // Fase 3b: la fila dice el idioma de ahora y al tocarla se elige otro.
     @Test
-    fun what_does_not_work_yet_is_disabled() {
-        show()
+    fun the_language_says_which_one_and_opens_the_choice() {
+        var opens = 0
+        show(state = state.copy(language = AppLanguage.ENGLISH), onChooseLanguage = { opens++ })
 
-        listOf("Idioma").forEach {
-            composeRule.onNode(hasText(it) and hasText("Próximamente")).performScrollTo().assertIsNotEnabled()
-        }
+        row("Idioma").performScrollTo().assert(hasText("English")).assertIsEnabled().performClick()
+        assertEquals(1, opens)
     }
 
-    // Todo menos el idioma (fase 3b): perfil, contraseña, modo oscuro, etiquetas, cerrar sesión y eliminar la cuenta.
+    // Ya se puede tocar todo: perfil, contraseña, modo oscuro, idioma, etiquetas, cerrar sesión y eliminar la cuenta.
     @Test
-    fun everything_but_the_language_can_be_touched() {
+    fun everything_can_be_touched() {
         show()
 
         composeRule.onAllNodes(hasClickAction() and SemanticsMatcher("activado") {
             !it.config.contains(SemanticsProperties.Disabled)
-        }).assertCountEquals(6)
+        }).assertCountEquals(7)
     }
 
     @Test
@@ -200,10 +207,22 @@ class ScreenSettingsTest {
         composeRule.onNodeWithText("Eliminar cuenta", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
     }
 
+    // Decisión V: en Android 10–12 no se puede elegir; la fila no dice «Próximamente», sino que sigue al sistema.
     @Test
-    fun the_language_is_not_offered_while_it_does_not_work() {
-        show()
+    fun where_the_language_cannot_be_chosen_it_follows_the_system() {
+        show(state = state.copy(canChooseLanguage = false))
 
-        row("Idioma").assert(hasText("Español").not())
+        composeRule.onNode(hasText("Idioma") and hasText("El del sistema")).performScrollTo().assertIsNotEnabled()
+        composeRule.onNodeWithText("Próximamente").assertDoesNotExist()
+    }
+
+    // Decisión S: con la app en inglés, lo que ya está traducido sale en inglés.
+    @Test
+    fun in_english_the_language_row_is_translated() {
+        composeRule.setContentInEnglish {
+            GradusTheme { ScreenSettings(state.copy(language = AppLanguage.SPANISH), SettingsActions({}, {})) }
+        }
+
+        composeRule.onNode(hasClickAction() and hasText("Language") and hasText("Español")).performScrollTo().assertIsDisplayed()
     }
 }

@@ -1,5 +1,7 @@
 package es.ulpgc.pamn.dominio.ui.screens.settings
 
+import es.ulpgc.pamn.dominio.settings.AppLanguage
+
 // Lo que enseña la pantalla de Ajustes (ajustes.md, tarea 5). A Ajustes solo se llega con la
 // sesión iniciada, así que siempre hay nombre y correo.
 // `darkMode`: cómo está ahora la app (lo elegido o, si no se ha tocado, el del sistema; decisión B).
@@ -9,10 +11,12 @@ data class SettingsScreenState(
     val darkMode: Boolean,
     // Fase 3: las etiquetas preferidas, en su orden.
     val preferredTags: List<String> = emptyList(),
+    // Fase 3b: el idioma de la app y si se puede elegir (Android 13+; decisión V).
+    val language: AppLanguage = AppLanguage.SYSTEM,
+    val canChooseLanguage: Boolean = true,
 )
 
-// Lo que se puede hacer hoy. El idioma (fase 3b) aún no
-// funciona: salen desactivados y no necesitan acción (decisión A).
+// Lo que se puede hacer en Ajustes.
 class SettingsActions(
     val onDarkModeChange: (Boolean) -> Unit,
     val onLogOut: () -> Unit,
@@ -22,4 +26,6 @@ class SettingsActions(
     val onDeleteAccount: () -> Unit = {},
     // Fase 3: abre «Etiquetas preferidas».
     val onEditTags: () -> Unit = {},
+    // Fase 3b: abre la elección de idioma.
+    val onChooseLanguage: () -> Unit = {},
 )

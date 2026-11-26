@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.R
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -36,7 +37,7 @@ class SettingsRowsTest {
     val composeRule = createComposeRule()
 
     private fun show(content: @Composable () -> Unit) =
-        composeRule.setContent { GradusTheme { content() } }
+        composeRule.setContentInSpanish { GradusTheme { content() } }
 
     // La fila entera, en el árbol fusionado (el que ve TalkBack).
     private fun row() = composeRule.onNode(hasClickAction())
@@ -83,7 +84,7 @@ class SettingsRowsTest {
     fun a_disabled_row_says_coming_soon_instead_of_its_value() {
         show { SettingsRow(icon = R.drawable.ic_language, label = "Idioma", value = "Español", onClick = {}, enabled = false) }
 
-        composeRule.onNodeWithText(COMING_SOON).assertExists()
+        composeRule.onNodeWithText("Próximamente").assertExists()
         composeRule.onNodeWithText("Español").assertDoesNotExist()
     }
 
@@ -102,7 +103,7 @@ class SettingsRowsTest {
         show { SettingsRow(icon = R.drawable.ic_logout, label = "Cerrar sesión", onClick = {}) }
 
         row().assertIsEnabled()
-        composeRule.onNodeWithText(COMING_SOON).assertDoesNotExist()
+        composeRule.onNodeWithText("Próximamente").assertDoesNotExist()
     }
 
     // ── SettingsSwitchRow ──
@@ -177,7 +178,7 @@ class SettingsRowsTest {
         show { ProfileRow(name = "Ana", email = "ana@ejemplo.com", onEdit = { edits++ }, editEnabled = false) }
 
         composeRule.onNodeWithText("Ana", useUnmergedTree = true).assertExists()
-        composeRule.onNodeWithText(COMING_SOON, useUnmergedTree = true).assertExists()
+        composeRule.onNodeWithText("Próximamente", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("Editar", useUnmergedTree = true).assertDoesNotExist()
         composeRule.onNodeWithText("Ana").performClick()
         assertEquals(0, edits)

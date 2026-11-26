@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.ui.screens.exercise
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -36,6 +38,7 @@ import es.ulpgc.pamn.dominio.course.study.PhotoTask
 import es.ulpgc.pamn.dominio.ui.components.MarkdownText
 import es.ulpgc.pamn.dominio.ui.components.NotePhoto
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
+import es.ulpgc.pamn.dominio.ui.text.asString
 import java.io.File
 
 // El paso con foto en ScreenExercise (docs/tareas/ejercicio-foto.md, paso 5c y boceto del alumno).
@@ -57,10 +60,11 @@ fun PhotoStepContent(moduleTitle: String, step: PhotoStep, ui: PhotoStepUi, acti
             modifier = Modifier.semantics(mergeDescendants = true) { heading() },
         )
         Text(
-            if (ui.canSubmit) "Resuélvelo en papel y hazle una foto para tu profesor." else NOT_PUBLISHED,
+            stringResource(if (ui.canSubmit) R.string.photo_instruction else R.string.photo_not_published),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        val yourPhoto = stringResource(R.string.photo_yours)
         step.photoPath?.let { path ->
             NotePhoto(
                 File(path),
@@ -70,12 +74,12 @@ fun PhotoStepContent(moduleTitle: String, step: PhotoStep, ui: PhotoStepUi, acti
                     .fillMaxWidth()
                     .height(280.dp)
                     .clip(RoundedCornerShape(12.dp))
-                    .semantics { contentDescription = "Tu foto" },
+                    .semantics { contentDescription = yourPhoto },
             )
         }
         ui.notice?.let { notice ->
             Text(
-                notice.text(),
+                stringResource(notice.text()),
                 style = MaterialTheme.typography.bodyMedium,
                 color = if (notice == PhotoNotice.UNREADABLE) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -84,7 +88,7 @@ fun PhotoStepContent(moduleTitle: String, step: PhotoStep, ui: PhotoStepUi, acti
         if (step.acceptsPhoto && ui.canSubmit) {
             ChoosePhotoButtons(hasPhoto = step.photoPath != null, preparing = ui.notice == PhotoNotice.PREPARING, actions)
             if (step.photoPath != null) {
-                TextButton(onClick = actions.onDiscardPhoto, modifier = Modifier.heightIn(min = 48.dp)) { Text("Quitar la foto") }
+                TextButton(onClick = actions.onDiscardPhoto, modifier = Modifier.heightIn(min = 48.dp)) { Text(stringResource(R.string.photo_remove)) }
             }
         }
     }
@@ -96,7 +100,7 @@ fun PhotoStepBottomBar(step: PhotoStep, ui: PhotoStepUi, actions: ExerciseAction
     BottomPanel(Modifier) {
         (step.task as? PhotoTask.Failed)?.let { failed ->
             Text(
-                failed.problem.text(),
+                failed.problem.text().asString(),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.error,
                 modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
@@ -105,7 +109,7 @@ fun PhotoStepBottomBar(step: PhotoStep, ui: PhotoStepUi, actions: ExerciseAction
         if (step.showsSolution) SubmittedMessage(step.photo.explanation)
         val main = step.mainButton(ui.canSubmit)
         PrimaryButton(
-            text = main.text,
+            text = main.text.asString(),
             enabled = main.enabled,
             onClick = if (step.task == PhotoTask.Sent) actions.onContinue else actions.onSubmitPhoto,
         )
@@ -117,7 +121,7 @@ fun PhotoStepBottomBar(step: PhotoStep, ui: PhotoStepUi, actions: ExerciseAction
                     SecondaryPhotoButton.GO_ON -> actions.onContinue
                 },
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp),
-            ) { Text(secondary.text) }
+            ) { Text(secondary.text.asString()) }
         }
     }
 }
@@ -131,12 +135,12 @@ private fun ChoosePhotoButtons(hasPhoto: Boolean, preparing: Boolean, actions: E
             onClick = { takePhoto?.invoke() },
             enabled = takePhoto != null && !preparing,
             modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-        ) { ButtonLabel(R.drawable.ic_photo_camera, if (hasPhoto) "Hacer otra" else "Hacer foto") }
+        ) { ButtonLabel(R.drawable.ic_photo_camera, stringResource(if (hasPhoto) R.string.photo_take_another else R.string.photo_take)) }
         OutlinedButton(
             onClick = actions.onPickPhoto,
             enabled = !preparing,
             modifier = Modifier.weight(1f).heightIn(min = 56.dp),
-        ) { ButtonLabel(R.drawable.ic_add, "De la galería") }
+        ) { ButtonLabel(R.drawable.ic_add, stringResource(R.string.photo_from_gallery)) }
     }
 }
 
@@ -158,17 +162,18 @@ private fun SubmittedMessage(explanation: String) {
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("Entregada · pendiente de revisión", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+        Text(stringResource(R.string.photo_submitted), style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
         if (explanation.isNotBlank()) {
-            Text("Solución", style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 4.dp))
+            Text(stringResource(R.string.photo_solution), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 4.dp))
             MarkdownText(explanation, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
-private fun PhotoNotice.text(): String = when (this) {
-    PhotoNotice.PREPARING -> "Preparando la foto…"
-    PhotoNotice.UNREADABLE -> "No se ha podido leer la foto. Prueba con otra."
+@StringRes
+private fun PhotoNotice.text(): Int = when (this) {
+    PhotoNotice.PREPARING -> R.string.photo_preparing
+    PhotoNotice.UNREADABLE -> R.string.photo_unreadable
 }
 
 // Se puede poner foto sin foto, con una lista o tras un fallo; no mientras se entrega ni ya entregada.
@@ -177,6 +182,3 @@ internal val PhotoStep.acceptsPhoto: Boolean
 
 // Para verla en pantalla basta una versión reducida (la entregada ya tiene 2000 px como mucho).
 private const val PREVIEW_SIDE_PX = 1080
-
-private const val NOT_PUBLISHED =
-    "Este curso no está publicado en el servidor, así que no se pueden entregar fotos. Puedes dejarlo para más tarde."

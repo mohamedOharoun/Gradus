@@ -1,10 +1,12 @@
 package es.ulpgc.pamn.dominio.ui.navigation
 
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.screens.camera.CameraPurpose
 import es.ulpgc.pamn.dominio.ui.screens.camera.CameraViewModel
@@ -22,7 +24,8 @@ internal fun NavGraphBuilder.takeSubmissionPhotoDestination(navController: NavCo
         )
         CameraRoute(
             cameraViewModel,
-            title = if (title == null) "Foto del ejercicio" else "Foto del ejercicio · $title",
+            title = if (title == null) stringResource(R.string.camera_submission_photo)
+            else stringResource(R.string.camera_submission_photo_of, title),
             onFinished = { used ->
                 if (used != null) navController.previousBackStackEntry?.savedStateHandle?.set(TAKEN_PHOTO_KEY, used)
                 navController.popBackStack()

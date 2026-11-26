@@ -11,9 +11,11 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.search.CourseSearchState
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
 import es.ulpgc.pamn.dominio.ui.components.SearchField
@@ -44,7 +46,7 @@ fun ScreenSearch(
         val margin = Modifier.padding(horizontal = ScreenMargin)
         Column(Modifier.safeDrawingPadding()) {
             Text(
-                text = "Buscar cursos",
+                text = stringResource(R.string.search_title),
                 style = MaterialTheme.typography.headlineLarge,
                 modifier = margin.padding(top = 24.dp, bottom = 16.dp).semantics { heading() },
             )

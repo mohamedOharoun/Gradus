@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.course.ModuleState
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -28,7 +29,7 @@ class ModuleSheetTest {
     val composeRule = createComposeRule()
 
     private fun show(state: ModuleState = ModuleState.FRONTIER, count: Int = 0, actions: ModuleSheetActions = ModuleSheetActions()) =
-        composeRule.setContent { GradusTheme { ModuleSheetContent("BFS", state, count, actions) } }
+        composeRule.setContentInSpanish { GradusTheme { ModuleSheetContent("BFS", state, count, actions) } }
 
     @Test
     fun the_title_is_a_heading_and_the_state_is_said() {

@@ -15,10 +15,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.model.ProfileForm
 import es.ulpgc.pamn.dominio.model.Submission
 import es.ulpgc.pamn.dominio.ui.components.ErrorText
@@ -27,6 +29,8 @@ import es.ulpgc.pamn.dominio.ui.components.FormTopBar
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.components.buttonText
 import es.ulpgc.pamn.dominio.ui.components.toMessage
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // «Editar perfil» (Ajustes → Cuenta → Editar; docs/tareas/ajustes.md, fase 2). No está en Figma: sigue
 // el estilo del inicio de sesión. Sin estado: pinta el formulario que recibe y avisa con `actions`.
@@ -44,7 +48,7 @@ fun ScreenEditProfile(
                 .safeDrawingPadding()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            FormTopBar(title = "Editar perfil", onBack = actions.onBack)
+            FormTopBar(title = stringResource(R.string.profile_title), onBack = actions.onBack)
             // La parte central se desplaza si el teclado no deja sitio; el botón se queda abajo.
             Column(
                 modifier = Modifier
@@ -54,10 +58,10 @@ fun ScreenEditProfile(
                 verticalArrangement = Arrangement.spacedBy(24.dp),
             ) {
                 FormField(
-                    label = "Nombre",
+                    label = stringResource(R.string.field_name),
                     value = form.name,
                     onValueChange = actions.onNameChange,
-                    error = form.nameError?.toMessage(),
+                    error = form.nameError?.toMessage()?.asString(),
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
                 )
                 FixedEmail(email)
@@ -73,10 +77,10 @@ fun ScreenEditProfile(
 private fun FixedEmail(email: String) {
     // mergeDescendants: TalkBack lo lee de una vez, como los campos.
     Column(modifier = Modifier.semantics(mergeDescendants = true) {}, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Correo electrónico", style = MaterialTheme.typography.titleSmall)
+        Text(stringResource(R.string.field_email), style = MaterialTheme.typography.titleSmall)
         Text(email, style = MaterialTheme.typography.bodyLarge)
         Text(
-            "El correo no se puede cambiar.",
+            stringResource(R.string.profile_email_fixed),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -87,9 +91,9 @@ private fun FixedEmail(email: String) {
 // Si falla la red, el aviso va encima y el mismo botón dice «Reintentar».
 @Composable
 private fun SaveButton(form: ProfileForm, onSave: () -> Unit) {
-    (form.submission as? Submission.Failed)?.reason?.toMessage()?.let { ErrorText(it, Modifier.padding(bottom = 8.dp)) }
+    (form.submission as? Submission.Failed)?.reason?.toMessage()?.let { ErrorText(it.asString(), Modifier.padding(bottom = 8.dp)) }
     PrimaryButton(
-        text = form.submission.buttonText(idle = "Guardar", sending = "Guardando…"),
+        text = form.submission.buttonText(UiText.of(R.string.action_save), UiText.of(R.string.action_saving)).asString(),
         onClick = onSave,
         enabled = form.hasChanges && form.submission != Submission.Sending,
     )

@@ -1,18 +1,19 @@
 package es.ulpgc.pamn.dominio.ui.screens.exercise
 
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.Step
 import es.ulpgc.pamn.dominio.course.study.PhotoStep
 import es.ulpgc.pamn.dominio.submission.PhotoRejection
 import es.ulpgc.pamn.dominio.submission.SubmitOutcome
 import es.ulpgc.pamn.dominio.submission.Submission
+import es.ulpgc.pamn.dominio.ui.text.UiText
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
-// Los textos del paso con foto (docs/tareas/ejercicio-foto.md, paso 5c): qué se dice en cada fallo y qué
-// botones hay abajo según el estado.
+// Los textos del paso con foto (docs/tareas/ejercicio-foto.md, paso 5c; con UiText desde ajustes.md, paso 8b):
+// qué se dice en cada fallo y qué botones hay abajo según el estado.
 class PhotoStepTextsTest {
 
     private val empty = PhotoStep(Step.Photo("foto", "Dibuja el grafo.", "Cuatro vértices."))
@@ -26,13 +27,13 @@ class PhotoStepTextsTest {
     // Decisión J: sin conexión, se puede reintentar.
     @Test
     fun `without connection it says so and invites to try again`() {
-        assertEquals("Sin conexión. Comprueba la red y vuelve a intentarlo.", SubmitOutcome.Unreachable.text())
+        assertEquals(UiText.of(R.string.photo_error_unreachable), SubmitOutcome.Unreachable.text())
     }
 
     // Decisión Y.
     @Test
     fun `an expired session asks to log in again`() {
-        assertEquals("Tu sesión ha caducado. Vuelve a iniciar sesión para entregar.", SubmitOutcome.SessionExpired.text())
+        assertEquals(UiText.of(R.string.photo_error_session_expired), SubmitOutcome.SessionExpired.text())
     }
 
     @Test
@@ -45,40 +46,41 @@ class PhotoStepTextsTest {
         ) + PhotoRejection.entries.map { SubmitOutcome.PhotoRejected(it) }
         val texts = problems.map { it.text() }
         assertEquals(texts.size, texts.toSet().size)
-        assertTrue(texts.none { it.isBlank() })
     }
 
     // Una foto rechazada no se reintenta: el texto pide otra.
     @Test
     fun `a rejected photo asks for another one`() {
-        PhotoRejection.entries.forEach { reason ->
-            assertTrue(reason.name, "otra" in SubmitOutcome.PhotoRejected(reason).text())
-        }
+        assertEquals(UiText.of(R.string.photo_error_missing), SubmitOutcome.PhotoRejected(PhotoRejection.MISSING).text())
+        assertEquals(UiText.of(R.string.photo_error_not_jpeg), SubmitOutcome.PhotoRejected(PhotoRejection.NOT_JPEG).text())
+        assertEquals(UiText.of(R.string.photo_error_too_large), SubmitOutcome.PhotoRejected(PhotoRejection.TOO_LARGE).text())
     }
 
     // ── El botón principal ──
 
+    private val submit = UiText.of(R.string.photo_submit)
+
     @Test
     fun `the main button submits, and is only enabled with a photo`() {
-        assertEquals(MainPhotoButton("Entregar", enabled = false), empty.mainButton(canSubmit = true))
-        assertEquals(MainPhotoButton("Entregar", enabled = true), ready.mainButton(canSubmit = true))
+        assertEquals(MainPhotoButton(submit, enabled = false), empty.mainButton(canSubmit = true))
+        assertEquals(MainPhotoButton(submit, enabled = true), ready.mainButton(canSubmit = true))
     }
 
     @Test
     fun `while sending it says so and cannot be pressed`() {
-        assertEquals(MainPhotoButton("Entregando…", enabled = false), ready.send().mainButton(canSubmit = true))
+        assertEquals(MainPhotoButton(UiText.of(R.string.photo_submitting), enabled = false), ready.send().mainButton(canSubmit = true))
     }
 
     @Test
     fun `after a problem that can be retried it retries`() {
-        assertEquals(MainPhotoButton("Reintentar", enabled = true), failed(SubmitOutcome.Unreachable).mainButton(canSubmit = true))
+        assertEquals(MainPhotoButton(UiText.of(R.string.action_retry), enabled = true), failed(SubmitOutcome.Unreachable).mainButton(canSubmit = true))
     }
 
     // Una foto rechazada: «Entregar» queda apagado hasta que se haga otra.
     @Test
     fun `after a rejected photo it waits for another one`() {
         val rejected = failed(SubmitOutcome.PhotoRejected(PhotoRejection.NOT_JPEG))
-        assertEquals(MainPhotoButton("Entregar", enabled = false), rejected.mainButton(canSubmit = true))
+        assertEquals(MainPhotoButton(submit, enabled = false), rejected.mainButton(canSubmit = true))
     }
 
     // Decisión Z: en un curso que no está publicado nunca se puede entregar.
@@ -90,7 +92,7 @@ class PhotoStepTextsTest {
     // Entregada: el principal es «Continuar» (decisión C: no se espera a la revisión).
     @Test
     fun `once sent the main button goes on`() {
-        assertEquals(MainPhotoButton("Continuar", enabled = true), sent.mainButton(canSubmit = true))
+        assertEquals(MainPhotoButton(UiText.of(R.string.action_continue), enabled = true), sent.mainButton(canSubmit = true))
     }
 
     // ── El botón secundario ──
@@ -114,9 +116,9 @@ class PhotoStepTextsTest {
 
     @Test
     fun `each second button says what it does`() {
-        assertEquals("Entregar más tarde", SecondaryPhotoButton.LATER.text)
-        assertEquals("Entregar otra vez", SecondaryPhotoButton.AGAIN.text)
-        assertEquals("Continuar sin entregar otra", SecondaryPhotoButton.GO_ON.text)
+        assertEquals(UiText.of(R.string.photo_later), SecondaryPhotoButton.LATER.text)
+        assertEquals(UiText.of(R.string.photo_again), SecondaryPhotoButton.AGAIN.text)
+        assertEquals(UiText.of(R.string.photo_go_on), SecondaryPhotoButton.GO_ON.text)
     }
 
     @Test

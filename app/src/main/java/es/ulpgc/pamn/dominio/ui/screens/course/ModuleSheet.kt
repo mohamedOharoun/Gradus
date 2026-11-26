@@ -30,6 +30,7 @@ import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.ModuleState
 import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // La hoja de un módulo del camino (docs/tareas/notas-camara.md, boceto 1, decisión S): su título, su
@@ -77,10 +78,10 @@ fun ModuleSheetContent(
                 style = MaterialTheme.typography.titleLarge,
                 modifier = Modifier.weight(1f).semantics { heading() },
             )
-            Text(moduleStateText(state), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+            Text(moduleStateText(state).asString(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
         }
         Spacer(Modifier.height(4.dp))
-        PrimaryButton(text = studyButtonText(state), onClick = actions.onStudy)
+        PrimaryButton(text = studyButtonText(state).asString(), onClick = actions.onStudy)
         NotesButton(noteCount, actions.onOpenNotes)
     }
 }
@@ -88,7 +89,7 @@ fun ModuleSheetContent(
 // «📷 Mis notas · 3». TalkBack lo lee con palabras: «Mis notas, 3 fotos».
 @Composable
 private fun NotesButton(count: Int, onClick: () -> Unit) {
-    val description = notesButtonDescription(count)
+    val description = notesButtonDescription(count).asString()
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier
@@ -99,7 +100,7 @@ private fun NotesButton(count: Int, onClick: () -> Unit) {
         Row(Modifier.clearAndSetSemantics {}, verticalAlignment = Alignment.CenterVertically) {
             Icon(painterResource(R.drawable.ic_photo_camera), contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(8.dp))
-            Text(notesButtonText(count))
+            Text(notesButtonText(count).asString())
         }
     }
 }

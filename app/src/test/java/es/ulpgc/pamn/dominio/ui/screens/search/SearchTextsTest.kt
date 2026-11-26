@@ -2,26 +2,25 @@ package es.ulpgc.pamn.dominio.ui.screens.search
 
 import es.ulpgc.pamn.dominio.course.search.CourseQuery
 import es.ulpgc.pamn.dominio.course.search.SearchProblem
+import es.ulpgc.pamn.dominio.R
+import es.ulpgc.pamn.dominio.ui.text.UiText
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
+// Desde docs/tareas/ajustes.md, paso 9b, los textos se traducen: cada función dice qué texto de
+// strings.xml va y con qué datos.
 class SearchTextsTest {
+
+    private val noMatches = SearchMessage(UiText.of(R.string.search_no_matches_title), UiText.of(R.string.search_no_matches_body))
 
     // --- resultsCountText ---
 
+    // Plural: cada idioma decide la forma («1 resultado», «8 resultados», «0 resultados»).
     @Test
-    fun `one result is singular`() {
-        assertEquals("1 resultado", resultsCountText(1))
-    }
-
-    @Test
-    fun `several results are plural`() {
-        assertEquals("8 resultados", resultsCountText(8))
-    }
-
-    @Test
-    fun `zero results is plural`() {
-        assertEquals("0 resultados", resultsCountText(0))
+    fun `the result count is a plural with the number`() {
+        assertEquals(UiText.plural(R.plurals.search_results, 1), resultsCountText(1))
+        assertEquals(UiText.plural(R.plurals.search_results, 8), resultsCountText(8))
+        assertEquals(UiText.plural(R.plurals.search_results, 0), resultsCountText(0))
     }
 
     // --- SearchProblem.toText ---
@@ -29,7 +28,7 @@ class SearchTextsTest {
     @Test
     fun `unreachable asks to check the connection`() {
         assertEquals(
-            SearchMessage("Sin conexión", "No se ha podido buscar. Comprueba la conexión y vuelve a intentarlo."),
+            SearchMessage(UiText.of(R.string.search_unreachable_title), UiText.of(R.string.search_unreachable_body)),
             SearchProblem.UNREACHABLE.toText(),
         )
     }
@@ -37,7 +36,7 @@ class SearchTextsTest {
     @Test
     fun `server failure asks to try again later`() {
         assertEquals(
-            SearchMessage("Algo ha fallado", "El servidor no ha respondido bien. Vuelve a intentarlo en un momento."),
+            SearchMessage(UiText.of(R.string.search_server_failure_title), UiText.of(R.string.search_server_failure_body)),
             SearchProblem.SERVER_FAILURE.toText(),
         )
     }
@@ -47,7 +46,7 @@ class SearchTextsTest {
     @Test
     fun `empty with text says nothing matches`() {
         assertEquals(
-            SearchMessage("No hay cursos que coincidan", "Prueba con otras palabras."),
+            noMatches,
             emptyResultsText(CourseQuery(text = "zzz")),
         )
     }
@@ -55,7 +54,7 @@ class SearchTextsTest {
     @Test
     fun `empty with only tags says nothing matches`() {
         assertEquals(
-            SearchMessage("No hay cursos que coincidan", "Prueba con otras palabras."),
+            noMatches,
             emptyResultsText(CourseQuery(tags = listOf("grafos"))),
         )
     }
@@ -63,7 +62,7 @@ class SearchTextsTest {
     @Test
     fun `empty with text and tags says nothing matches`() {
         assertEquals(
-            SearchMessage("No hay cursos que coincidan", "Prueba con otras palabras."),
+            noMatches,
             emptyResultsText(CourseQuery(text = "zzz", tags = listOf("grafos"))),
         )
     }
@@ -71,7 +70,7 @@ class SearchTextsTest {
     @Test
     fun `empty without text or tags says there are no published courses`() {
         assertEquals(
-            SearchMessage("Todavía no hay cursos publicados", ""),
+            SearchMessage(UiText.of(R.string.search_catalog_empty)),
             emptyResultsText(CourseQuery.EMPTY),
         )
     }
@@ -81,10 +80,16 @@ class SearchTextsTest {
         assertEquals(emptyResultsText(CourseQuery.EMPTY), emptyResultsText(CourseQuery(text = "   ")))
     }
 
+    // Sin texto debajo: no hay nada que el alumno pueda cambiar.
+    @Test
+    fun `an empty catalog has no body`() {
+        assertEquals(null, emptyResultsText(CourseQuery.EMPTY).body)
+    }
+
     // --- MORE_FAILED_TEXT ---
 
     @Test
     fun `load more failure text`() {
-        assertEquals("No se han podido cargar más cursos.", MORE_FAILED_TEXT)
+        assertEquals(UiText.of(R.string.search_more_failed), MORE_FAILED_TEXT)
     }
 }

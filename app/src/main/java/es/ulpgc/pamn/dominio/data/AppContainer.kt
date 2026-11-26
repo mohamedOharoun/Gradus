@@ -13,6 +13,8 @@ import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.data.notes.AndroidPhotoFiles
 import es.ulpgc.pamn.dominio.data.notes.GradusDatabase
 import es.ulpgc.pamn.dominio.data.notes.RoomNotesStore
+import es.ulpgc.pamn.dominio.data.settings.AndroidLanguageSetting
+import es.ulpgc.pamn.dominio.data.settings.LanguageSetting
 import es.ulpgc.pamn.dominio.data.submission.AndroidSubmissionPhotos
 import es.ulpgc.pamn.dominio.data.submission.SubmissionPhotos
 import es.ulpgc.pamn.dominio.notes.NotesStore
@@ -87,6 +89,9 @@ object AppContainer {
     // Trabajo que debe acabar aunque se cierre la pantalla que lo pidió (borrar fotos temporales).
     // SupervisorJob: si una tarea falla, las demás siguen.
     val backgroundScope: CoroutineScope by lazy { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
+
+    // El idioma de la app (docs/tareas/ajustes.md, fase 3b). Lo recuerda Android (LocaleManager).
+    val languageSetting: LanguageSetting by lazy { AndroidLanguageSetting(appContext) }
 
     // Preferencias de Ajustes (modo oscuro). Se recuerdan al cerrar la app.
     val settingsStore: SettingsStore by lazy {

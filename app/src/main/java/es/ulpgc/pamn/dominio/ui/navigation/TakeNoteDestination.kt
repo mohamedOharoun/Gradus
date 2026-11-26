@@ -1,10 +1,12 @@
 package es.ulpgc.pamn.dominio.ui.navigation
 
+import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.screens.camera.CameraPurpose
 import es.ulpgc.pamn.dominio.ui.screens.camera.CameraViewModel
@@ -22,7 +24,7 @@ internal fun NavGraphBuilder.takeNoteDestination(navController: NavController) {
         // Guardada o abandonada: de vuelta a «Mis notas» (que ya enseña la nota nueva).
         CameraRoute(
             cameraViewModel,
-            title = if (title == null) "Nueva nota" else "Nueva nota · $title",
+            title = if (title == null) stringResource(R.string.camera_new_note) else stringResource(R.string.camera_new_note_of, title),
             onFinished = { navController.popBackStack() },
         )
     }

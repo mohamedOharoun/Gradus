@@ -1,8 +1,12 @@
 package es.ulpgc.pamn.dominio.ui.components
 
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.Author
 import es.ulpgc.pamn.dominio.course.CourseSummary
 import es.ulpgc.pamn.dominio.course.PublishedMonth
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.longMonth
+import es.ulpgc.pamn.dominio.ui.text.shortMonth
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -24,69 +28,65 @@ class CourseTextsTest {
         moduleCount = moduleCount,
     )
 
+    // Los textos se traducen (docs/tareas/ajustes.md, paso 9a): cada función dice qué texto de strings.xml
+    // va y con qué datos. Título, autor y etiquetas los escribe la persona: van tal cual.
+    private val modules20 = UiText.plural(R.plurals.course_modules, 20)
+    private val oct2026 = UiText.of(R.string.month_year_short, shortMonth(10), 2026)
+    private val publishedOct2026 = UiText.of(R.string.course_published, UiText.of(R.string.month_year_long, longMonth(10), 2026))
+    private val byAna = UiText.of(R.string.detail_by_author, "Ana Ruiz")
+
     // --- moduleCountText ---
 
+    // Plural: cada idioma decide la forma («1 módulo», «20 módulos»).
     @Test
-    fun `one module is singular`() {
-        assertEquals("1 módulo", moduleCountText(1))
-    }
-
-    @Test
-    fun `several modules are plural`() {
-        assertEquals("20 módulos", moduleCountText(20))
-    }
-
-    @Test
-    fun `zero modules is plural`() {
-        assertEquals("0 módulos", moduleCountText(0))
+    fun `the module count is a plural with the number`() {
+        assertEquals(UiText.plural(R.plurals.course_modules, 1), moduleCountText(1))
+        assertEquals(modules20, moduleCountText(20))
+        assertEquals(UiText.plural(R.plurals.course_modules, 0), moduleCountText(0))
     }
 
     // --- PublishedMonth.shortLabel / spokenLabel ---
 
     @Test
     fun `short label has the abbreviated month and the year`() {
-        assertEquals("oct 2026", PublishedMonth(2026, 10).shortLabel())
+        assertEquals(oct2026, PublishedMonth(2026, 10).shortLabel())
     }
 
     @Test
     fun `short label of the twelve months`() {
-        val expected = listOf(
-            "ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic",
-        )
-        val actual = (1..12).map { PublishedMonth(2026, it).shortLabel().substringBefore(' ') }
-        assertEquals(expected, actual)
+        (1..12).forEach {
+            assertEquals(UiText.of(R.string.month_year_short, shortMonth(it), 2026), PublishedMonth(2026, it).shortLabel())
+        }
     }
 
+    // «oct 2026» se lee mal en voz alta (TalkBack): el mes entero.
     @Test
     fun `spoken label has the full month`() {
-        assertEquals("octubre de 2026", PublishedMonth(2026, 10).spokenLabel())
+        assertEquals(UiText.of(R.string.month_year_long, longMonth(10), 2026), PublishedMonth(2026, 10).spokenLabel())
     }
 
     @Test
     fun `spoken label of the twelve months`() {
-        val expected = listOf(
-            "enero", "febrero", "marzo", "abril", "mayo", "junio",
-            "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-        )
-        val actual = (1..12).map { PublishedMonth(2026, it).spokenLabel().substringBefore(" de ") }
-        assertEquals(expected, actual)
+        (1..12).forEach {
+            assertEquals(UiText.of(R.string.month_year_long, longMonth(it), 2026), PublishedMonth(2026, it).spokenLabel())
+        }
     }
 
     // --- CourseSummary.metaText ---
 
     @Test
     fun `meta text joins modules and month`() {
-        assertEquals("20 módulos · oct 2026", course().metaText())
+        assertEquals(UiText.of(R.string.course_meta, modules20, oct2026), course().metaText())
     }
 
     @Test
     fun `meta text is singular with one module`() {
-        assertEquals("1 módulo · oct 2026", course(moduleCount = 1).metaText())
+        assertEquals(UiText.of(R.string.course_meta, UiText.plural(R.plurals.course_modules, 1), oct2026), course(moduleCount = 1).metaText())
     }
 
     @Test
     fun `meta text has only the modules when the date is not understood`() {
-        assertEquals("20 módulos", course(publishedAt = "pronto").metaText())
+        assertEquals(modules20, course(publishedAt = "pronto").metaText())
     }
 
     // --- CourseSummary.spokenText (lo que lee TalkBack) ---
@@ -94,8 +94,7 @@ class CourseTextsTest {
     @Test
     fun `spoken text reads title author tags modules and full month`() {
         assertEquals(
-            "Estructuras de datos, por Ana Ruiz, grafos, árboles, algoritmos, " +
-                "20 módulos, publicado en octubre de 2026",
+            joinedWithCommas(listOf("Estructuras de datos", byAna, "grafos", "árboles", "algoritmos", modules20, publishedOct2026)),
             course().spokenText(),
         )
     }
@@ -103,7 +102,7 @@ class CourseTextsTest {
     @Test
     fun `spoken text leaves out the date when it is not understood`() {
         assertEquals(
-            "Estructuras de datos, por Ana Ruiz, grafos, árboles, algoritmos, 20 módulos",
+            joinedWithCommas(listOf("Estructuras de datos", byAna, "grafos", "árboles", "algoritmos", modules20)),
             course(publishedAt = "").spokenText(),
         )
     }
@@ -111,18 +110,16 @@ class CourseTextsTest {
     @Test
     fun `spoken text skips the tags when there are none`() {
         assertEquals(
-            "Estructuras de datos, por Ana Ruiz, 20 módulos, publicado en octubre de 2026",
+            joinedWithCommas(listOf("Estructuras de datos", byAna, modules20, publishedOct2026)),
             course(tags = emptyList()).spokenText(),
         )
     }
 
     @Test
     fun `spoken text reads all the tags even the ones the card hides`() {
-        val text = course(tags = listOf("a", "b", "c", "d", "e")).spokenText()
         assertEquals(
-            "Estructuras de datos, por Ana Ruiz, a, b, c, d, e, 20 módulos, " +
-                "publicado en octubre de 2026",
-            text,
+            joinedWithCommas(listOf("Estructuras de datos", byAna, "a", "b", "c", "d", "e", modules20, publishedOct2026)),
+            course(tags = listOf("a", "b", "c", "d", "e")).spokenText(),
         )
     }
 

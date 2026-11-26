@@ -1,9 +1,13 @@
 package es.ulpgc.pamn.dominio.ui.screens.detail
 
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.Author
 import es.ulpgc.pamn.dominio.course.Course
 import es.ulpgc.pamn.dominio.course.Module
 import es.ulpgc.pamn.dominio.course.Publication
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.longMonth
+import es.ulpgc.pamn.dominio.ui.text.shortMonth
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -20,7 +24,8 @@ class CourseDetailTextsTest {
 
     @Test
     fun `the author line says who published it`() {
-        assertEquals("por Ana Ruiz", course().authorText())
+        // El nombre lo escribe la persona: va como dato, sin traducir.
+        assertEquals(UiText.of(R.string.detail_by_author, "Ana Ruiz"), course().authorText())
     }
 
     @Test
@@ -28,52 +33,56 @@ class CourseDetailTextsTest {
         assertNull(course(publication = null).authorText())
     }
 
-    // --- Módulos y fecha ---
+    // --- Módulos y fecha (traducidos desde ajustes.md, paso 9a; los mismos textos que la tarjeta) ---
+
+    private fun modules(count: Int) = UiText.plural(R.plurals.course_modules, count)
+    private val nov2026 = UiText.of(R.string.month_year_short, shortMonth(11), 2026)
 
     @Test
     fun `the meta line has the modules and the month, like the card in Search`() {
-        assertEquals("2 módulos · nov 2026", course().metaText())
+        assertEquals(UiText.of(R.string.course_meta, modules(2), nov2026), course().metaText())
     }
 
     @Test
     fun `one module is singular`() {
-        assertEquals("1 módulo · nov 2026", course(modules = 1).metaText())
+        assertEquals(UiText.of(R.string.course_meta, modules(1), nov2026), course(modules = 1).metaText())
     }
 
     @Test
     fun `without publication the meta line has only the modules`() {
-        assertEquals("2 módulos", course(publication = null).metaText())
+        assertEquals(modules(2), course(publication = null).metaText())
     }
 
     @Test
     fun `a date that cannot be read leaves only the modules`() {
-        assertEquals("2 módulos", course(publication = published.copy(publishedAt = "ayer")).metaText())
+        assertEquals(modules(2), course(publication = published.copy(publishedAt = "ayer")).metaText())
     }
 
     // «nov 2026» se lee mal en voz alta: TalkBack oye el mes entero.
     @Test
     fun `TalkBack hears the whole month`() {
-        assertEquals("2 módulos, publicado en noviembre de 2026", course().spokenMetaText())
-        assertEquals("2 módulos", course(publication = null).spokenMetaText())
+        val publishedNov2026 = UiText.of(R.string.course_published, UiText.of(R.string.month_year_long, longMonth(11), 2026))
+        assertEquals(UiText.of(R.string.list_comma, modules(2), publishedNov2026), course().spokenMetaText())
+        assertEquals(modules(2), course(publication = null).spokenMetaText())
     }
 
     // --- Progreso y botón ---
 
     @Test
     fun `with nothing mastered the button starts the course and there is no progress line`() {
-        assertEquals("Empezar el curso", startButtonText(masteredCount = 0))
+        assertEquals(UiText.of(R.string.detail_start), startButtonText(masteredCount = 0))
         assertNull(progressText(masteredCount = 0, total = 2))
     }
 
     @Test
     fun `with something mastered the button continues and the progress is shown`() {
-        assertEquals("Continuar el curso", startButtonText(masteredCount = 1))
-        assertEquals("1 de 2 dominados", progressText(masteredCount = 1, total = 2))
+        assertEquals(UiText.of(R.string.detail_continue), startButtonText(masteredCount = 1))
+        assertEquals(UiText.of(R.string.course_progress, 1, 2), progressText(masteredCount = 1, total = 2))
     }
 
     @Test
     fun `with everything mastered the course can be reviewed`() {
-        assertEquals("Repasar el curso", startButtonText(masteredCount = 2, total = 2))
-        assertEquals("2 de 2 dominados", progressText(masteredCount = 2, total = 2))
+        assertEquals(UiText.of(R.string.detail_review), startButtonText(masteredCount = 2, total = 2))
+        assertEquals(UiText.of(R.string.course_progress, 2, 2), progressText(masteredCount = 2, total = 2))
     }
 }

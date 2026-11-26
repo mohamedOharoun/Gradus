@@ -220,6 +220,29 @@ Estado: **en curso**. Decisiones K–R aprobadas el 2026-11-23.
 - **R · El contenido de los cursos no se traduce** (títulos, lecciones, preguntas): lo escribe su
   autor en su idioma.
 
+### Decisiones del idioma (aprobadas el 2026-11-25)
+
+Medido: unos 340 textos de interfaz en unos 70 ficheros (sin contar los 82 del curso de ejemplo, que
+no se traducen). El emulador de pruebas está en inglés.
+
+- **S · Español por defecto** (`values/strings.xml`) e inglés en `values-en/`. Un móvil en otro idioma
+  ve la app en español.
+- **T · Los tests de interfaz siguen en español**, con una ayuda `inSpanish` que fuerza el idioma (si no,
+  en el emulador en inglés fallarían casi todos). Algunos tests nuevos comprueban el inglés.
+- **U · `UiText`**: las funciones puras de textos devuelven qué texto es (su id) y sus datos; sus tests
+  JVM comprueban el id y los datos. Plurales con `<plurals>`; fechas con el formato del idioma.
+- **V · El idioma lo recuerda `LocaleManager`** (Android 13+), sin guardarlo nosotros; en Android 10–12
+  la fila dice «El del sistema» y no se puede tocar.
+- **W · La traducción al inglés la escribo yo y la revisa Joel.**
+- **Qué se traduce y qué no (confirmado por Joel):** los cursos se quedan en el idioma en que se
+  crearon y nunca cambian (títulos, lecciones, preguntas, soluciones, y también el curso de ejemplo).
+  Solo se traduce lo general, igual para todos: botones, avisos, menús, Ajustes y textos de
+  accesibilidad. Tampoco los mensajes del servidor (la app ya muestra los suyos por código de error).
+
+Plan: 5a base (`UiText`, pintarlo, `inSpanish`) · 5b idioma (`locales_config.xml`, Manifest,
+`values-en/`, fila «Idioma») · 6 cuenta · 7 Ajustes · 8a camino y ficha · 8b estudiar y paso con foto ·
+8c notas y cámara · 9 Buscar (el compañero) · 10 comprobación final.
+
 ### Tareas
 
 Etiquetas (3a):
@@ -498,6 +521,212 @@ recomendaciones automáticas.
   la regla es la misma) y `PreferredTags.kt` no compilaba. Se cambian las dos llamadas y el import a
   `searchKey()`; su código no se toca.
 
+- 2026-11-25: **fase 3, tarea 4 hecha** (nota para el compañero).
+  - `docs/tareas/etiquetas-preferidas-buscar.md`: qué hay en `sharedLogic` (`AppSettings.preferredTags`,
+    `SettingsStore.settings`, `prioritizing`), la decisión que le toca por «Cargar más» (ordenar cada
+    página, toda la lista o en el servidor; propuesta: cada página, para que nada de lo que se ve se
+    mueva), un ejemplo de conexión en `SearchViewModel` y los tests sugeridos. Su código no se toca.
+  - Cuando Buscar las use, quitar «Pronto» de la frase de Ajustes (`SettingsContent.kt`).
+
+- 2026-11-25: **decisiones S–W del idioma aprobadas; paso 5a hecho** (base, sin cambios visibles).
+  - `ui/text/UiText.kt`: `UiText` sellado (`Res(id, args)`, `Plural(id, count, args)`, `Raw(text)` para
+    lo que no se traduce), con factory methods `UiText.of`, `UiText.plural` y `UiText.raw`; el puerto
+    `StringResolver` y `resolve(resolver)` (los datos que son `UiText` se traducen primero);
+    `ResourcesResolver` (Android) y `@Composable asString()`, que lee `LocalResources` como
+    `stringResource` (si cambia el idioma, se repinta).
+  - `UiTextTest` (7, JVM, con un traductor falso; en rojo antes).
+  - Ayuda de los tests de interfaz (`androidTest/ui/testing/InSpanish.kt`): `setContentInSpanish { … }` e
+    `InSpanish { … }`, que dan a `LocalContext`, `LocalConfiguration` y `LocalResources` un `Context` en
+    español sin cambiar el idioma del dispositivo. `InSpanishTest` (3; en rojo antes: no compilaba),
+    **pendiente de ejecutar en el emulador**.
+
+- 2026-11-25: **paso 5b hecho** (elegir el idioma).
+  - `sharedLogic`: `AppLanguage` (`SYSTEM`, `SPANISH`, `ENGLISH`, con su etiqueta) y `fromTags` (cuenta la
+    primera etiqueta, por su idioma y no por su país; una que la app no tiene = el del sistema).
+    `AppLanguageTest` (6, en rojo antes). **847 tests de `sharedLogic`.**
+  - App: puerto `data/settings/LanguageSetting` y `AndroidLanguageSetting` (`LocaleManager`, Android 13+;
+    en 10–12, `canChooseLanguage = false` y sigue al sistema). `AppContainer.languageSetting`.
+  - `SettingsViewModel`: `language`, `canChooseLanguage`, `languagePickerOpen` y `onOpenLanguage`,
+    `onDismissLanguage`, `onLanguageChosen` (elegir el que ya estaba no recrea la pantalla).
+  - Pantalla: la fila «Idioma» activa (su nombre y su valor ya desde `strings.xml`), `LanguageDialog`
+    (título, la frase de que los cursos no cambian de idioma, tres opciones con `RadioButton` en un
+    `selectableGroup`, «Cancelar») y `LanguageTexts` (`AppLanguage.label(): UiText`). `SettingsRow`
+    recibe `disabledValue` (en Android 10–12 dice «El del sistema», no «Próximamente»).
+  - Recursos: `values/strings.xml` (español, por defecto) y `values-en/strings.xml` con los textos del
+    idioma; `res/xml/locales_config.xml` (es, en) y `android:localeConfig` en el Manifest.
+  - Tests: `SettingsViewModelTest` (+5) y `LanguageTextsTest` (2), en rojo antes: **379 tests JVM de
+    la app**. Emulador: `InSpanishTest` (3), `ScreenSettingsTest` (18: pasa a `setContentInSpanish`; los
+    dos que suponían el idioma «Próximamente» se sustituyen; uno nuevo en inglés) y `LanguageDialogTest`
+    (5, también en inglés): **26/26**. Ayuda nueva `setContentInEnglish` (y `InLocale`).
+  - A mano (emulador en inglés): «Language · System default» (lo demás, aún en español); el diálogo en
+    inglés; «Español» → la pantalla se recrea, «Idioma · Español», la sesión sigue y el sistema dice
+    `[es]`; se recuerda al cerrar y abrir la app; «El del sistema» → `[]`. Se deja en el del sistema.
+
+- 2026-11-25: **paso 6 hecho** (textos de la cuenta).
+  - `strings.xml` (es y en, 64 textos cada uno, mismos nombres): Bienvenida, Inicio de sesión, Registro
+    (los tres pasos), los campos, la contraseña (requisitos, mostrar/ocultar, coinciden), los términos, el
+    indicador de pasos para TalkBack («Paso %1$d de %2$d: %3$s»), «Volver», «Reintentar», «Siguiente», los
+    errores de los campos y del envío, y los botones de los formularios de Ajustes que usan `buttonText`.
+  - A `UiText` (con test JVM, `AccountTextsTest`, 6, en rojo antes): `FieldError.toMessage()`,
+    `FailureReason.toMessage()`, `Submission.buttonText(idle, sending)` y `PasswordRequirement.toLabel()`.
+    `StepTexts` del registro guarda ids (`@StringRes`). Las pantallas usan `stringResource` / `asString()`.
+  - Fuera de este paso: `ProblemMessage` y `RetryButton` (del compañero, los usa Buscar: paso 9) y los
+    ejemplos de las previews. Lo propio de Ajustes (títulos, «Contraseña actual»…), en el paso 7.
+  - Tests de interfaz: los 13 nuestros pasan de `setContent` a `setContentInSpanish` (decisión T; los
+    del compañero no se tocan) y uno nuevo, `AccountScreensTest` (8: Bienvenida, errores y «sin conexión»
+    del inicio de sesión, el indicador de pasos y el paso de la contraseña, en español y en inglés).
+    Emulador: **128/128**. **385 tests JVM de la app.**
+  - A mano (emulador en inglés, la app en «El del sistema»): Bienvenida e Inicio de sesión en inglés.
+
+- 2026-11-26: **paso 7 hecho** (textos de Ajustes).
+  - `strings.xml` (es y en, 102 textos cada uno): Ajustes (título, secciones, filas, «Próximamente»),
+    Editar perfil, Cambiar contraseña (campos, «La contraseña actual no es correcta», el aviso de
+    contraseña cambiada), Eliminar cuenta (los dos diálogos) y Etiquetas preferidas (avisos, «%1$d de
+    %2$d», «Quitar la etiqueta %1$s»). También «DATOS AÑADIDOS» y «Editar» del registro, que se pasaron
+    en el paso 6.
+  - `PreferredTagsTexts` a `UiText` (`message`, `countText`, `removeTagDescription`; `tagLabel` sigue
+    siendo `String`: «#grafos» no depende del idioma). `PreferredTagsTextsTest` actualizado (6), en rojo
+    antes. La constante `COMING_SOON` desaparece: `SettingsRow.disabledValue` es `String?` y, sin él,
+    dice `R.string.coming_soon`; `SettingsRowsTest` comprueba «Próximamente» directamente.
+  - En estos ficheros solo quedan textos de las previews. **386 tests JVM de la app.**
+  - Test nuevo `SettingsInEnglishTest` (6: Ajustes, perfil, contraseña, eliminar, autor de cursos y
+    etiquetas, en inglés). Emulador, solo los de este paso (`SettingsInEnglishTest`, `ScreenSettingsTest`,
+    `SettingsRowsTest`, `DeleteAccountDialogTest`, `ScreenChangePasswordTest`, `ScreenEditProfileTest`,
+    `ScreenPreferredTagsTest` y `AccountScreensTest`): **85/85**. Uno falló primero por el test: buscaba
+    «Account» como parte del texto y también está en «Delete account»; ahora busca «ACCOUNT» (el título
+    de sección va en mayúsculas).
+
+- 2026-11-26: **paso 8a hecho** (camino y ficha del curso).
+  - Lo del autor no se traduce (decisión R): títulos de cursos y módulos, descripciones y el nombre del
+    autor van como datos (`%1$s`) dentro de las frases de la app.
+  - `strings.xml` (es y en, 135 cada uno): progreso («%1$d de %2$d dominados»), avisos de módulo bloqueado,
+    problemas al abrir el curso, estados y acciones de los módulos para TalkBack, la hoja del módulo
+    (con un `<plurals>`: «Mis notas, 1 foto / 3 fotos») y la ficha («por %1$s», los botones, «Qué vas a
+    aprender»). `list_and` / `list_comma` para enumerar en cada idioma.
+  - A `UiText`: `CourseNotice.toMessage()` (el snackbar lo resuelve con `ResourcesResolver`, fuera de la
+    composición), `CourseProblem.toText()`, `ModuleSheetTexts`, `ModuleState.label()` / `actionLabel()`
+    y `CourseDetailTexts` (`authorText`, `startButtonText`, `progressText`). Nuevo `joinedWithAnd(items)`
+    (`components/ListTexts.kt`); el antiguo `List<String>.joinedWithAnd()` sigue para `ExerciseTexts` (8b).
+  - Se queda para el paso 9: la línea «2 módulos · nov 2026» y «publicado en noviembre de 2026» de la ficha,
+    que reutilizan `CourseTexts` del compañero (meses y «módulos» en español) para decir lo mismo que la
+    tarjeta de Buscar; traducir solo «publicado en» daría «published in noviembre de 2026».
+  - Tests JVM: `CoursePathTextsTest` (7, nuevo), `CourseDetailTextsTest` y `ModuleSheetTextsTest`
+    actualizados (en rojo antes). **393 tests JVM de la app.** Instrumentado nuevo `CourseInEnglishTest`
+    (4: la ficha en inglés con el curso en español, la hoja y su plural, el problema sin conexión).
+    Emulador, solo los de este paso (con `ModuleSheetTest`, `ScreenCourseDetailTest` y
+    `StudyAccessibilityTest`): **24/24**. Uno falló primero por el test: esperaba BFS como módulo 1, pero
+    la lista sigue el orden del camino y su requisito va antes.
+
+- 2026-11-26: **paso 8b hecho** (estudiar un módulo y el paso con foto).
+  - Preguntas, opciones, parejas, explicaciones y títulos del autor no se traducen (decisión R): van como
+    datos. Las comillas de las opciones las pone cada idioma (`quoted`: «» / “”).
+  - `strings.xml` (es y en, 196 cada uno): comprobar, ¡correcto! / no es correcto, las pistas de cada tipo
+    de pregunta, la solución, la prueba de dominio (con `<plurals>`: «1 pregunta / 3 preguntas» y «Te faltó
+    1 / Te faltaron 2»; espacio que no parte la línea en «al menos 2»), el resultado, el final sin prueba,
+    los estados para TalkBack (opción, parejas, requisitos de la contraseña) y todo el paso con foto.
+  - A `UiText`: `ExerciseTexts` (`hint`, `solution`, `testIntroText`, `title`, `body`) y `PhotoStepTexts`
+    (`text`, `MainPhotoButton.text`, `SecondaryPhotoButton.text`). `ExerciseTopBar` recibe `itemOf`
+    («Paso %1$d de %2$d» o «Pregunta…»). `joinedWithAnd` acepta también `UiText` (las opciones con comillas).
+  - Tests JVM: `ExerciseTextsTest` (9, nuevo) y `PhotoStepTextsTest` (actualizado), en rojo antes.
+    **402 tests JVM de la app.** Instrumentado nuevo `StudyInEnglishTest` (4: la pregunta en el idioma del
+    autor y la app en inglés, la solución con la opción tal cual, la prueba de dominio y el paso con foto).
+    Emulador, solo los afectados (con `StudyAccessibilityTest`, `PhotoStepScreenTest`, `AccountScreensTest`
+    y `ScreenChangePasswordTest`): **42/42**.
+  - `components/SpanishText.kt` (el `List<String>.joinedWithAnd()` antiguo) ya no lo usaba nadie: borrado
+    con permiso de Joel (2026-11-26).
+
+- 2026-11-26: **paso 8c hecho** (notas, cámara, barra de navegación y pantallas provisionales).
+  - Fechas de las notas en el orden de cada idioma («24 nov» / «Nov 24», «24 de noviembre» / «November
+    24»): `note_date_*` con el día, el mes y el año como datos, y los 24 nombres de mes como textos propios
+    (no los de Java: sus abreviaturas en español cambian según la versión). El pie lo escribe el alumno:
+    va tal cual.
+  - `NoteTexts` a `UiText` (`noteDateText`, `noteFullDate`, `noteDescription`, `notesTitle`);
+    `permissionText` de la cámara devuelve un `@StringRes`. «Mis notas», ver una nota, la cámara (permiso,
+    disparador, pie, repetir, usar foto, errores) y los títulos que pone la navegación («Nueva nota · …»,
+    «Foto del ejercicio · …»).
+  - Barra de navegación (`TopLevelDestination.label` pasa a `@StringRes`), Inicio y Mis cursos provisionales.
+    Ningún test del compañero pinta la barra.
+  - `strings.xml`: **260 textos por idioma**. Revisado todo lo nuestro: solo quedan ejemplos de previews,
+    la marca «Gradus», los números («2 / 5»), «#etiqueta» y lo que espera al paso 9 (Buscar, la línea de
+    fecha de la ficha).
+  - Tests JVM: `NoteTextsTest` reescrito (8), en rojo antes. **401 tests JVM de la app.** Instrumentado
+    nuevo `NotesInEnglishTest` (5: «Notes · BFS» con la fecha en orden inglés, lista vacía, borrar, cámara y
+    su permiso). Emulador, solo los afectados (con `ScreenModuleNotesTest`, `ScreenNoteViewerTest`,
+    `ScreenCameraTest`, `GradusNavigationBarTest` y `ScreenSettingsTest`): **56/56**. El nuevo falló dos
+    veces por el propio test: la fecha está en la celda que TalkBack lee entera (`clearAndSetSemantics`), así
+    que se busca en el árbol sin fusionar.
+
+- 2026-11-26: **paso 10 hecho en lo nuestro** (emulador, servidor local, cuenta de prueba).
+  - Inglés (el del sistema del emulador) y español (elegido en Ajustes, cambia al momento y sin cerrar
+    sesión): bienvenida, entrar, Inicio, barra, camino («0 of 2 mastered» / «0 de 2 dominados»), hoja del
+    módulo, «Mis notas», cámara (permiso, revisar, guardar), ver y eliminar una nota, lección, pregunta y
+    corrección, Ajustes y el diálogo del idioma. La fecha de la nota sale «Nov 26» / «26 nov».
+  - El contenido de los cursos (títulos, lecciones, opciones, explicaciones) queda en su idioma, como se
+    decidió.
+  - TalkBack: revisadas las descripciones que lee (`content-desc`: «Step 1 of 4», «Close and go back to
+    the path», «My notes, none yet», «Note from November 26»…). Falta escucharlo con TalkBack encendido:
+    lo hace Joel a mano, junto con la prueba del paso de foto.
+  - Sigue en español, como se esperaba: Buscar y filtros (paso 9, del compañero).
+  - Las notas de prueba se borraron y el idioma quedó en «El del sistema», como estaba.
+
+- 2026-11-26: Joel decide hacer nosotros el paso 9, con el OK del compañero. Plan: 9a tarjeta y ficha,
+  9b resultados de Buscar, 9c filtros, 9d test en inglés y emulador.
+- 2026-11-26: **paso 9a hecho** (tarjeta de curso y línea de la ficha).
+  - `CourseTexts` (del compañero) devuelve `UiText`: `moduleCountText` (plural `course_modules`),
+    `shortLabel` / `spokenLabel` («oct 2026» / «Oct 2026», «octubre de 2026» / «October 2026»),
+    `publishedText`, `courseMetaText` (nuevo, compartido con la ficha), `metaText`, `spokenText`.
+    `CourseCard`: «por …» y «Abrir curso» desde strings.xml.
+  - Los meses, en `ui/text/Months.kt` (`shortMonth`, `longMonth`): los comparten las notas y las tarjetas.
+    Septiembre abreviado pasa a ser «sept» también en las tarjetas (antes «sep»), como en las notas.
+  - `ListTexts`: `joinedWithCommas` pasa a ser pública (lo que lee TalkBack de la tarjeta).
+  - Tests JVM: `CourseTextsTest` y `CourseDetailTextsTest` a `UiText`; nuevos `MonthsTest` (2) y
+    `ListTextsTest` (4), en rojo antes. **404 tests JVM de la app.**
+  - Ayuda de test nueva `UiText.inSpanish()` (en `InSpanish.kt`). `CourseCardTest` y `ScreenSearchTest`
+    pintan en español forzado. Emulador, solo los afectados (con `ScreenCourseDetailTest`,
+    `CourseInEnglishTest`, `NotesInEnglishTest`): **77/77**, en dos tandas porque el emulador se reinició
+    a mitad por un fallo de gráficos suyo.
+  - En la app: las tarjetas de Buscar dicen «by Autora Cursos» y «2 modules · Nov 2026».
+
+- 2026-11-26: **paso 9b hecho** (resultados de Buscar).
+  - `SearchTexts` (del compañero) devuelve `UiText`: `resultsCountText` (plural `search_results`),
+    `SearchProblem.toText`, `emptyResultsText`, `MORE_FAILED_TEXT`. `SearchMessage.body` pasa a ser
+    `UiText?` (null cuando no hay texto debajo, antes "").
+  - `SearchResultsContent`: «Buscando cursos», «Cargando más cursos», «Cargar más»; `ScreenSearch`: el
+    título; `SearchField`: el texto de ayuda y «Borrar búsqueda»; `RetryButton`: «Reintentar»
+    (`action_retry`, el que ya existía). `ProblemMessage` sigue recibiendo `String`: es un componente
+    genérico y quien lo usa resuelve el texto.
+  - `strings.xml`: **281 textos por idioma**.
+  - Tests JVM: `SearchTextsTest` a `UiText` (los tres de singular/plural en uno; nuevo «un catálogo vacío no
+    tiene texto debajo»), en rojo antes. **403 tests JVM de la app.** `SearchFieldTest` pinta en español
+    forzado. Emulador, solo `SearchFieldTest` y `ScreenSearchTest`: **59/59**.
+
+- 2026-11-26: **paso 9c hecho en el código; falta repetir dos tests en el emulador**.
+  - `FilterTexts` (del compañero) es `UiText`: las constantes pasan de `const val String` a `val UiText`
+    (mismo nombre); plurales `filters_active` («Filtros, 2 activos») y `filters_show_count` («Mostrar 3
+    cursos»). `tagChipLabel` sigue siendo `String` («#» no se traduce).
+  - «Quitar filtro último año» ya no usa `lowercase()` (no sirve para un texto sin traducir): cada fecha
+    tiene su forma dentro de una frase (`published_*_inline`).
+  - `SingleChoiceRow` (componente genérico) recibe `label: @Composable (T) -> String`, para que el texto
+    pueda salir de strings.xml. Usos: `FilterSheetSections`, su preview y su test.
+  - `FilterChips`, `FilterBar`, `CreatorField`, `FilterSheetContent`, `FilterSheetSections` resuelven con
+    `asString()`; lo de TalkBack, fuera de `semantics {}`.
+  - `strings.xml`: **305 textos por idioma**.
+  - Tests JVM: `FilterTextsTest` a `UiText` (los de singular/plural juntos), en rojo antes. **401 tests JVM
+    de la app.** `SingleChoiceRowTest`, `CreatorFieldTest`, `FilterSheetTest` y `FilterChipsTest` pintan en
+    español forzado y buscan con `inSpanish()`.
+  - Emulador: de 152, pasaron 108. Fallaron 2 y no llegaron a ejecutarse 42, porque **el emulador se colgó**
+    (fallo de gráficos suyo, «Failed to import memory to ColorBufferGl»; tampoco arrancó de nuevo, ni con
+    `-gpu swiftshader_indirect`). `FilterChipsTest` (21), `CreatorFieldTest` (13) y `SingleChoiceRowTest`
+    (10) pasaron enteros, y `FilterSheetTest` 60 de 61. Pendiente de repetir:
+    `FilterSheetTest.back_while_the_sheet_is_hiding_after_show_courses_is_ignored` (falló esperando el foco
+    de la ventana, cuando el emulador ya fallaba) y `ScreenSearchTest` entero (se cortó al 5.º).
+
+- 2026-11-26: **fase 3 (idioma) cerrada por decisión de Joel.** Se da por bueno el paso 9 sin el 9d (test de
+  Buscar en inglés) ni la repetición de `FilterSheetTest` y `ScreenSearchTest` en el emulador, que no
+  arrancaba. Quedan como comprobaciones opcionales, no como tareas abiertas.
+
 ## Siguiente paso
 
-Fase 3, tarea 4: nota para el compañero con cómo usar `preferredTags` y `prioritizing` en Buscar.
+Ninguno en este documento. Opcional, cuando el emulador funcione: repetir `FilterSheetTest` y
+`ScreenSearchTest`, escuchar con TalkBack las pantallas en inglés y revisar la traducción de
+`values-en/strings.xml` (decisión W).

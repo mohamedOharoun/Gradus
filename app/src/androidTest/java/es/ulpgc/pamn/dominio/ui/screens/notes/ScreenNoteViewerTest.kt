@@ -13,12 +13,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.notes.Note
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 // Ver una nota (docs/tareas/notas-camara.md, tarea 6): qué enseña y eliminarla con confirmación.
 // La foto no existe (recuadro gris): aquí se prueba la pantalla, no la lectura del fichero.
@@ -33,7 +34,7 @@ class ScreenNoteViewerTest {
     private val note = Note("n1", "g", "bfs", "notes/n1.jpg", "Dijkstra paso a paso", now)
 
     private fun show(state: NoteViewerState.Showing = NoteViewerState.Showing(note), actions: NoteViewerActions = NoteViewerActions()) =
-        composeRule.setContent { GradusTheme { ScreenNoteViewer(state, actions, photoFile = { File("no-existe") }) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenNoteViewer(state, actions, photoFile = { File("no-existe") }) } }
 
     private fun deleteButton() = composeRule.onNode(hasClickAction() and hasContentDescription("Eliminar nota"))
 

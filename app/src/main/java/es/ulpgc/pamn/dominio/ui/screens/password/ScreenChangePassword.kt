@@ -15,11 +15,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.model.FieldError
 import es.ulpgc.pamn.dominio.model.PasswordForm
 import es.ulpgc.pamn.dominio.model.Submission
@@ -31,6 +33,8 @@ import es.ulpgc.pamn.dominio.ui.components.PasswordRequirementList
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.components.buttonText
 import es.ulpgc.pamn.dominio.ui.components.toMessage
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // «Cambiar contraseña» (Ajustes → Cuenta → Contraseña; docs/tareas/ajustes.md, fase 2). No está en
 // Figma: sigue el estilo del registro (requisitos y coincidencia en vivo). Sin estado.
@@ -47,7 +51,7 @@ fun ScreenChangePassword(
                 .safeDrawingPadding()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            FormTopBar(title = "Cambiar contraseña", onBack = actions.onBack)
+            FormTopBar(title = stringResource(R.string.action_change_password), onBack = actions.onBack)
             if (form.submission == Submission.Succeeded) Changed(actions.onBack) else Editing(form, actions)
         }
     }
@@ -64,32 +68,32 @@ private fun ColumnScope.Editing(form: PasswordForm, actions: ChangePasswordActio
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         PasswordField(
-            label = "Contraseña actual",
+            label = stringResource(R.string.password_current),
             value = form.current,
             onValueChange = actions.onCurrentChange,
-            error = form.currentError?.toMessage() ?: WRONG_CURRENT.takeIf { form.isWrongCurrent },
+            error = form.currentError?.toMessage()?.asString() ?: stringResource(R.string.password_wrong_current).takeIf { form.isWrongCurrent },
         )
         Spacer(Modifier.height(8.dp))
         PasswordField(
-            label = "Nueva contraseña",
+            label = stringResource(R.string.password_new),
             value = form.next,
             onValueChange = actions.onNextChange,
-            error = form.nextError?.toMessage(),
+            error = form.nextError?.toMessage()?.asString(),
         )
         PasswordRequirementList(unmet = form.unmetRequirements)
         PasswordField(
-            label = "Repite la nueva contraseña",
+            label = stringResource(R.string.password_new_repeat),
             value = form.confirmation,
             onValueChange = actions.onConfirmationChange,
             // «No coinciden» ya lo dice la línea de debajo: aquí solo «obligatorio».
-            error = form.confirmationError?.takeIf { it == FieldError.EMPTY }?.toMessage(),
+            error = form.confirmationError?.takeIf { it == FieldError.EMPTY }?.toMessage()?.asString(),
         )
         PasswordMatchItem(match = form.passwordsMatch)
     }
     Spacer(Modifier.height(16.dp))
-    (form.submission as? Submission.Failed)?.reason?.toMessage()?.let { ErrorText(it, Modifier.padding(bottom = 8.dp)) }
+    (form.submission as? Submission.Failed)?.reason?.toMessage()?.let { ErrorText(it.asString(), Modifier.padding(bottom = 8.dp)) }
     PrimaryButton(
-        text = form.submission.buttonText(idle = "Cambiar contraseña", sending = "Cambiando…"),
+        text = form.submission.buttonText(UiText.of(R.string.action_change_password), UiText.of(R.string.action_changing)).asString(),
         onClick = actions.onSave,
         enabled = form.submission != Submission.Sending,
     )
@@ -106,14 +110,12 @@ private fun ColumnScope.Changed(onBack: () -> Unit) {
             .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text("Contraseña cambiada", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
+        Text(stringResource(R.string.password_changed_title), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.semantics { heading() })
         Text(
-            "Hemos cerrado la sesión en tus otros dispositivos. En este móvil sigues dentro.",
+            stringResource(R.string.password_changed_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    PrimaryButton(text = "Volver a Ajustes", onClick = onBack)
+    PrimaryButton(text = stringResource(R.string.password_back_to_settings), onClick = onBack)
 }
-
-private const val WRONG_CURRENT = "La contraseña actual no es correcta"

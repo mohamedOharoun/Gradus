@@ -20,7 +20,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.components.BrandLogo
 import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
 import es.ulpgc.pamn.dominio.ui.components.WelcomeIllustration
@@ -53,9 +55,9 @@ fun ScreenWelcome(
 @Composable
 private fun WelcomeMessage(modifier: Modifier = Modifier) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Aprende paso a paso, sin saltarte la base.", style = MaterialTheme.typography.headlineLarge)
+        Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.headlineLarge)
         Text(
-            "Cada curso es un mapa de conceptos. Uno se desbloquea cuando dominas los anteriores.",
+            stringResource(R.string.welcome_body),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -72,17 +74,17 @@ private fun WelcomeActions(
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val buttonModifier = Modifier.fillMaxWidth().height(52.dp)
         Button(onClick = onCreateAccount, modifier = buttonModifier) {
-            Text("Crear cuenta")
+            Text(stringResource(R.string.action_create_account))
         }
         OutlinedButton(
             onClick = onLogin,
             modifier = buttonModifier,
             colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onBackground),
         ) {
-            Text("Iniciar sesión")
+            Text(stringResource(R.string.action_log_in))
         }
         TextButton(onClick = onExploreCourses, modifier = Modifier.fillMaxWidth().height(48.dp)) {
-            Text("Explorar cursos sin cuenta", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.welcome_explore), style = MaterialTheme.typography.titleSmall)
         }
     }
 }

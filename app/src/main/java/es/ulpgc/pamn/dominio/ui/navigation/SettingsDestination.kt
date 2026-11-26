@@ -22,6 +22,7 @@ import es.ulpgc.pamn.dominio.ui.screens.settings.DeleteAccountViewModel
 import es.ulpgc.pamn.dominio.ui.screens.settings.SettingsActions
 import es.ulpgc.pamn.dominio.ui.screens.settings.SettingsScreenState
 import es.ulpgc.pamn.dominio.ui.screens.settings.SettingsState
+import es.ulpgc.pamn.dominio.ui.screens.settings.LanguageDialog
 import es.ulpgc.pamn.dominio.ui.screens.settings.SettingsViewModel
 
 // La pestaña Ajustes conectada (ajustes.md, tarea 6). Va en su propio fichero para que en
@@ -29,7 +30,9 @@ import es.ulpgc.pamn.dominio.ui.screens.settings.SettingsViewModel
 @Composable
 internal fun SettingsRoute(navController: NavController, modifier: Modifier = Modifier) {
     val settingsViewModel: SettingsViewModel = viewModel(
-        factory = SettingsViewModel.factory(AppContainer.accountGateway, AppContainer.sessionStore, AppContainer.settingsStore),
+        factory = SettingsViewModel.factory(
+            AppContainer.accountGateway, AppContainer.sessionStore, AppContainer.settingsStore, AppContainer.languageSetting,
+        ),
     )
     // El diálogo «Eliminar cuenta» tiene su propio ViewModel (vive con la pestaña, como el de Ajustes).
     val deleteViewModel: DeleteAccountViewModel = viewModel(
@@ -51,6 +54,8 @@ internal fun SettingsRoute(navController: NavController, modifier: Modifier = Mo
             state = SettingsScreenState(
                 state.account.name, state.account.email, darkMode = dark,
                 preferredTags = appSettings.preferredTags.values,
+                language = settingsViewModel.language,
+                canChooseLanguage = settingsViewModel.canChooseLanguage,
             ),
             actions = SettingsActions(
                 onDarkModeChange = settingsViewModel::onDarkModeChange,
@@ -59,10 +64,20 @@ internal fun SettingsRoute(navController: NavController, modifier: Modifier = Mo
                 onChangePassword = dropUnlessResumed { navController.navigate(Route.ChangePassword) },
                 onDeleteAccount = deleteViewModel::onOpen,
                 onEditTags = dropUnlessResumed { navController.navigate(Route.PreferredTags) },
+                onChooseLanguage = settingsViewModel::onOpenLanguage,
             ),
             modifier = modifier,
         )
         SettingsState.LoggedOut -> LaunchedEffect(Unit) { navController.leaveToWelcome() }
+    }
+
+    // Encima de Ajustes: elegir el idioma (fase 3b). Al elegir otro, Android vuelve a crear la pantalla en él.
+    if (settingsViewModel.languagePickerOpen) {
+        LanguageDialog(
+            selected = settingsViewModel.language,
+            onChoose = settingsViewModel::onLanguageChosen,
+            onDismiss = settingsViewModel::onDismissLanguage,
+        )
     }
 
     // Encima de Ajustes. Cuenta eliminada: a Bienvenida sin poder volver atrás (decisión H).

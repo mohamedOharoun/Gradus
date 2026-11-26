@@ -22,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +47,7 @@ fun StepIndicator(
     modifier: Modifier = Modifier,
 ) {
     // TalkBack lee una sola frase en lugar de cada círculo suelto.
-    val description = "Paso ${currentIndex + 1} de ${labels.size}: ${labels[currentIndex]}"
+    val description = stringResource(R.string.step_of_with_label, currentIndex + 1, labels.size, labels[currentIndex])
     Row(modifier = modifier.fillMaxWidth().clearAndSetSemantics { contentDescription = description }) {
         labels.forEachIndexed { index, label ->
             StepItem(

@@ -17,12 +17,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.io.File
 
 // La pantalla de la cámara (docs/tareas/notas-camara.md, tarea 5): qué enseña en cada momento y qué se
 // toca. La vista previa es de mentira (un recuadro con etiqueta): aquí no se prueba CameraX.
@@ -39,7 +40,7 @@ class ScreenCameraTest {
         actions: CameraActions = CameraActions(),
         forSubmission: Boolean = false,
     ) =
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             GradusTheme {
                 ScreenCamera(
                     title = "Nueva nota · BFS",

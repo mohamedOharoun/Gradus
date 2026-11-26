@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -44,7 +45,7 @@ class SearchFieldTest {
         value: String,
         onValueChange: (String) -> Unit = {},
         onSearch: () -> Unit = {},
-    ) = composeRule.setContent {
+    ) = composeRule.setContentInSpanish {
         GradusTheme { SearchField(value, onValueChange, onSearch) }
     }
 
@@ -96,7 +97,7 @@ class SearchFieldTest {
             override fun show() {}
             override fun hide() { events += "hide" }
         }
-        composeRule.setContent {
+        composeRule.setContentInSpanish {
             // CompositionLocalProvider: cambia, solo para lo de dentro, el teclado que ve la caja.
             CompositionLocalProvider(LocalSoftwareKeyboardController provides keyboard) {
                 GradusTheme { SearchField("grafos", onValueChange = {}, onSearch = { events += "search" }) }
@@ -138,7 +139,7 @@ class SearchFieldTest {
     @Test
     fun it_follows_the_value_when_the_owner_changes_it() {
         var text by mutableStateOf("grafos")
-        composeRule.setContent { GradusTheme { SearchField(text, onValueChange = {}, onSearch = {}) } }
+        composeRule.setContentInSpanish { GradusTheme { SearchField(text, onValueChange = {}, onSearch = {}) } }
 
         composeRule.runOnIdle { text = "árboles" }
 

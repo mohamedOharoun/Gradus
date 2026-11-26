@@ -14,13 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
-
-// Lo que se ve en lugar del valor cuando algo aún no funciona (ajustes.md, decisión A).
-const val COMING_SOON = "Próximamente"
 
 // Transparencia del contenido desactivado (la que usa Material 3).
 internal const val DISABLED_ALPHA = 0.38f
@@ -29,6 +27,8 @@ internal const val DISABLED_ALPHA = 0.38f
 // - `enabled = false`: aún no funciona. Se ve atenuada con «Próximamente» en lugar del valor y no
 //   se puede pulsar; TalkBack la lee «desactivada» (decisión A).
 // - `danger = true`: acción peligrosa («Eliminar cuenta»), en rojo.
+// - `disabledValue`: lo que dice desactivada; por defecto «Próximamente». El idioma en Android 10–12
+//   dice «El del sistema»: no es que falte, es que esas versiones no lo permiten.
 // Toda la fila es un solo botón para TalkBack: «Idioma, Español, botón».
 @Composable
 fun SettingsRow(
@@ -40,10 +40,12 @@ fun SettingsRow(
     showChevron: Boolean = true,
     enabled: Boolean = true,
     danger: Boolean = false,
+    disabledValue: String? = null,
 ) {
     val base = if (danger) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
     val color = if (enabled) base else base.copy(alpha = DISABLED_ALPHA)
-    val shownValue = if (enabled) value else COMING_SOON
+    // Desactivada: «Próximamente» (ajustes.md, decisión A), salvo que diga otra cosa.
+    val shownValue = if (enabled) value else disabledValue ?: stringResource(R.string.coming_soon)
 
     SettingsRowLayout(
         icon = icon,

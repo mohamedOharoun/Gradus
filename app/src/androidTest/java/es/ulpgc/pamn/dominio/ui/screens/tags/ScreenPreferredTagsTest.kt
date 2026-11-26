@@ -1,13 +1,12 @@
 package es.ulpgc.pamn.dominio.ui.screens.tags
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.test.click
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasSetTextAction
@@ -17,9 +16,11 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.settings.TagAddition
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -35,7 +36,7 @@ class ScreenPreferredTagsTest {
     val composeRule = createComposeRule()
 
     private fun show(state: PreferredTagsUiState = PreferredTagsUiState(), actions: PreferredTagsActions = PreferredTagsActions()) =
-        composeRule.setContent { GradusTheme { ScreenPreferredTags(state, actions) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenPreferredTags(state, actions) } }
 
     @Test
     fun without_tags_it_says_none_was_chosen() {

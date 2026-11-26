@@ -5,6 +5,7 @@ import es.ulpgc.pamn.dominio.account.FakeAccountGateway
 import es.ulpgc.pamn.dominio.account.InMemorySessionStore
 import es.ulpgc.pamn.dominio.account.LogOutOutcome
 import es.ulpgc.pamn.dominio.account.Session
+import es.ulpgc.pamn.dominio.settings.AppLanguage
 import es.ulpgc.pamn.dominio.settings.AppSettings
 import es.ulpgc.pamn.dominio.settings.InMemorySettingsStore
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +18,9 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -41,10 +44,11 @@ class SettingsViewModelTest {
     private val session = Session("token-de-prueba", "2026-12-17T10:00:00Z", ana)
     private val sessions = InMemorySessionStore()
     private val settings = InMemorySettingsStore()
+    private val language = FakeLanguageSetting()
 
     private suspend fun TestScope.loggedIn(gateway: FakeAccountGateway = FakeAccountGateway()): SettingsViewModel {
         sessions.save(session)
-        val viewModel = SettingsViewModel(gateway, sessions, settings)
+        val viewModel = SettingsViewModel(gateway, sessions, settings, language)
         runCurrent()
         return viewModel
     }
@@ -54,7 +58,7 @@ class SettingsViewModelTest {
     @Test
     fun `it starts loading`() = runTest {
         sessions.save(session)
-        assertEquals(SettingsState.Loading, SettingsViewModel(FakeAccountGateway(), sessions, settings).state)
+        assertEquals(SettingsState.Loading, SettingsViewModel(FakeAccountGateway(), sessions, settings, language).state)
     }
 
     @Test
@@ -65,7 +69,7 @@ class SettingsViewModelTest {
     // No debería pasar (a Ajustes se llega con sesión), pero si no la hay, se sale a Bienvenida.
     @Test
     fun `without a session it is logged out`() = runTest {
-        val viewModel = SettingsViewModel(FakeAccountGateway(), sessions, settings)
+        val viewModel = SettingsViewModel(FakeAccountGateway(), sessions, settings, language)
         runCurrent()
 
         assertEquals(SettingsState.LoggedOut, viewModel.state)
@@ -189,12 +193,79 @@ class SettingsViewModelTest {
     fun `logging out before the profile is loaded does nothing`() = runTest {
         sessions.save(session)
         val gateway = FakeAccountGateway()
-        val viewModel = SettingsViewModel(gateway, sessions, settings)
+        val viewModel = SettingsViewModel(gateway, sessions, settings, language)
 
         viewModel.onLogOut()
         runCurrent()
 
         assertEquals(emptyList<Session>(), gateway.closedSessions)
         assertEquals(SettingsState.Ready(ana), viewModel.state)
+    }
+
+    // ── Idioma (fase 3, decisiones O, S y V) ──
+
+    @Test
+    fun `it shows the language the app has now`() = runTest {
+        language.current = AppLanguage.ENGLISH
+        val viewModel = loggedIn()
+        assertEquals(AppLanguage.ENGLISH, viewModel.language)
+        assertTrue(viewModel.canChooseLanguage)
+    }
+
+    @Test
+    fun `touching the language opens the choice and dismissing it closes it`() = runTest {
+        val viewModel = loggedIn()
+        assertFalse(viewModel.languagePickerOpen)
+        viewModel.onOpenLanguage()
+        assertTrue(viewModel.languagePickerOpen)
+        viewModel.onDismissLanguage()
+        assertFalse(viewModel.languagePickerOpen)
+        assertEquals(emptyList<AppLanguage>(), language.chosen)
+    }
+
+    // Elegir lo cambia al momento (Android vuelve a pintar la app en ese idioma) y cierra la elección.
+    @Test
+    fun `choosing a language applies it and closes the choice`() = runTest {
+        val viewModel = loggedIn()
+        viewModel.onOpenLanguage()
+        viewModel.onLanguageChosen(AppLanguage.ENGLISH)
+        assertEquals(listOf(AppLanguage.ENGLISH), language.chosen)
+        assertEquals(AppLanguage.ENGLISH, viewModel.language)
+        assertFalse(viewModel.languagePickerOpen)
+    }
+
+    // Elegir el que ya estaba no vuelve a pintar la app entera.
+    @Test
+    fun `choosing the language it already has changes nothing`() = runTest {
+        language.current = AppLanguage.SPANISH
+        val viewModel = loggedIn()
+        viewModel.onOpenLanguage()
+        viewModel.onLanguageChosen(AppLanguage.SPANISH)
+        assertEquals(emptyList<AppLanguage>(), language.chosen)
+        assertFalse(viewModel.languagePickerOpen)
+    }
+
+    // Decisión V: en Android 10–12 la app sigue al sistema y la fila no se puede tocar.
+    @Test
+    fun `where the language cannot be chosen nothing opens`() = runTest {
+        language.canChoose = false
+        val viewModel = loggedIn()
+        assertFalse(viewModel.canChooseLanguage)
+        viewModel.onOpenLanguage()
+        assertFalse(viewModel.languagePickerOpen)
+        viewModel.onLanguageChosen(AppLanguage.ENGLISH)
+        assertEquals(emptyList<AppLanguage>(), language.chosen)
+    }
+}
+
+// LanguageSetting falso: recuerda lo elegido, sin Android.
+class FakeLanguageSetting(var current: AppLanguage = AppLanguage.SYSTEM, var canChoose: Boolean = true) :
+    es.ulpgc.pamn.dominio.data.settings.LanguageSetting {
+    val chosen = mutableListOf<AppLanguage>()
+    override val canChooseLanguage: Boolean get() = canChoose
+    override fun current(): AppLanguage = current
+    override fun choose(language: AppLanguage) {
+        chosen += language
+        current = language
     }
 }

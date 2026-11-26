@@ -29,6 +29,7 @@ import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.search.DraftCount
 import es.ulpgc.pamn.dominio.course.search.FilterSheetState
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // Lo que hay dentro de la hoja de filtros (Figma «4 · Buscar con filtros»): cabecera, las secciones
 // Etiquetas, Creador y Fecha de publicación (en FilterSheetSections) y «Mostrar N cursos». Sin estado
@@ -58,7 +59,7 @@ fun FilterSheetContent(
         // Sin cursos que mostrar no se puede pulsar (decisión C); con «Contando» sí, para no
         // bloquear al usuario. Sin `liveRegion`: TalkBack no anuncia el número al cambiar (decisión G).
         PrimaryButton(
-            text = showCoursesText(count),
+            text = showCoursesText(count).asString(),
             onClick = onApply,
             enabled = count != DraftCount.Known(0),
             modifier = Modifier.padding(top = 16.dp, bottom = 16.dp),
@@ -76,14 +77,14 @@ private fun SheetHeader(canReset: Boolean, onReset: () -> Unit, onClose: () -> U
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = FILTERS_LABEL,
+            text = FILTERS_LABEL.asString(),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.weight(1f).semantics { heading() },
         )
         // Desactivado sin filtros que quitar (decisión F; con creador y fecha, decisión D de la
         // tarea 11): Material ya lo atenúa.
         TextButton(onClick = onReset, enabled = canReset, modifier = Modifier.heightIn(min = 48.dp)) {
-            Text(RESET_FILTERS_TEXT, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+            Text(RESET_FILTERS_TEXT.asString(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         }
         Spacer(Modifier.width(8.dp))
         // En esta versión de Material 3 el IconButton mide 40 dp: se fuerza a 48 dp (como en SearchField).
@@ -95,7 +96,7 @@ private fun SheetHeader(canReset: Boolean, onReset: () -> Unit, onClose: () -> U
                 contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
             ),
         ) {
-            Icon(painterResource(R.drawable.ic_close), contentDescription = CLOSE_FILTERS_DESCRIPTION)
+            Icon(painterResource(R.drawable.ic_close), contentDescription = CLOSE_FILTERS_DESCRIPTION.asString())
         }
     }
 }

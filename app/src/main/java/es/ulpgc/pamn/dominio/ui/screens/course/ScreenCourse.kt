@@ -15,12 +15,15 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.data.demoCourse
 import es.ulpgc.pamn.dominio.data.demoMastered
 import es.ulpgc.pamn.dominio.ui.components.CourseHeader
 import es.ulpgc.pamn.dominio.ui.components.CourseMap
 import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
+import es.ulpgc.pamn.dominio.ui.text.ResourcesResolver
+import es.ulpgc.pamn.dominio.ui.text.resolve
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Lo que la pantalla avisa hacia fuera (objeto de parámetros, como RegisterActions).
@@ -57,11 +60,13 @@ private fun CourseContent(
     modifier: Modifier = Modifier,
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
+    // El aviso se escribe fuera de la composición (en LaunchedEffect): con los Resources del idioma de la app.
+    val resolver = ResourcesResolver(LocalResources.current)
     // Cuando hay un aviso nuevo, se enseña; al irse, se avisa para borrarlo del estado.
     // Si llega otro antes de que se vaya, LaunchedEffect cancela el anterior y enseña el nuevo.
     state.notice?.let { notice ->
         LaunchedEffect(notice) {
-            snackbarHostState.showSnackbar(notice.toMessage())
+            snackbarHostState.showSnackbar(notice.toMessage().resolve(resolver))
             actions.onNoticeShown()
         }
     }

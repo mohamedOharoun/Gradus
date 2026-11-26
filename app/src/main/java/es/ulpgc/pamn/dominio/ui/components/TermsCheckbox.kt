@@ -14,8 +14,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Casilla «Acepto los términos…». Toda la fila es pulsable, no solo el cuadradito.
@@ -36,7 +38,7 @@ fun TermsCheckbox(
         // onCheckedChange = null: la casilla solo se dibuja; el toque lo recoge la fila.
         Checkbox(checked = checked, onCheckedChange = null)
         Text(
-            "Acepto los términos de uso y la política de privacidad",
+            stringResource(R.string.terms_accept),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface,
         )

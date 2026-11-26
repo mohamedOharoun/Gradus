@@ -14,7 +14,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Esqueleto común de las pantallas provisionales: volver (opcional), título y acciones.
@@ -35,7 +37,7 @@ fun PlaceholderScreen(
             }
             Text(title, style = MaterialTheme.typography.headlineLarge)
             Text(
-                "Pantalla provisional",
+                stringResource(R.string.placeholder_note),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

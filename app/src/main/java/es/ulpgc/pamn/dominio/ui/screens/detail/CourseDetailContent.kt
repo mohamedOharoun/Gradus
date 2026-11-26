@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -25,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.Module
 import es.ulpgc.pamn.dominio.ui.components.TagLabel
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // Las piezas de la ficha lista (ScreenCourseDetail), separadas para que ningún fichero sea largo.
 
@@ -40,7 +42,7 @@ fun CourseDetailHeader(state: CourseDetailState.Ready, modifier: Modifier = Modi
             modifier = Modifier.semantics { heading() },
         )
         course.authorText()?.let {
-            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(it.asString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         if (course.tags.isNotEmpty()) {
             // Todas las etiquetas (en la tarjeta de Buscar caben 3): aquí hay sitio.
@@ -48,12 +50,14 @@ fun CourseDetailHeader(state: CourseDetailState.Ready, modifier: Modifier = Modi
                 course.tags.forEach { TagLabel(it) }
             }
         }
+        // Fuera de semantics {}: ahí no se puede leer strings.xml.
+        val spokenMeta = course.spokenMetaText().asString()
         Text(
-            course.metaText(),
+            course.metaText().asString(),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             // «nov 2026» se lee mal en voz alta: TalkBack oye «publicado en noviembre de 2026».
-            modifier = Modifier.semantics { contentDescription = course.spokenMetaText() },
+            modifier = Modifier.semantics { contentDescription = spokenMeta },
         )
         if (course.description.isNotBlank()) {
             Text(
@@ -71,7 +75,7 @@ fun CourseDetailHeader(state: CourseDetailState.Ready, modifier: Modifier = Modi
 fun LearnList(state: CourseDetailState.Ready, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text(
-            "Qué vas a aprender",
+            stringResource(R.string.detail_learn_title),
             style = MaterialTheme.typography.titleMedium,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.semantics { heading() },
@@ -85,10 +89,11 @@ fun LearnList(state: CourseDetailState.Ready, modifier: Modifier = Modifier) {
 // Un módulo de la lista. TalkBack lo lee de una vez: «1, Representar un grafo, dominado».
 @Composable
 private fun LearnItem(number: Int, module: Module, mastered: Boolean) {
+    val masteredText = stringResource(R.string.module_state_mastered)
     Row(
         modifier = Modifier.clearAndSetSemantics {
             contentDescription = "$number, ${module.title}"
-            if (mastered) stateDescription = "dominado"
+            if (mastered) stateDescription = masteredText
         },
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically,

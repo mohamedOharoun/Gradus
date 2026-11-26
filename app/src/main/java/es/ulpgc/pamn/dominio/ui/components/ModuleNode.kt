@@ -31,6 +31,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.ModuleState
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.EstadoDominado
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import es.ulpgc.pamn.dominio.ui.theme.TextoSobreOscuro
@@ -51,14 +53,15 @@ fun ModuleNode(
     modifier: Modifier = Modifier,
 ) {
     val style = moduleNodeStyle(state)
+    val stateText = state.label().asString()
     // Todo el nodo (círculo + título) es una sola zona táctil: más grande que los 48 dp mínimos,
     // y TalkBack lo lee de una vez: «Grafos, frontera, botón, doble toque para practicar».
     Column(
         modifier = modifier
             .width(ModuleNodeDefaults.Width)
             .clip(RoundedCornerShape(16.dp))
-            .clickable(role = Role.Button, onClickLabel = state.actionLabel(), onClick = onClick)
-            .semantics { stateDescription = state.label() }
+            .clickable(role = Role.Button, onClickLabel = state.actionLabel().asString(), onClick = onClick)
+            .semantics { stateDescription = stateText }
             .padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -116,16 +119,16 @@ private fun moduleNodeStyle(state: ModuleState): ModuleNodeStyle {
 }
 
 // Textos para TalkBack (y para el camino, que los reutiliza).
-internal fun ModuleState.label(): String = when (this) {
-    ModuleState.MASTERED -> "dominado"
-    ModuleState.FRONTIER -> "frontera"
-    ModuleState.LOCKED -> "bloqueado"
+internal fun ModuleState.label(): UiText = when (this) {
+    ModuleState.MASTERED -> UiText.of(R.string.module_state_mastered)
+    ModuleState.FRONTIER -> UiText.of(R.string.module_state_frontier)
+    ModuleState.LOCKED -> UiText.of(R.string.module_state_locked)
 }
 
-private fun ModuleState.actionLabel(): String = when (this) {
-    ModuleState.MASTERED -> "repasar"
-    ModuleState.FRONTIER -> "practicar"
-    ModuleState.LOCKED -> "ver qué falta"
+internal fun ModuleState.actionLabel(): UiText = when (this) {
+    ModuleState.MASTERED -> UiText.of(R.string.module_action_review)
+    ModuleState.FRONTIER -> UiText.of(R.string.module_action_practice)
+    ModuleState.LOCKED -> UiText.of(R.string.module_action_missing)
 }
 
 @LightDarkPreviews

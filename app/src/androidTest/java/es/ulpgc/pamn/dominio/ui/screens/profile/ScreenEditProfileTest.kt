@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.model.FailureReason
 import es.ulpgc.pamn.dominio.model.ProfileForm
+import es.ulpgc.pamn.dominio.ui.testing.setContentInSpanish
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -32,7 +33,7 @@ class ScreenEditProfileTest {
     private val start = ProfileForm(original = "Ana")
 
     private fun show(form: ProfileForm = start, actions: EditProfileActions = EditProfileActions()) =
-        composeRule.setContent { GradusTheme { ScreenEditProfile(email = "ana@ejemplo.com", form = form, actions = actions) } }
+        composeRule.setContentInSpanish { GradusTheme { ScreenEditProfile(email = "ana@ejemplo.com", form = form, actions = actions) } }
 
     private fun saveButton() = composeRule.onNode(hasClickAction() and (hasText("Guardar") or hasText("Guardando…") or hasText("Reintentar")))
 

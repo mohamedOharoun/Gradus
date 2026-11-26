@@ -11,15 +11,16 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
@@ -41,11 +42,11 @@ fun SearchField(
         onValueChange = onValueChange,
         modifier = modifier.fillMaxWidth().heightIn(min = 56.dp),
         singleLine = true,
-        placeholder = { Text("Busca por título o descripción") },
+        placeholder = { Text(stringResource(R.string.search_placeholder)) },
         // Decorativa: el campo ya dice para qué sirve, así que TalkBack no la anuncia.
         leadingIcon = { Icon(painterResource(R.drawable.ic_search), contentDescription = null) },
         trailingIcon = if (value.isEmpty()) null else {
-            { ClearButton(description = "Borrar búsqueda", onClick = { onValueChange("") }) }
+            { ClearButton(description = stringResource(R.string.search_clear), onClick = { onValueChange("") }) }
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
         keyboardActions = KeyboardActions(onSearch = {

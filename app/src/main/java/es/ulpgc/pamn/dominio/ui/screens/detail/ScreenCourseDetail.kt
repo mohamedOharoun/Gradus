@@ -24,6 +24,7 @@ import es.ulpgc.pamn.dominio.ui.components.BackButton
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseLoadingContent
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseProblemContent
+import es.ulpgc.pamn.dominio.ui.text.asString
 
 // La ficha de un curso (docs/tareas/ficha-curso.md): de qué va antes de entrar en su camino.
 // Sin estado: pinta CourseDetailState y avisa con CourseDetailActions. Las previews están en
@@ -83,14 +84,14 @@ private fun StartBar(state: CourseDetailState.Ready, onStart: () -> Unit) {
     ) {
         progressText(state.masteredCount, total)?.let {
             Text(
-                it,
+                it.asString(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
             )
         }
         PrimaryButton(
-            text = startButtonText(state.masteredCount, total),
+            text = startButtonText(state.masteredCount, total).asString(),
             onClick = onStart,
             modifier = Modifier.widthIn(max = 520.dp),
             trailingIcon = R.drawable.ic_arrow_forward,

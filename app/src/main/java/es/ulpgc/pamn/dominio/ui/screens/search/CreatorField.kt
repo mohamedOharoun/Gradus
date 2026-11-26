@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.ui.components.ClearButton
 import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Campo «Creador» de la hoja de filtros (Figma «4 · Buscar con filtros»): persona, texto de ayuda y ✕.
@@ -40,19 +41,21 @@ fun CreatorField(
     modifier: Modifier = Modifier,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
+    // Fuera de semantics {}: ahí no se puede leer strings.xml.
+    val fieldDescription = CREATOR_FIELD_DESCRIPTION.asString()
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .semantics { contentDescription = CREATOR_FIELD_DESCRIPTION },
+            .semantics { contentDescription = fieldDescription },
         singleLine = true,
-        placeholder = { Text(CREATOR_HINT) },
+        placeholder = { Text(CREATOR_HINT.asString()) },
         // Decorativo: el campo ya dice para qué sirve.
         leadingIcon = { Icon(painterResource(R.drawable.ic_person), contentDescription = null) },
         trailingIcon = if (value.isEmpty()) null else {
-            { ClearButton(description = CLEAR_CREATOR_DESCRIPTION, onClick = { onValueChange("") }) }
+            { ClearButton(description = CLEAR_CREATOR_DESCRIPTION.asString(), onClick = { onValueChange("") }) }
         },
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { keyboard?.hide() }),
