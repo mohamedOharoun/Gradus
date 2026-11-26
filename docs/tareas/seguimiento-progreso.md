@@ -38,13 +38,15 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     deja estudiar sin inscripción, guarda el progreso en Room por usuario y lo sincroniza tras iniciar
     sesión, inscribirse y dominar. Probado de punta a punta por los usuarios (con `pm clear`, lo dominado
     vuelve del servidor). Detalle: `docs/tareas/progreso-app.md` y su histórico.
-  - **Parte D planificada (2026-11-26):** decisiones D-1 a D-5, criterios y pasos en
-    `docs/tareas/progreso-app.md`. Orden 11a → 11b → 11c → 13a → 13b → 12a → 12b. Sin código todavía.
-- **Lo común que cambia con D:** `SessionStore` tendrá una implementación cifrada en disco sin cambiar
-  el puerto (D-2); la sincronización pasa a WorkManager y `ProgressSyncLauncher` se borra (D-4);
-  `ProgressDatabase` sube a la versión 2 con la tabla `course_copies` (D-3). Lo nuevo de `sharedLogic`
+  - **Parte D en curso:** decisiones D-1 a D-5, criterios y pasos en `docs/tareas/progreso-app.md`. Orden
+    11 → 13 → 12. **Tarea 11 hecha y revisada en código (2026-11-26):** la sesión se guarda cifrada
+    (DataStore + Keystore) y la app abre en Inicio o en Bienvenida según haya sesión; falta la prueba de
+    los usuarios en el emulador para marcarla.
+- **Lo común que cambia con D:** `SessionStore` ya tiene una implementación cifrada en disco sin cambiar
+  el puerto (D-2, hecho); la sincronización pasará a WorkManager y `ProgressSyncLauncher` se borrará (D-4);
+  `ProgressDatabase` subirá a la versión 2 con la tabla `course_copies` (D-3). Lo nuevo de `sharedLogic`
   va en ficheros nuevos; los puertos de la parte B no cambian.
-- **Siguiente:** paso 11a de la parte D.
+- **Siguiente:** prueba de la tarea 11 en el emulador y, después, el paso 13a de la parte D.
 - **Dependencias entre partes:**
   - A, B y C: **terminadas**.
   - D: lo que necesitaba de C está hecho. WorkManager (D13) necesita la sesión persistente (D11).
@@ -53,7 +55,8 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
   orquestador cambia el contrato por su cuenta después de congelarlo.
 - **Abierto (común):**
   - Dependencias: Room 2.8.5 + KSP 2.3.14 aprobados y añadidos (C-1); WorkManager 2.12.0, work-testing
-    2.12.0 y DataStore 1.3.0 aprobados el 2026-11-26 (D-1), se añaden en 11b y 13b.
+    2.12.0 y DataStore 1.3.0 aprobados el 2026-11-26 (D-1); DataStore ya añadido (11b), WorkManager se
+    añade en 13b.
   - Coordinación con otras ramas: la migración es la `006` (la `005` es de valoraciones), y la rama
     `dev/joel` toca `CourseViewModel`, `ScreenCourse`, `MainNavGraph`, `AppContainer`,
     `libs.versions.toml` y `build.gradle.kts`: tocarlos lo mínimo (decisión 5).
@@ -158,3 +161,5 @@ Resumen de lo que pide cada tarea de B, C y D (el detalle lo escribe su orquesta
   `docs/arquitectura-progreso.md`. Lo que necesita la parte C, en el Relevo general.
 - 2026-11-26: **parte C terminada** (tareas 7–10 de `progreso-app.md`; lo terminado, en
   `progreso-app-historico.md`). Lo que necesita la parte D, en el Relevo general y en el de `progreso-app.md`.
+- 2026-11-26: parte D planificada (D-1 a D-5) y **tarea 11 hecha y revisada en código** (sesión guardada
+  cifrada y arranque según la sesión); pendiente de la prueba de los usuarios en el emulador.

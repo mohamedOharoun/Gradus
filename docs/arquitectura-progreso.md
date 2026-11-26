@@ -79,12 +79,14 @@ Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, conecta
 | `EncryptedSessionSerializer(cipher)` | `Serializer<Session?>` de DataStore: `encodeSession` + cifrar al escribir, descifrar + `decodeSession` al leer. «Sin sesión» = fichero vacío. No se puede descifrar o no es una sesión → `CorruptionException` con texto fijo (nunca el token). Una `IOException` del disco **sale tal cual** (no borra una sesión buena) | *Adapter* |
 | `DataStoreSessionStore(dataStore)` y `create(context, scope, fileName, cipher)` | Implementa `SessionStore` sin cambiar el puerto; además `session: Flow<Session?>` (cada cambio). Fichero `gradus-session.bin` en `noBackupFilesDir`; `ReplaceFileCorruptionHandler { null }`: fichero roto o clave perdida = sin sesión. **Un solo `DataStore` activo por fichero** (dos lanzan): la app crea uno; los tests cancelan el ámbito antes de abrir otro y usan alias propios, nunca `DEFAULT_ALIAS` | *Adapter* del puerto; *Factory method* |
 
-En `app/.../ui/navigation/` (11c-2; lo usa la navegación desde 11c-3):
+En `app/.../ui/navigation/` (el arranque según la sesión guardada; 11c-2 y 11c-3):
 
 | Pieza | Qué es | Patrón |
 |---|---|---|
 | `StartState` (`Loading \| SignedIn \| SignedOut`) | Qué sabe la app de la sesión guardada. Sin datos: el token no puede salir por aquí | Jerarquía sellada (tipo suma) |
 | `StartViewModel(sessions: Flow<Session?>, retryDelay = 2 s)` | `state: StateFlow<StartState>` (`Eagerly`, empieza en `Loading`). Si leer lanza `IOException` (incluida `CorruptionException`) o `ProviderException`: `SignedOut` sin borrar nada y vuelve a leer cada 2 s (un `Flow` que falla muere). Otro error no se traga. **Consecuencia:** un error pasajero dentro de `Main` lleva a Login aunque la sesión siga guardada | *Observer* (`StateFlow`); `retryWhen` |
+| `StartNavigation.kt`: `startRoute()`, `mustLeaveMain(inMain)`, `isInMain()` y `NavController.leaveMain()` | `Loading` → sin ruta (solo el fondo); `SignedIn` → `Route.Main`; `SignedOut` → `Route.Welcome`. **Regla sobre el estado, no sobre el cambio:** `SignedOut` estando dentro del grafo `Main` → `leaveMain()`, que vacía la pila y deja `[Welcome, Login]` (como el flujo normal). Vale con la app abierta y cuando Android restaura la pila en `Main` sin sesión; con `Loading` no se sale | Funciones puras (extensiones) |
+| `GradusNavHost(start, …)` y `MainActivity` | `MainActivity` crea `StartViewModel(AppContainer.sessionUpdates)` (`by viewModels`) y pasa `state` con `collectAsStateWithLifecycle()`. `GradusNavHost` pinta un `Box` con el fondo del tema en `Loading`; la ruta inicial se fija **una vez** con el primer estado no `Loading` (si cambiara, el `NavHost` recrearía el grafo y vaciaría la pila); `rememberNavController()` restaura la pila aunque el `NavHost` llegue después. Al iniciar sesión, `enterHome()` espera a `start == SignedIn` (si no, un fotograma de desfase devolvería a Login) | *State hoisting*; la navegación solo en `GradusNavHost` |
 
 Tests: `EncryptedSessionSerializerTest` (JVM, con `FakeSessionCipher`); `KeystoreSessionCipherTest`,
 `DataStoreSessionStoreTest`, `DataStoreSessionStoreFileTest` y `DataStoreSessionStoreFailureTest`
@@ -374,6 +376,12 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   y `app/build.gradle.kts` (el plugin, `room-runtime`, `ksp(room-compiler)` y `kotlinx-coroutines-test`
   en `androidTestImplementation`). `dev/joel` también toca estos tres ficheros: al resolver conflictos,
   conserva las líneas de los dos lados.
+- **Arranque según la sesión (11c-3):** `GradusNavHost` tiene un primer parámetro `start: StartState` y ya
+  no empieza siempre en `Route.Welcome`; `MainActivity` crea el `StartViewModel`. Si otra rama toca
+  `GradusNavHost` o `MainActivity`, conservar: el `Box` de `Loading` con su `return`, la ruta inicial con
+  `remember(start == StartState.Loading)`, el `LaunchedEffect(leaveMain)` antes del `NavHost` y la condición
+  `&& start == StartState.SignedIn` en la entrada de Login. Lo prueban `GradusNavHostStartTest` y
+  `StartNavigationTest`.
 - **Gradle con DataStore (11b):** `datastore = "1.3.0"` y `androidx-datastore` en
   `gradle/libs.versions.toml`, e `implementation(libs.androidx.datastore)` en `app/build.gradle.kts`.
 - **`app/.../data/AppContainer.kt`, progreso (desde 7d; antes, en 9b, era `InMemoryProgressStore`):**

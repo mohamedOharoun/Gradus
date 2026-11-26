@@ -1,6 +1,7 @@
-# Progreso en la app — histórico de la parte C (tareas 7–10)
+# Progreso en la app — histórico de las partes C y D
 
-Lo terminado de `docs/tareas/progreso-app.md`, tal como quedó al cerrar la parte C (2026-11-26). No hace
+Lo terminado de `docs/tareas/progreso-app.md`: la parte C (tareas 7–10, cerrada el 2026-11-26) y, al
+final, el detalle de los pasos de la parte D ya revisados (desde la tarea 11). No hace
 falta leerlo para continuar: cómo funciona lo hecho está en `docs/arquitectura-progreso.md`, y las
 decisiones que siguen vigentes, en `progreso-app.md`. Sirve para saber por qué se hizo algo así.
 
@@ -73,3 +74,34 @@ Lo que conviene recordar de las revisiones:
 - Las previews no enseñan las barras del sistema ni el fondo real (10b): las pantallas nuevas se miran
   en el emulador.
 - Buscar avisa solo con el `id` del curso, no con su título (C-6).
+
+## Parte D — tarea 11 (sesión guardada cifrada): detalle de los pasos
+
+Modelos usados: 11a Sonnet 5.5 · medio; 11b Opus 5.5 · medio; 11c (en tres sub-pasos) Sonnet 5.5 · alto.
+Commits: `add: … (progress task 11a)`, `… 11b`, `… 11c-1`, `… 11c-2` y `… 11c-3`.
+
+- **11a** (`sharedLogic`, 25 tests). `account/storage/` (`StoredSessionDto`, `encodeSession`,
+  `decodeSession`: lo ilegible da `null`, el token no sale en ningún `toString`; el texto de `encodeSession`
+  sí lleva el token en claro, para cifrarlo), `account/SessionStoreExtensions.kt` (`clearIfCurrent`) y
+  `course/progress/SessionProgressSync.kt` + `SessionSyncResult.kt`. Decisiones de la revisión:
+  `clearIfCurrent` compara **solo el token** (un 401 invalida el token sea cual sea su `expiresAt`); DTO del
+  disco aparte del de la red; sin campo `version`. Límite: leer y borrar son dos pasos (el puerto no tiene
+  uno atómico); el caso realista (guardar mientras la petición viaja) está probado.
+- **11b** (app + DataStore 1.3.0; 9 JVM + 23 instrumentados). `SessionCipher`, `KeystoreSessionCipher`,
+  `EncryptedSessionSerializer` y `DataStoreSessionStore`. Cambios pedidos en la revisión de la propuesta:
+  `decrypt` no crea la clave; buscar o crear va dentro de un cerrojo (generar con un alias existente
+  sustituye la clave); `scope` con valor por defecto; los tests nunca usan `DEFAULT_ALIAS`. Decisiones:
+  `DataStore<Session?>` sin envoltorio; «sin sesión» = fichero vacío; una `IOException` del disco sale tal
+  cual (no borra una sesión buena). El test de hilos documenta, no demuestra (no se ha visto fallar sin el
+  cerrojo).
+- **11c-1** (JVM 4 + 11; 33 instrumentados). `AppContainer`: `sessionStore` = `DataStoreSessionStore` (uno
+  solo, necesita `init`) y `sessionUpdates`; `requireContext()`; comentario de `SessionCipher` corregido;
+  `AppContainerInitTest.session_store_works_without_init` cambiado con permiso. Hallazgo probado en
+  `DataStoreSessionStoreFailureTest`: con un fallo del sistema que no pasa, `save` también lanza.
+- **11c-2** (18 JVM). `StartState` y `StartViewModel` en `ui/navigation/` (no es una pantalla); reintento
+  cada 2 s con `retryWhen` porque un `Flow` que falla muere. Comprobado con una mutación.
+- **11c-3** (7 JVM + 10 instrumentados). `StartNavigation.kt`, `GradusNavHost` y `MainActivity`. Cambios de
+  la revisión de la propuesta: `leaveMain()` deja `[Welcome, Login]` en vez de tocar `enterHome` y la flecha
+  atrás de Login; sin componente nuevo para `Loading`; test de recrear tras iniciar sesión. Decisión del
+  implementador: al iniciar sesión, `enterHome()` espera también a `start == SignedIn` (si no, un fotograma
+  de desfase devolvería a Login); probada.
