@@ -3,6 +3,10 @@ package es.ulpgc.pamn.dominio.data
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.data.course.CourseCopyLauncher
 import es.ulpgc.pamn.dominio.data.progress.WorkSyncRequester
+import es.ulpgc.pamn.dominio.data.publication.CourseDraftFiles
+import es.ulpgc.pamn.dominio.data.publication.RoomCourseDraftStore
+import es.ulpgc.pamn.dominio.data.publication.UserDraftsCleaner
+import es.ulpgc.pamn.dominio.data.publication.WorkUploadRequester
 import es.ulpgc.pamn.dominio.data.session.SessionMonitor
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
@@ -75,5 +79,41 @@ class AppContainerTest {
     fun notes_store_and_settings_store_are_single_instances() {
         assertSame(AppContainer.notesStore, AppContainer.notesStore)
         assertSame(AppContainer.settingsStore, AppContainer.settingsStore)
+    }
+
+    // Subida de cursos (3b): pasarela HTTP, almacén Room, ficheros privados, WorkManager,
+    // coordinador puro y limpiador de cuenta son instancias únicas con su implementación real.
+    @Test
+    fun course_publication_gateway_is_a_single_instance() {
+        assertSame(AppContainer.coursePublicationGateway, AppContainer.coursePublicationGateway)
+    }
+
+    @Test
+    fun course_draft_store_is_room_course_draft_store_single_instance() {
+        assertTrue(AppContainer.courseDraftStore is RoomCourseDraftStore)
+        assertSame(AppContainer.courseDraftStore, AppContainer.courseDraftStore)
+    }
+
+    @Test
+    fun course_draft_files_is_course_draft_files_single_instance() {
+        assertTrue(AppContainer.courseDraftFiles is CourseDraftFiles)
+        assertSame(AppContainer.courseDraftFiles, AppContainer.courseDraftFiles)
+    }
+
+    @Test
+    fun course_upload_requester_is_work_upload_requester_single_instance() {
+        assertTrue(AppContainer.courseUploadRequester is WorkUploadRequester)
+        assertSame(AppContainer.courseUploadRequester, AppContainer.courseUploadRequester)
+    }
+
+    @Test
+    fun process_course_draft_is_a_single_instance() {
+        assertSame(AppContainer.processCourseDraft, AppContainer.processCourseDraft)
+    }
+
+    @Test
+    fun clear_user_drafts_is_user_drafts_cleaner_single_instance() {
+        assertTrue(AppContainer.clearUserDrafts is UserDraftsCleaner)
+        assertSame(AppContainer.clearUserDrafts, AppContainer.clearUserDrafts)
     }
 }

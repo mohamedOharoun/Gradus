@@ -7,51 +7,53 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (1a–1b), Parte B (2a–2c) y Parte C · Paso 3a (3a-1 y 3a-2) completados; siguiente: Parte C · Paso 3b (WorkManager y cableado en `AppContainer`).
+Estado: **en progreso (2026-11-27)** — Parte A (Backend: 1a–1b), Parte B (`sharedLogic/`: 2a–2c) y Parte C (`app/data/`: 3a–3b) cerradas; siguiente: Parte D (`app/ui/`: Paso 4a).
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-27):** **Parte A (Backend)** cerrada (932 tests JUnit Jupiter) y **Parte B
-  (`sharedLogic/`) cerrada y revisada** (pasos 2a, 2b y 2c en verde: 149 tests nuevos acumulados,
-  1219 tests totales en `:sharedLogic:testAndroidHostTest`, 0 errores ni avisos de compilación,
-  100 % KMP puro sin `android.*` ni `java.*`).
-- **Puertos y modelos congelados para la Parte C (`app/data/`, paquete `es.ulpgc.pamn.dominio.course` / `.publication`):**
-  - **Modelos y utilidades (2a):** `MAX_COURSE_BYTES = 2_097_152` (2 MiB exactos), `CourseIssue`,
-    `CourseReport` (`isValid`, `hasWarnings`, `EMPTY`, `formatAsPlainText`), `ReportTextLabels`,
-    `PendingAction` (`VALIDATING`, `PUBLISHING`), `PendingNotice` (`NONE`, `NETWORK`,
-    `SESSION_EXPIRED`, `SERVER_FAILURE`), `DraftRejection` (`ValidationReport`, `IdenticalToLatest`,
-    `NotAuthor`, `CourseNotFound`, `TooLarge`, `FileMissing`), `DraftStatus` (`Pending`, `Accepted`,
-    `Rejected`), `CourseDraft` (`id`, `userId`, `targetCourseId`, `filePath`, `title`,
-    `moduleCount`, `status`, `updatedAt: kotlin.time.Instant`), `AuthorCourseFilter`,
-    `AuthorCourseItem`, `mergeAuthorCourses`, `filterBy`, `countByFilter`, `CourseDraftPreview`
-    (`fromBytes`, `fromJson`).
-  - **Red, códec y caché (2b):** `CoursePublicationGateway` (`myCourses`, `validateNew`,
-    `validateVersion`, `publishNew`, `publishVersion`), `MyCoursesOutcome`, `ValidationOutcome`,
-    `PublishOutcome`, `CourseReportJson` (`encode` / `decode` para la columna `TEXT` en Room),
-    `CoursePublicationGateways.http(baseUrl)` (timeout 60 s en subidas y control previo de 2 MiB),
-    `FakeCoursePublicationGateway`, `CourseCacheInvalidator` (SAM) implementado por
-    `CachingCourseGateway.invalidate(courseId)`.
-  - **Almacenamiento y coordinador (2c):**
-    - `CourseDraftStore`: `drafts(): Flow<List<CourseDraft>>` (sesión leída al empezar a escuchar,
-      sin sesión emite `emptyList()` y termina), `find(draftId)`, `upsert(draft)`,
-      `updateIfPresent(draft): Boolean` (atómicamente actualiza solo si sigue presente; en Room
-      usar `@Update` / `UPDATE ... WHERE id = :id` que nunca inserta), `delete(draftId)`,
-      `clearForUser(userId): List<CourseDraft>` (borra y devuelve los borradores eliminados para
-      limpiar ficheros y cancelar trabajos en `DeleteAccountViewModel`).
-    - `CourseDraftContentStore`: `read(filePath): ByteArray?` y `delete(filePath)` (a implementar
-      por `CourseDraftFiles` sobre `files/course_drafts/`).
-    - `DraftWorkDecision` (`Done`, `Retry`, `GiveUp`), `MAX_UPLOAD_SERVER_FAILURE_ATTEMPTS = 5` y
-      `ProcessCourseDraft(drafts, contents, sessions, gateway, cacheInvalidator, clock)` con
-      `process(draftId, attempt): DraftWorkDecision` listo para invocar desde `CourseUploadWorker`
-      (`Done -> Result.success()`, `Retry -> Result.retry()`, `GiveUp -> Result.failure()`).
-- **Siguiente paso:** **Parte C · Paso 3b** (`CourseUploadRequester`, `WorkUploadRequester`,
-  `CourseUploadWorker` y cableado en `AppContainer` + `SettingsDestination.kt`). *(Paso 3a — 3a-1
-  y 3a-2 — revisado: 29 tests JVM nuevos, 586 en `:app:testDebugUnitTest`, esquema `3.json`
-  verificado contra `MIGRATION_2_3`, y tests instrumentados `CourseDraftFilesAndroidTest`,
-  `ProgressDatabaseMigrationTest` y `RoomCourseDraftStoreTest` compilados y listos para pasar en
-  emulador junto a los de 3b al cerrar la Parte C.)*
+- **Dónde estamos (2026-11-27):** **Parte A (Backend)** cerrada (932 tests JUnit Jupiter), **Parte B
+  (`sharedLogic/`)** cerrada (1219 tests en `:sharedLogic:testAndroidHostTest`, 100 % KMP puro) y
+  **Parte C (`app/data/`) cerrada y revisada** (pasos 3a-1, 3a-2 y 3b en verde: 34 tests JVM nuevos,
+  591 tests totales en `:app:testDebugUnitTest`; 67/67 tests instrumentados en verde en
+  `emulator-5554` cubriendo `CourseDraftFilesAndroidTest`, `ProgressDatabaseMigrationTest`,
+  `ProgressDatabaseTest`, `RoomCourseDraftStoreTest`, `CourseUploadWorkerTest`,
+  `WorkUploadRequesterTest` y `AppContainerTest`; 0 errores ni avisos de compilación).
+- **Contratos y cableado listos para la Parte D (`app/ui/`):**
+  - **Modelos y utilidades puras (`es.ulpgc.pamn.dominio.course.publication`):**
+    - `MAX_COURSE_BYTES = 2_097_152`, `CourseIssue`, `CourseReport` (`isValid`, `hasWarnings`,
+      `EMPTY`, `formatAsPlainText(labels: ReportTextLabels)`), `ReportTextLabels`.
+    - `PendingAction` (`VALIDATING`, `PUBLISHING`), `PendingNotice` (`NONE`, `NETWORK`,
+      `SESSION_EXPIRED`, `SERVER_FAILURE`), `DraftRejection` (`ValidationReport`,
+      `IdenticalToLatest`, `NotAuthor`, `CourseNotFound`, `TooLarge`, `FileMissing`), `DraftStatus`
+      (`Pending`, `Accepted`, `Rejected`).
+    - `CourseDraft` (`id`, `userId`, `targetCourseId`, `filePath`, `title`, `moduleCount`, `status`,
+      `updatedAt: kotlin.time.Instant`, `isNewVersion`).
+    - `AuthorCourseFilter` (`ALL`, `PUBLISHED`, `ACCEPTED`, `PENDING`, `REJECTED`),
+      `AuthorCourseItem`, `mergeAuthorCourses(published, drafts)`, `filterBy(filter)`,
+      `countByFilter()`, `CourseDraftPreview` (`fromBytes`, `fromJson`).
+  - **Puertos de `app/data/publication/` y cableado en `AppContainer` (listos para `MyCoursesViewModel` y navegación):**
+    - `AppContainer.coursePublicationGateway: CoursePublicationGateway` (`myCourses`, `validateNew`,
+      `validateVersion`, `publishNew`, `publishVersion`).
+    - `AppContainer.courseDraftStore: CourseDraftStore` (`RoomCourseDraftStore` sobre
+      `ProgressDatabase` v3, `drafts(): Flow<List<CourseDraft>>` por usuario actual, `find`,
+      `upsert`, `updateIfPresent`, `delete`, `clearForUser`).
+    - `AppContainer.courseDraftFiles: CourseDraftStorage` (`CourseDraftFiles.android(context)`:
+      `import(draftId, sourceUri): DraftImportResult` — `Imported(filePath, preview)` / `TooLarge` /
+      `Unreadable` — con corte exacto a 2 MiB y protección *path traversal*, más `read`, `delete`,
+      `deleteAll`).
+    - `AppContainer.courseUploadRequester: CourseUploadRequester` (`WorkUploadRequester`:
+      `enqueue(draftId)` con trabajo único `"course-upload-$draftId"`, `REPLACE`,
+      `NetworkType.CONNECTED` y *backoff* exponencial; `cancel(draftId)`).
+    - `AppContainer.processCourseDraft: ProcessCourseDraft` (usado por `CourseUploadWorker`,
+      invalida automáticamente `AppContainer.courseGateway` al publicar una versión).
+    - `AppContainer.clearUserDrafts: ClearUserDrafts` (`UserDraftsCleaner` ya cableado en
+      `SettingsDestination.kt` → `DeleteAccountViewModel` para limpiar filas, ficheros y trabajos
+      al eliminar cuenta).
+- **Siguiente paso:** **Parte D · Paso 4a** (recursos vectoriales, aprobación explícita previa de
+  tokens de color para badges «Publicado» y «Rechazado» en `Color.kt`/`Theme.kt`, y textos ES/EN en
+  `values/strings.xml` y `values-en/strings.xml`).
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -292,7 +294,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
     migración real v2 → v3 preservando inscripciones/progreso/copias) y tests unitarios de
     `CourseDraftFiles` (límite de 2 MiB, lectura y borrado).
 
-- [ ] **3b · WorkManager (`CourseUploadWorker` y `WorkUploadRequester`).**
+- [x] **3b · WorkManager (`CourseUploadWorker` y `WorkUploadRequester`).**
   *Modelo sugerido:* Gemini Neon · **High**.
   - `CourseUploadRequester` (puerto: `enqueue(draftId)`, `cancel(draftId)`) + `WorkUploadRequester`
     usando `enqueueUniqueWork("course-upload-$draftId", REPLACE, …)` con `NetworkType.CONNECTED` y
@@ -396,10 +398,14 @@ Se **reescribe** al final de cada sesión; no se acumula.
   `:app:testDebugUnitTest` en verde, 0 avisos; `ProgressDatabaseMigrationTest` y
   `RoomCourseDraftStoreTest` compilados con `:app:compileDebugAndroidTestKotlin`, pendientes de
   ejecutar en emulador junto a los de 3a-1 y 3b). **Paso 3a cerrado en código.**
+- 2026-11-27: Paso 3b (`CourseUploadRequester`, `WorkUploadRequester`, `CourseUploadWorker`,
+  cableado en `AppContainer` y `SettingsDestination.kt`, y tests JVM e instrumentados) completado y
+  revisado (5 tests JVM nuevos en `AppContainerInitTest`, 591 en `:app:testDebugUnitTest`; 31 tests
+  instrumentados nuevos; batería completa de Parte C + `ProgressDatabaseTest` con 67/67 en verde en
+  `emulator-5554`, 0 avisos). **Parte C cerrada.**
 
 ## Siguiente paso
 
-Cerrar la **Parte C (`app/data/`)** con el **paso 3b** (`CourseUploadRequester`,
-`WorkUploadRequester`, `CourseUploadWorker`, cableado en `AppContainer` y
-`SettingsDestination.kt`), proponiendo primero ficheros, diseño y tests antes de escribir código,
-y ejecutar en emulador la batería completa de tests instrumentados de la Parte C (3a + 3b).
+Iniciar la **Parte D (`app/ui/`)** con el **paso 4a** (iconos vectoriales, aprobación previa de
+tokens de color en `Color.kt`/`Theme.kt` y cadenas ES/EN en `values/strings.xml` y
+`values-en/strings.xml`).

@@ -87,4 +87,40 @@ class AppContainerInitTest {
 
         assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
     }
+
+    // Subida de cursos (3b): borradores en Room, ficheros privados y WorkManager necesitan Context.
+    @Test
+    fun course_draft_store_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.courseDraftStore }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
+
+    @Test
+    fun course_draft_files_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.courseDraftFiles }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
+
+    @Test
+    fun course_upload_requester_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.courseUploadRequester }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
+
+    @Test
+    fun process_course_draft_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.processCourseDraft }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
+
+    @Test
+    fun clear_user_drafts_before_init_fails_saying_what_to_call() {
+        val failure = assertThrows(IllegalStateException::class.java) { AppContainer.clearUserDrafts }
+
+        assertTrue(failure.message.orEmpty().contains("AppContainer.init(context)"))
+    }
 }

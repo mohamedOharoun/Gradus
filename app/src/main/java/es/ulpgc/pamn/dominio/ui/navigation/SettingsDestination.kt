@@ -45,6 +45,7 @@ internal fun SettingsRoute(navController: NavController, modifier: Modifier = Mo
             AppContainer.accountGateway,
             AppContainer.sessionStore,
             AppContainer.sessionSignOut,
+            AppContainer.clearUserDrafts,
         ),
     )
     val appSettings by settingsViewModel.appSettings.collectAsStateWithLifecycle()

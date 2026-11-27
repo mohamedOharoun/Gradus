@@ -13,6 +13,10 @@ import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressGateways
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.SessionProgressSync
+import es.ulpgc.pamn.dominio.course.publication.CourseDraftStore
+import es.ulpgc.pamn.dominio.course.publication.CoursePublicationGateway
+import es.ulpgc.pamn.dominio.course.publication.CoursePublicationGateways
+import es.ulpgc.pamn.dominio.course.publication.ProcessCourseDraft
 import es.ulpgc.pamn.dominio.data.course.CourseCopyLauncher
 import es.ulpgc.pamn.dominio.data.course.CourseCopyRequester
 import es.ulpgc.pamn.dominio.data.course.RoomCourseCopyStore
@@ -23,6 +27,13 @@ import es.ulpgc.pamn.dominio.data.progress.ProgressDatabase
 import es.ulpgc.pamn.dominio.data.progress.ProgressModule
 import es.ulpgc.pamn.dominio.data.progress.ProgressSyncRequester
 import es.ulpgc.pamn.dominio.data.progress.WorkSyncRequester
+import es.ulpgc.pamn.dominio.data.publication.ClearUserDrafts
+import es.ulpgc.pamn.dominio.data.publication.CourseDraftFiles
+import es.ulpgc.pamn.dominio.data.publication.CourseDraftStorage
+import es.ulpgc.pamn.dominio.data.publication.CourseUploadRequester
+import es.ulpgc.pamn.dominio.data.publication.RoomCourseDraftStore
+import es.ulpgc.pamn.dominio.data.publication.UserDraftsCleaner
+import es.ulpgc.pamn.dominio.data.publication.WorkUploadRequester
 import es.ulpgc.pamn.dominio.data.session.DataStoreSessionStore
 import es.ulpgc.pamn.dominio.data.session.SessionMonitor
 import es.ulpgc.pamn.dominio.data.session.SessionSignOut
@@ -156,5 +167,37 @@ object AppContainer {
     // Preferencias de Ajustes (modo oscuro). Se recuerdan al cerrar la app.
     val settingsStore: SettingsStore by lazy {
         SharedPreferencesSettingsStore(requireContext().getSharedPreferences("settings", Context.MODE_PRIVATE))
+    }
+
+    // Subida de cursos (docs/tareas/subida-cursos.md, parte C): red, borradores locales en Room y
+    // ficheros privados, WorkManager por borrador, coordinador puro y limpieza al eliminar cuenta.
+    val coursePublicationGateway: CoursePublicationGateway by lazy {
+        CoursePublicationGateways.http(BASE_URL)
+    }
+
+    val courseDraftStore: CourseDraftStore by lazy {
+        RoomCourseDraftStore(progressDatabase.courseDraftDao(), sessionStore)
+    }
+
+    val courseDraftFiles: CourseDraftStorage by lazy {
+        CourseDraftFiles.android(requireContext())
+    }
+
+    val courseUploadRequester: CourseUploadRequester by lazy {
+        WorkUploadRequester(WorkManager.getInstance(requireContext()))
+    }
+
+    val processCourseDraft: ProcessCourseDraft by lazy {
+        ProcessCourseDraft(
+            drafts = courseDraftStore,
+            contents = courseDraftFiles,
+            sessions = sessionStore,
+            gateway = coursePublicationGateway,
+            cacheInvalidator = courseGateway,
+        )
+    }
+
+    val clearUserDrafts: ClearUserDrafts by lazy {
+        UserDraftsCleaner(courseDraftStore, courseDraftFiles, courseUploadRequester::cancel)
     }
 }
