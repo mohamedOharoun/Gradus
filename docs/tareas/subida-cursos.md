@@ -7,7 +7,7 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (1a–1b), Parte B (2a–2c) y Parte C · 3a-1 completados; siguiente: Parte C · Paso 3a-2 (Room v2 → v3).
+Estado: **en progreso (2026-11-27)** — Parte A (1a–1b), Parte B (2a–2c) y Parte C · Paso 3a (3a-1 y 3a-2) completados; siguiente: Parte C · Paso 3b (WorkManager y cableado en `AppContainer`).
 
 ## Relevo
 
@@ -46,12 +46,12 @@ Se **reescribe** al final de cada sesión; no se acumula.
       `ProcessCourseDraft(drafts, contents, sessions, gateway, cacheInvalidator, clock)` con
       `process(draftId, attempt): DraftWorkDecision` listo para invocar desde `CourseUploadWorker`
       (`Done -> Result.success()`, `Retry -> Result.retry()`, `GiveUp -> Result.failure()`).
-- **Siguiente paso:** **Parte C · Subpaso 3a-2** (`CourseDraftEntity`, `CourseDraftMapper`,
-  `CourseDraftDao`, `RoomCourseDraftStore` usando `CourseReportJson`, y `MIGRATION_2_3` en
-  `ProgressDatabase` con esquema `3.json`). *(3a-1 — `CourseDraftStorage`, `CourseDraftFiles`,
-  `ClearUserDrafts`, `UserDraftsCleaner` y `DeleteAccountViewModel` — ya está revisado; 20 tests
-  JVM nuevos, 577 en `:app:testDebugUnitTest`, y 5 tests instrumentados en
-  `CourseDraftFilesAndroidTest` compilados y listos para emulador.)*
+- **Siguiente paso:** **Parte C · Paso 3b** (`CourseUploadRequester`, `WorkUploadRequester`,
+  `CourseUploadWorker` y cableado en `AppContainer` + `SettingsDestination.kt`). *(Paso 3a — 3a-1
+  y 3a-2 — revisado: 29 tests JVM nuevos, 586 en `:app:testDebugUnitTest`, esquema `3.json`
+  verificado contra `MIGRATION_2_3`, y tests instrumentados `CourseDraftFilesAndroidTest`,
+  `ProgressDatabaseMigrationTest` y `RoomCourseDraftStoreTest` compilados y listos para pasar en
+  emulador junto a los de 3b al cerrar la Parte C.)*
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -278,7 +278,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
 
 ### Parte C · Persistencia y segundo plano (`app/data/`)
 
-- [ ] **3a · Ficheros de borrador, lector `OpenDocument` y migración Room v2 → v3.**
+- [x] **3a · Ficheros de borrador, lector `OpenDocument` y migración Room v2 → v3.**
   *Modelo sugerido:* Gemini Neon · **High**.
   - `CourseDraftFiles`: copia desde `Uri` (`ContentResolver`) a `files/course_drafts/<id>.json`
     cortando la lectura si supera 2 MiB (sin cargar archivos enormes en memoria), lee bytes y borra
@@ -390,10 +390,16 @@ Se **reescribe** al final de cada sesión; no se acumula.
   revisado (20 tests JVM nuevos, 577 en `:app:testDebugUnitTest` en verde, 0 avisos; 5 tests
   instrumentados en `CourseDraftFilesAndroidTest` compilados con `:app:compileDebugAndroidTestKotlin`,
   pendientes de pasar en emulador junto a los de 3a-2).
+- 2026-11-27: Subpaso 3a-2 (`CourseDraftEntity`, `CourseDraftMapper`, `CourseDraftDao`,
+  `RoomCourseDraftStore`, `ProgressDatabase` v2 → v3 con `MIGRATION_2_3` y esquema `3.json`)
+  completado y revisado (9 tests JVM nuevos en `CourseDraftMapperTest`, 586 en
+  `:app:testDebugUnitTest` en verde, 0 avisos; `ProgressDatabaseMigrationTest` y
+  `RoomCourseDraftStoreTest` compilados con `:app:compileDebugAndroidTestKotlin`, pendientes de
+  ejecutar en emulador junto a los de 3a-1 y 3b). **Paso 3a cerrado en código.**
 
 ## Siguiente paso
 
-Continuar la **Parte C (`app/data/`)** con el **subpaso 3a-2** (`CourseDraftEntity`,
-`CourseDraftMapper`, `CourseDraftDao`, `RoomCourseDraftStore` y `MIGRATION_2_3` en
-`ProgressDatabase` con esquema `3.json`), proponiendo primero ficheros, diseño y tests antes de
-escribir código.
+Cerrar la **Parte C (`app/data/`)** con el **paso 3b** (`CourseUploadRequester`,
+`WorkUploadRequester`, `CourseUploadWorker`, cableado en `AppContainer` y
+`SettingsDestination.kt`), proponiendo primero ficheros, diseño y tests antes de escribir código,
+y ejecutar en emulador la batería completa de tests instrumentados de la Parte C (3a + 3b).
