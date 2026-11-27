@@ -139,16 +139,6 @@ fun ScreenMyCourses(
     }
 }
 
-// Sobrecarga temporal para que MainNavGraph.kt siga compilando hasta el paso 4c (igual que ScreenSettings).
-@Composable
-internal fun ScreenMyCourses(modifier: Modifier = Modifier) {
-    ScreenMyCourses(
-        state = MyCoursesUiState(),
-        actions = MyCoursesActions(),
-        modifier = modifier,
-    )
-}
-
 @Composable
 private fun MyCoursesHeader() {
     Column {

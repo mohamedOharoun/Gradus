@@ -20,7 +20,6 @@ import es.ulpgc.pamn.dominio.course.progress.StudyAccess
 import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.components.MainScaffold
 import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
-import es.ulpgc.pamn.dominio.ui.screens.ScreenMyCourses
 import es.ulpgc.pamn.dominio.ui.screens.ScreenSearch
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseActions
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseScreenState
@@ -68,7 +67,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
                 modifier = modifier,
             )
         }
-        tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { ScreenMyCourses(it) }
+        tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { MyCoursesRoute(navController, it) }
         tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { SettingsRoute(navController, it) }
         // Página de relleno del curso. El EnrollmentViewModel vive con esta entrada.
         composable<Route.CourseOverview> { entry ->
@@ -188,6 +187,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         editProfileDestination(navController)
         changePasswordDestination(navController)
         preferredTagsDestination(navController)
+        courseGuideDestination(navController)
     }
 }
 

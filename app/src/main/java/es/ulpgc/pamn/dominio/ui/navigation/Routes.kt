@@ -77,4 +77,8 @@ sealed interface Route {
     // Hacer la foto de una entrega desde el estudio de un módulo (docs/tareas/ejercicio-foto.md, decisión W).
     @Serializable
     data class TakeSubmissionPhoto(val courseId: String, val moduleId: String) : Route
+
+    // Guía provisional para crear cursos con IA, desde «Mis cursos» (docs/tareas/subida-cursos.md).
+    @Serializable
+    data object CourseGuide : Route
 }

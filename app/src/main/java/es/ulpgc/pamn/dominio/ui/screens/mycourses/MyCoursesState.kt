@@ -4,6 +4,8 @@ import es.ulpgc.pamn.dominio.course.publication.AuthorCourseFilter
 import es.ulpgc.pamn.dominio.course.publication.AuthorCourseItem
 import es.ulpgc.pamn.dominio.course.publication.CourseDraft
 import es.ulpgc.pamn.dominio.course.publication.CourseReport
+import es.ulpgc.pamn.dominio.course.publication.DraftRejection
+import es.ulpgc.pamn.dominio.course.publication.DraftStatus
 
 // Avisos no bloqueantes mostrados dentro de «Mis cursos» (red, servidor o fichero elegido).
 enum class MyCoursesInlineNotice {
@@ -54,3 +56,14 @@ data class MyCoursesActions(
     val onRetry: () -> Unit = {},
     val onDismissNotice: () -> Unit = {},
 )
+
+// Extrae el informe mostrable en la hoja inferior para un borrador rechazado o aceptado con avisos.
+internal fun AuthorCourseItem.toOpenReport(): OpenCourseReport? = when (val status = draft?.status) {
+    is DraftStatus.Rejected -> (status.reason as? DraftRejection.ValidationReport)?.let {
+        OpenCourseReport(courseTitle = displayTitle, report = it.report, isRejection = true)
+    }
+    is DraftStatus.Accepted -> status.report.takeIf { it.hasWarnings }?.let {
+        OpenCourseReport(courseTitle = displayTitle, report = it, isRejection = false)
+    }
+    is DraftStatus.Pending, null -> null
+}
