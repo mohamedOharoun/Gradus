@@ -7,7 +7,7 @@ abre su camino (`Route.Course(courseId)`, ya hecho en `docs/tareas/cursos-backen
 Contrato de la API: `backend/docs/api-cursos.md`
 (`GET /api/courses?q=&tag=&language=&author=&published=&page=&size=`).
 Especificación: `docs/especificacion.md`, «Con sesión → Buscar».
-Diseño: captura del Figma en `docs/tareas/resources/search-courses.png` (las dos pantallas; no se sube a
+Diseño: captura del Figma en `../../assets/mockups/search-courses.png` (las dos pantallas; no se sube a
 los commits). Es una foto del 2026-11-21: si no coincide con el Figma, manda el Figma.
 
 **Histórico:** [`buscar-cursos-historico.md`](buscar-cursos-historico.md) tiene el detalle de la fase 1

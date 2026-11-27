@@ -11,7 +11,7 @@ abre su camino (`Route.Course(courseId)`, ya hecho en `docs/tareas/cursos-backen
 
 Contrato de la API: `backend/docs/api-cursos.md` (`GET /api/courses?q=&tag=&language=&page=&size=`).
 Especificación: `docs/especificacion.md`, «Con sesión → Buscar».
-Diseño: captura del Figma en `docs/tareas/resources/search-courses.png` (las dos pantallas). Es una
+Diseño: captura del Figma en `../../assets/mockups/search-courses.png` (las dos pantallas). Es una
 foto del 2026-11-21: si no coincide con el Figma, manda el Figma.
 
 Estado: **fase 1 terminada** (2026-11-22). Decisiones 1–10 aprobadas el 2026-11-21. Queda la
@@ -341,7 +341,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
 ### Parte B · Pantalla (`app`)
 
 5. ✅ **Hecha (2026-11-21).** **Componentes** (decisiones aprobadas el 2026-11-21). Partida en dos (decisión E): 5a y 5b son
-   independientes y se revisan por separado. Diseño: `docs/tareas/resources/search-courses.png`.
+   independientes y se revisan por separado. Diseño: `../../assets/mockups/search-courses.png`.
    Rutas: `app/src/main/java/es/ulpgc/pamn/dominio/` (abreviado `app/.../`).
 
    **5a · La tarjeta (`CourseCard`).** ✅ **Hecha (2026-11-21).**
@@ -534,7 +534,7 @@ teclear y lanzar las peticiones). Modelo, reglas, estados y red se reutilizan de
    Partida en cuatro pasos (7a–7d), en el mismo orden que la 6: lo que no depende de nada primero
    y el ViewModel al final. Rutas: `app/src/main/java/es/ulpgc/pamn/dominio/` (`app/.../`).
    Recordatorio: los tests de cada paso son los mínimos (`AGENTS.md` §7). Diseño: pantalla
-   «4 · Buscar con filtros» de la captura (`docs/tareas/resources/search-courses.png`); solo la
+   «4 · Buscar con filtros» de la captura (`../../assets/mockups/search-courses.png`); solo la
    sección Etiquetas (Creador y Fecha son de la fase 2; «Ordenar por» no existe, decisión 10).
    - **Dónde va la lógica (aprobado):** todo lo de la hoja que no es dibujo va en `sharedLogic`
      (`FilterSheetState`, puro e inmutable), para que iOS solo rehaga las vistas. El ViewModel
