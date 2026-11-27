@@ -7,29 +7,37 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (Backend: pasos 1a y 1b) completada; siguiente: Parte B (Paso 2a en `sharedLogic/`).
+Estado: **en progreso (2026-11-27)** — Parte A (Backend: pasos 1a y 1b) y Paso 2a (`sharedLogic/`) completados; siguiente: Parte B · Paso 2b.
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-27):** **Parte A (Backend) cerrada y revisada** (pasos 1a y 1b en verde:
-  932 tests JUnit Jupiter, 0 avisos en `mvn clean test`, contrato congelado en
-  `backend/docs/api-cursos.md` y 7 peticiones nuevas en `backend/yaak/workspace/` listas para prueba
-  manual contra el backend local cuando se desee).
-- **Contrato congelado para la Parte B (`sharedLogic/`):**
-  - `GET /api/users/me/courses` (Bearer): `200` `{"courses": […metadatos…]}` sin paginación (últimas
-    versiones, `publishedAt DESC, id ASC`), `401 UNAUTHENTICATED`.
+- **Dónde estamos (2026-11-27):** **Parte A (Backend)** cerrada (932 tests JUnit Jupiter) y **Paso 2a
+  (`sharedLogic/`)** completado y revisado (45 tests nuevos, 1115 tests totales en
+  `:sharedLogic:testAndroidHostTest`, 0 errores ni avisos de compilación).
+- **Modelos congelados del Paso 2a (`es.ulpgc.pamn.dominio.course.publication`):**
+  - `CourseIssue`, `CourseReport` (`isValid`, `hasWarnings`, `EMPTY`, `formatAsPlainText`),
+    `ReportTextLabels`.
+  - `PendingAction` (`VALIDATING`, `PUBLISHING`), `PendingNotice` (`NONE`, `NETWORK`,
+    `SESSION_EXPIRED`, `SERVER_FAILURE`), `DraftRejection` (`ValidationReport`, `IdenticalToLatest`,
+    `NotAuthor`, `CourseNotFound`, `TooLarge`, `FileMissing`), `DraftStatus` (`Pending`, `Accepted`,
+    `Rejected`).
+  - `MAX_COURSE_BYTES = 2_097_152` (2 MiB), `CourseDraft` (`updatedAt: kotlin.time.Instant`).
+  - `AuthorCourseFilter`, `AuthorCourseItem`, `mergeAuthorCourses`, `filterBy`, `countByFilter`.
+  - `CourseDraftPreview` (`fromBytes`, `fromJson`).
+- **Contrato HTTP congelado para el Paso 2b (`backend/docs/api-cursos.md`):**
+  - `GET /api/users/me/courses` (Bearer): `200` `{"courses": […metadatos…]}` sin paginación, `401`.
   - `POST /api/courses/validate` (Bearer, JSON crudo ≤ 2 MiB): `200` informe (`valid`, `errors`,
-    `warnings`, válido o no), `401`, `413` informe (`PAYLOAD_TOO_LARGE`).
+    `warnings`), `401`, `413` informe (`PAYLOAD_TOO_LARGE`).
   - `POST /api/courses/{id}/versions/validate` (Bearer, JSON crudo ≤ 2 MiB): `200` informe (válido
     con `REMOVED_IDS` o `valid: false` con errores), `401`, `403 NOT_COURSE_AUTHOR`,
     `404 COURSE_NOT_FOUND`, `409 IDENTICAL_TO_LATEST`, `413` informe (`PAYLOAD_TOO_LARGE`).
   - `POST /api/courses` y `POST /api/courses/{id}/versions` (Bearer, JSON crudo ≤ 2 MiB): `201`
-    `{"course": …metadatos…, "warnings": […]}` y códigos de error documentados en
-    `backend/docs/api-cursos.md`.
-- **Siguiente paso:** **Parte B · Paso 2a** (modelos de publicación, borrador, informe, fusión/filtro
-  y lectura ligera de metadatos en `sharedLogic/`, test primero con `kotlin.test`).
+    `{"course": …metadatos…, "warnings": […]}` y errores (`400`/`413`/`422` informe; `401`/`403`/`404`/`409`).
+- **Siguiente paso:** **Parte B · Paso 2b** (puerto `CoursePublicationGateway`, adaptador HTTP con
+  Ktor, `CourseReportJson`, `CoursePublicationGateways`, `FakeCoursePublicationGateway`, y
+  `CourseCacheInvalidator` + `CachingCourseGateway.invalidate(id)`).
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -212,7 +220,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
 
 ### Parte B · Lógica compartida (`sharedLogic/`, Kotlin puro, test primero)
 
-- [ ] **2a · Modelos de publicación, borrador e informe.**
+- [x] **2a · Modelos de publicación, borrador e informe.**
   *Modelo sugerido:* Gemini Neon · **Medium**.
   - En `course/publication/` (o `course/author/`): `CourseIssue`, `CourseReport` (con formateador
     de texto plano para «Copiar informe»), `DraftStatus` (`Pending(PendingAction)`, `Accepted`,
@@ -350,8 +358,14 @@ Se **reescribe** al final de cada sesión; no se acumula.
   `PublishCourseVersion`, `CoursePublicationController.validateVersion`, ruta en `App.java`,
   contrato congelado en `backend/docs/api-cursos.md` y 7 peticiones en `backend/yaak/workspace/`;
   932 tests en verde, 0 avisos). **Parte A cerrada.**
+- 2026-11-27: Paso 2a (`sharedLogic/`, paquete `course.publication`) completado y revisado
+  (`CourseIssue`, `CourseReport`, `ReportTextLabels`, `PendingAction`, `PendingNotice`,
+  `DraftRejection`, `DraftStatus`, `MAX_COURSE_BYTES`, `CourseDraft`, `AuthorCourseFilter`,
+  `AuthorCourseItem`, `mergeAuthorCourses`, `filterBy`, `countByFilter` y `CourseDraftPreview`;
+  45 tests nuevos en `commonTest`, 1115 tests totales en verde, 0 avisos).
 
 ## Siguiente paso
 
-Iniciar la **Parte B (`sharedLogic/`)** empezando por el **paso 2a** (modelos de publicación,
-borrador e informe), proponiendo primero ficheros, diseño y tests antes de escribir código.
+Continuar la **Parte B (`sharedLogic/`)** con el **paso 2b** (puerto `CoursePublicationGateway`,
+adaptador HTTP con Ktor, `CourseReportJson`, `FakeCoursePublicationGateway` e invalidación de caché
+en `CachingCourseGateway`), proponiendo primero ficheros, diseño y tests antes de escribir código.
