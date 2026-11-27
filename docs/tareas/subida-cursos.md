@@ -7,29 +7,49 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (Backend) y Parte B · pasos 2a y 2b (`sharedLogic/`) completados; siguiente: Parte B · Paso 2c.
+Estado: **en progreso (2026-11-27)** — Parte A (Backend: 1a y 1b) y Parte B (`sharedLogic/`: 2a, 2b y 2c) completadas; siguiente: Parte C (`app/data/`: Paso 3a).
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
 - **Dónde estamos (2026-11-27):** **Parte A (Backend)** cerrada (932 tests JUnit Jupiter) y **Parte B
-  · pasos 2a y 2b (`sharedLogic/`)** completados y revisados (99 tests nuevos acumulados, 1169 tests
-  totales en `:sharedLogic:testAndroidHostTest`, 0 errores ni avisos de compilación).
-- **Modelos y puertos congelados de 2a y 2b (`es.ulpgc.pamn.dominio.course` / `.publication`):**
-  - Modelos (2a): `CourseIssue`, `CourseReport` (`isValid`, `hasWarnings`, `EMPTY`,
-    `formatAsPlainText`), `ReportTextLabels`, `PendingAction`, `PendingNotice`, `DraftRejection`,
-    `DraftStatus`, `MAX_COURSE_BYTES = 2_097_152`, `CourseDraft` (`updatedAt: Instant`),
-    `AuthorCourseFilter`, `AuthorCourseItem`, `mergeAuthorCourses`, `filterBy`, `countByFilter`,
-    `CourseDraftPreview`.
-  - Red y caché (2b): `CoursePublicationGateway` (`myCourses`, `validateNew`, `validateVersion`,
-    `publishNew`, `publishVersion`), `MyCoursesOutcome`, `ValidationOutcome`, `PublishOutcome`,
-    `CourseReportJson` (`encode`/`decode`), `CoursePublicationGateways.http(baseUrl)`,
-    `FakeCoursePublicationGateway` (lambdas `suspend`), `CourseCacheInvalidator` (SAM) implementado
-    por `CachingCourseGateway.invalidate(courseId)`.
-- **Siguiente paso:** **Parte B · Paso 2c** (puertos `CourseDraftStore` y `CourseDraftContentStore`
-  + implementaciones `InMemory*`, política `DraftWorkDecision` y coordinador puro
-  `ProcessCourseDraft`).
+  (`sharedLogic/`) cerrada y revisada** (pasos 2a, 2b y 2c en verde: 149 tests nuevos acumulados,
+  1219 tests totales en `:sharedLogic:testAndroidHostTest`, 0 errores ni avisos de compilación,
+  100 % KMP puro sin `android.*` ni `java.*`).
+- **Puertos y modelos congelados para la Parte C (`app/data/`, paquete `es.ulpgc.pamn.dominio.course` / `.publication`):**
+  - **Modelos y utilidades (2a):** `MAX_COURSE_BYTES = 2_097_152` (2 MiB exactos), `CourseIssue`,
+    `CourseReport` (`isValid`, `hasWarnings`, `EMPTY`, `formatAsPlainText`), `ReportTextLabels`,
+    `PendingAction` (`VALIDATING`, `PUBLISHING`), `PendingNotice` (`NONE`, `NETWORK`,
+    `SESSION_EXPIRED`, `SERVER_FAILURE`), `DraftRejection` (`ValidationReport`, `IdenticalToLatest`,
+    `NotAuthor`, `CourseNotFound`, `TooLarge`, `FileMissing`), `DraftStatus` (`Pending`, `Accepted`,
+    `Rejected`), `CourseDraft` (`id`, `userId`, `targetCourseId`, `filePath`, `title`,
+    `moduleCount`, `status`, `updatedAt: kotlin.time.Instant`), `AuthorCourseFilter`,
+    `AuthorCourseItem`, `mergeAuthorCourses`, `filterBy`, `countByFilter`, `CourseDraftPreview`
+    (`fromBytes`, `fromJson`).
+  - **Red, códec y caché (2b):** `CoursePublicationGateway` (`myCourses`, `validateNew`,
+    `validateVersion`, `publishNew`, `publishVersion`), `MyCoursesOutcome`, `ValidationOutcome`,
+    `PublishOutcome`, `CourseReportJson` (`encode` / `decode` para la columna `TEXT` en Room),
+    `CoursePublicationGateways.http(baseUrl)` (timeout 60 s en subidas y control previo de 2 MiB),
+    `FakeCoursePublicationGateway`, `CourseCacheInvalidator` (SAM) implementado por
+    `CachingCourseGateway.invalidate(courseId)`.
+  - **Almacenamiento y coordinador (2c):**
+    - `CourseDraftStore`: `drafts(): Flow<List<CourseDraft>>` (sesión leída al empezar a escuchar,
+      sin sesión emite `emptyList()` y termina), `find(draftId)`, `upsert(draft)`,
+      `updateIfPresent(draft): Boolean` (atómicamente actualiza solo si sigue presente; en Room
+      usar `@Update` / `UPDATE ... WHERE id = :id` que nunca inserta), `delete(draftId)`,
+      `clearForUser(userId): List<CourseDraft>` (borra y devuelve los borradores eliminados para
+      limpiar ficheros y cancelar trabajos en `DeleteAccountViewModel`).
+    - `CourseDraftContentStore`: `read(filePath): ByteArray?` y `delete(filePath)` (a implementar
+      por `CourseDraftFiles` sobre `files/course_drafts/`).
+    - `DraftWorkDecision` (`Done`, `Retry`, `GiveUp`), `MAX_UPLOAD_SERVER_FAILURE_ATTEMPTS = 5` y
+      `ProcessCourseDraft(drafts, contents, sessions, gateway, cacheInvalidator, clock)` con
+      `process(draftId, attempt): DraftWorkDecision` listo para invocar desde `CourseUploadWorker`
+      (`Done -> Result.success()`, `Retry -> Result.retry()`, `GiveUp -> Result.failure()`).
+- **Siguiente paso:** **Parte C · Paso 3a** (`CourseDraftFiles` + lector `OpenDocument` con corte a
+  `MAX_COURSE_BYTES`, `CourseDraftEntity` / `CourseDraftDao` / `RoomCourseDraftStore` usando
+  `CourseReportJson`, `MIGRATION_2_3` en `ProgressDatabase` con esquema `3.json`, y limpieza en
+  `DeleteAccountViewModel`).
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -240,7 +260,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
     409, 413, 422, 500 y fallo de red), control previo de > 2 MiB sin abrir socket y que el token no
     se filtre; tests de `CachingCourseGateway`.
 
-- [ ] **2c · Puerto `CourseDraftStore`, coordinador de subida y política de reintento.**
+- [x] **2c · Puerto `CourseDraftStore`, coordinador de subida y política de reintento.**
   *Modelo sugerido:* Gemini Neon · **High**.
   - Puerto `CourseDraftStore` (por usuario: `drafts(): Flow<List<CourseDraft>>`, `find(draftId)`,
     `upsert`, `delete(draftId)`, `clearForUser(userId)`) + `InMemoryCourseDraftStore`.
@@ -359,9 +379,13 @@ Se **reescribe** al final de cada sesión; no se acumula.
   `CourseReportJson`, `CoursePublicationGateways`, `FakeCoursePublicationGateway`,
   `CourseCacheInvalidator` e invalidación en `CachingCourseGateway`) completado y revisado (54 tests
   nuevos en `commonTest`, 1169 tests totales en verde, 0 avisos).
+- 2026-11-27: Paso 2c (`sharedLogic/`, puertos `CourseDraftStore` y `CourseDraftContentStore` +
+  `InMemory*`, política `DraftWorkDecision` y coordinador puro `ProcessCourseDraft`) completado y
+  revisado (50 tests nuevos en `commonTest`, 1219 tests totales en verde, 0 avisos). **Parte B
+  cerrada.**
 
 ## Siguiente paso
 
-Cerrar la **Parte B (`sharedLogic/`)** con el **paso 2c** (puertos `CourseDraftStore` y
-`CourseDraftContentStore` + implementaciones `InMemory*`, política `DraftWorkDecision` y coordinador
-puro `ProcessCourseDraft`), proponiendo primero ficheros, diseño y tests antes de escribir código.
+Iniciar la **Parte C (`app/data/`)** con el **paso 3a** (`CourseDraftFiles`, `CourseDraftEntity`,
+`CourseDraftDao`, `RoomCourseDraftStore`, `MIGRATION_2_3` en `ProgressDatabase` y limpieza en
+`DeleteAccountViewModel`), proponiendo primero ficheros, diseño y tests antes de escribir código.
