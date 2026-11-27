@@ -7,37 +7,29 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (Backend: pasos 1a y 1b) y Paso 2a (`sharedLogic/`) completados; siguiente: Parte B · Paso 2b.
+Estado: **en progreso (2026-11-27)** — Parte A (Backend) y Parte B · pasos 2a y 2b (`sharedLogic/`) completados; siguiente: Parte B · Paso 2c.
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-27):** **Parte A (Backend)** cerrada (932 tests JUnit Jupiter) y **Paso 2a
-  (`sharedLogic/`)** completado y revisado (45 tests nuevos, 1115 tests totales en
-  `:sharedLogic:testAndroidHostTest`, 0 errores ni avisos de compilación).
-- **Modelos congelados del Paso 2a (`es.ulpgc.pamn.dominio.course.publication`):**
-  - `CourseIssue`, `CourseReport` (`isValid`, `hasWarnings`, `EMPTY`, `formatAsPlainText`),
-    `ReportTextLabels`.
-  - `PendingAction` (`VALIDATING`, `PUBLISHING`), `PendingNotice` (`NONE`, `NETWORK`,
-    `SESSION_EXPIRED`, `SERVER_FAILURE`), `DraftRejection` (`ValidationReport`, `IdenticalToLatest`,
-    `NotAuthor`, `CourseNotFound`, `TooLarge`, `FileMissing`), `DraftStatus` (`Pending`, `Accepted`,
-    `Rejected`).
-  - `MAX_COURSE_BYTES = 2_097_152` (2 MiB), `CourseDraft` (`updatedAt: kotlin.time.Instant`).
-  - `AuthorCourseFilter`, `AuthorCourseItem`, `mergeAuthorCourses`, `filterBy`, `countByFilter`.
-  - `CourseDraftPreview` (`fromBytes`, `fromJson`).
-- **Contrato HTTP congelado para el Paso 2b (`backend/docs/api-cursos.md`):**
-  - `GET /api/users/me/courses` (Bearer): `200` `{"courses": […metadatos…]}` sin paginación, `401`.
-  - `POST /api/courses/validate` (Bearer, JSON crudo ≤ 2 MiB): `200` informe (`valid`, `errors`,
-    `warnings`), `401`, `413` informe (`PAYLOAD_TOO_LARGE`).
-  - `POST /api/courses/{id}/versions/validate` (Bearer, JSON crudo ≤ 2 MiB): `200` informe (válido
-    con `REMOVED_IDS` o `valid: false` con errores), `401`, `403 NOT_COURSE_AUTHOR`,
-    `404 COURSE_NOT_FOUND`, `409 IDENTICAL_TO_LATEST`, `413` informe (`PAYLOAD_TOO_LARGE`).
-  - `POST /api/courses` y `POST /api/courses/{id}/versions` (Bearer, JSON crudo ≤ 2 MiB): `201`
-    `{"course": …metadatos…, "warnings": […]}` y errores (`400`/`413`/`422` informe; `401`/`403`/`404`/`409`).
-- **Siguiente paso:** **Parte B · Paso 2b** (puerto `CoursePublicationGateway`, adaptador HTTP con
-  Ktor, `CourseReportJson`, `CoursePublicationGateways`, `FakeCoursePublicationGateway`, y
-  `CourseCacheInvalidator` + `CachingCourseGateway.invalidate(id)`).
+- **Dónde estamos (2026-11-27):** **Parte A (Backend)** cerrada (932 tests JUnit Jupiter) y **Parte B
+  · pasos 2a y 2b (`sharedLogic/`)** completados y revisados (99 tests nuevos acumulados, 1169 tests
+  totales en `:sharedLogic:testAndroidHostTest`, 0 errores ni avisos de compilación).
+- **Modelos y puertos congelados de 2a y 2b (`es.ulpgc.pamn.dominio.course` / `.publication`):**
+  - Modelos (2a): `CourseIssue`, `CourseReport` (`isValid`, `hasWarnings`, `EMPTY`,
+    `formatAsPlainText`), `ReportTextLabels`, `PendingAction`, `PendingNotice`, `DraftRejection`,
+    `DraftStatus`, `MAX_COURSE_BYTES = 2_097_152`, `CourseDraft` (`updatedAt: Instant`),
+    `AuthorCourseFilter`, `AuthorCourseItem`, `mergeAuthorCourses`, `filterBy`, `countByFilter`,
+    `CourseDraftPreview`.
+  - Red y caché (2b): `CoursePublicationGateway` (`myCourses`, `validateNew`, `validateVersion`,
+    `publishNew`, `publishVersion`), `MyCoursesOutcome`, `ValidationOutcome`, `PublishOutcome`,
+    `CourseReportJson` (`encode`/`decode`), `CoursePublicationGateways.http(baseUrl)`,
+    `FakeCoursePublicationGateway` (lambdas `suspend`), `CourseCacheInvalidator` (SAM) implementado
+    por `CachingCourseGateway.invalidate(courseId)`.
+- **Siguiente paso:** **Parte B · Paso 2c** (puertos `CourseDraftStore` y `CourseDraftContentStore`
+  + implementaciones `InMemory*`, política `DraftWorkDecision` y coordinador puro
+  `ProcessCourseDraft`).
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -233,7 +225,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
     borrador nueva versión), orden cronológico y desempates, contadores por filtro (incluidos ceros),
     formateo del informe y extracción tolerante de título/módulos en JSON válido y roto.
 
-- [ ] **2b · Puerto `CoursePublicationGateway` y adaptador HTTP (Ktor).**
+- [x] **2b · Puerto `CoursePublicationGateway` y adaptador HTTP (Ktor).**
   *Modelo sugerido:* Gemini Neon · **High**.
   - Puerto con `myCourses(session)`, `validateNew(session, bytes)`, `validateVersion(session,
     courseId, bytes)`, `publishNew(session, bytes)` y `publishVersion(session, courseId, bytes)`,
@@ -363,9 +355,13 @@ Se **reescribe** al final de cada sesión; no se acumula.
   `DraftRejection`, `DraftStatus`, `MAX_COURSE_BYTES`, `CourseDraft`, `AuthorCourseFilter`,
   `AuthorCourseItem`, `mergeAuthorCourses`, `filterBy`, `countByFilter` y `CourseDraftPreview`;
   45 tests nuevos en `commonTest`, 1115 tests totales en verde, 0 avisos).
+- 2026-11-27: Paso 2b (`sharedLogic/`, puerto `CoursePublicationGateway`, adaptador HTTP con Ktor,
+  `CourseReportJson`, `CoursePublicationGateways`, `FakeCoursePublicationGateway`,
+  `CourseCacheInvalidator` e invalidación en `CachingCourseGateway`) completado y revisado (54 tests
+  nuevos en `commonTest`, 1169 tests totales en verde, 0 avisos).
 
 ## Siguiente paso
 
-Continuar la **Parte B (`sharedLogic/`)** con el **paso 2b** (puerto `CoursePublicationGateway`,
-adaptador HTTP con Ktor, `CourseReportJson`, `FakeCoursePublicationGateway` e invalidación de caché
-en `CachingCourseGateway`), proponiendo primero ficheros, diseño y tests antes de escribir código.
+Cerrar la **Parte B (`sharedLogic/`)** con el **paso 2c** (puertos `CourseDraftStore` y
+`CourseDraftContentStore` + implementaciones `InMemory*`, política `DraftWorkDecision` y coordinador
+puro `ProcessCourseDraft`), proponiendo primero ficheros, diseño y tests antes de escribir código.

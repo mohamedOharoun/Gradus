@@ -9,12 +9,19 @@ import kotlinx.coroutines.flow.update
 // la red. Así el camino y la práctica comparten el curso, y cached(id) lo da sin esperar.
 // Dura mientras la app está abierta: una versión nueva del curso se verá al volver a abrirla
 // (guardar cursos en el móvil, con Room, es otro documento).
-class CachingCourseGateway(private val delegate: CourseGateway) : CourseGateway {
+class CachingCourseGateway(
+    private val delegate: CourseGateway,
+) : CourseGateway, CourseCacheInvalidator {
 
     private val courses = MutableStateFlow<Map<String, Course>>(emptyMap())
 
     // El curso ya descargado, o null si todavía no se ha descargado.
     fun cached(id: String): Course? = courses.value[id]
+
+    // Expulsa un curso de la caché para forzar la descarga de su última versión (idempotente).
+    override fun invalidate(courseId: String) {
+        courses.update { it - courseId }
+    }
 
     override suspend fun search(query: CourseQuery, page: Int): SearchOutcome = delegate.search(query, page)
 

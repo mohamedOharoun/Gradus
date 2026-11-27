@@ -48,4 +48,61 @@ class CachingCourseGatewayTest {
         gateway.search("grafos")
         assertEquals(2, server.searches.size)
     }
+
+    @Test
+    fun `invalidating a cached course forces the next read to fetch from the server`() = runTest {
+        val updated = graphs.copy(title = "Grafos v2")
+        var current = graphs
+        val server = FakeCourseGateway(courseAnswer = { CourseOutcome.Found(current) })
+        val gateway = CachingCourseGateway(server)
+
+        assertEquals(CourseOutcome.Found(graphs), gateway.course("g"))
+        current = updated
+        gateway.invalidate("g")
+
+        assertNull(gateway.cached("g"))
+        assertEquals(CourseOutcome.Found(updated), gateway.course("g"))
+        assertEquals(updated, gateway.cached("g"))
+        assertEquals(listOf("g", "g"), server.requestedCourses)
+    }
+
+    @Test
+    fun `invalidating one course keeps other cached courses untouched`() = runTest {
+        val trees = Course("t", "Árboles", listOf(Module("m1", "Raíz")))
+        val server = FakeCourseGateway(listOf(graphs, trees))
+        val gateway = CachingCourseGateway(server)
+
+        gateway.course("g")
+        gateway.course("t")
+        gateway.invalidate("g")
+
+        assertNull(gateway.cached("g"))
+        assertEquals(trees, gateway.cached("t"))
+        assertEquals(CourseOutcome.Found(trees), gateway.course("t"))
+        assertEquals(listOf("g", "t"), server.requestedCourses)
+    }
+
+    @Test
+    fun `invalidating an uncached course is idempotent and leaves cache intact`() = runTest {
+        val server = FakeCourseGateway(listOf(graphs))
+        val gateway = CachingCourseGateway(server)
+
+        gateway.course("g")
+        gateway.invalidate("missing")
+        gateway.invalidate("missing")
+
+        assertEquals(graphs, gateway.cached("g"))
+    }
+
+    @Test
+    fun `caching gateway works through the CourseCacheInvalidator functional interface`() = runTest {
+        val server = FakeCourseGateway(listOf(graphs))
+        val gateway = CachingCourseGateway(server)
+        val invalidator: CourseCacheInvalidator = gateway
+
+        gateway.course("g")
+        invalidator.invalidate("g")
+
+        assertNull(gateway.cached("g"))
+    }
 }
