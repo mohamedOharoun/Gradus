@@ -218,4 +218,72 @@ class DeleteAccountViewModelTest {
         assertNull(sessions.current())
         assertEquals(DeleteAccountState.LoggedOut, viewModel.state)
     }
+
+    @Test
+    fun `deleting the account clears local drafts before signing out`() = runTest {
+        sessions.save(session)
+        val events = mutableListOf<String>()
+        val viewModel = DeleteAccountViewModel(
+            FakeAccountGateway(DeleteAccountOutcome.Deleted),
+            sessions,
+            signOut = {
+                events.add("signOut")
+                sessions.clear()
+            },
+            clearUserDrafts = { userId -> events.add("clear:$userId") },
+        )
+        viewModel.onOpen()
+        viewModel.onPasswordChange("Gradus2026!")
+
+        viewModel.onConfirm()
+        runCurrent()
+
+        assertEquals(listOf("clear:u1", "signOut"), events)
+        assertEquals(DeleteAccountState.LoggedOut, viewModel.state)
+    }
+
+    @Test
+    fun `an expired session does not clear local drafts`() = runTest {
+        sessions.save(session)
+        var cleared = 0
+        val viewModel = DeleteAccountViewModel(
+            FakeAccountGateway(DeleteAccountOutcome.SessionExpired),
+            sessions,
+            clearUserDrafts = { cleared++ },
+        )
+        viewModel.onOpen()
+        viewModel.onPasswordChange("Gradus2026!")
+
+        viewModel.onConfirm()
+        runCurrent()
+
+        assertEquals(0, cleared)
+        assertEquals(DeleteAccountState.LoggedOut, viewModel.state)
+    }
+
+    @Test
+    fun `failed account deletions do not clear local drafts`() = runTest {
+        val outcomes = listOf(
+            DeleteAccountOutcome.WrongPassword,
+            DeleteAccountOutcome.AuthorOfCourses,
+            DeleteAccountOutcome.Unreachable,
+        )
+
+        outcomes.forEach { outcome ->
+            sessions.save(session)
+            var cleared = 0
+            val viewModel = DeleteAccountViewModel(
+                FakeAccountGateway(outcome),
+                sessions,
+                clearUserDrafts = { cleared++ },
+            )
+            viewModel.onOpen()
+            viewModel.onPasswordChange("Gradus2026!")
+
+            viewModel.onConfirm()
+            runCurrent()
+
+            assertEquals("should not clear drafts for $outcome", 0, cleared)
+        }
+    }
 }

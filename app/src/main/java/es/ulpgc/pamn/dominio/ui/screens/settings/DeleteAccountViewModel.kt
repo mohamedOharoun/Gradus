@@ -11,6 +11,7 @@ import es.ulpgc.pamn.dominio.account.AccountGateway
 import es.ulpgc.pamn.dominio.account.DeleteAccountOutcome
 import es.ulpgc.pamn.dominio.account.SessionStore
 import es.ulpgc.pamn.dominio.account.applying
+import es.ulpgc.pamn.dominio.data.publication.ClearUserDrafts
 import es.ulpgc.pamn.dominio.data.session.SessionSignOut
 import es.ulpgc.pamn.dominio.model.DeleteAccountForm
 import es.ulpgc.pamn.dominio.model.Submission
@@ -22,11 +23,17 @@ class DeleteAccountViewModel(
     private val accounts: AccountGateway,
     private val sessions: SessionStore,
     private val signOut: SessionSignOut = SessionSignOut { sessions.clear() },
+    private val clearUserDrafts: ClearUserDrafts = ClearUserDrafts {},
 ) : ViewModel() {
 
     companion object {
-        fun factory(accounts: AccountGateway, sessions: SessionStore, signOut: SessionSignOut) = viewModelFactory {
-            initializer { DeleteAccountViewModel(accounts, sessions, signOut) }
+        fun factory(
+            accounts: AccountGateway,
+            sessions: SessionStore,
+            signOut: SessionSignOut,
+            clearUserDrafts: ClearUserDrafts = ClearUserDrafts {},
+        ) = viewModelFactory {
+            initializer { DeleteAccountViewModel(accounts, sessions, signOut, clearUserDrafts) }
         }
     }
 
@@ -65,8 +72,10 @@ class DeleteAccountViewModel(
             return
         }
         when (val outcome = accounts.deleteAccount(session, form.password)) {
-            // La cuenta ya no existe: salida voluntaria (GradusNavHost lleva a Bienvenida).
+            // La cuenta ya no existe: limpiamos borradores locales antes de cerrar sesión para que
+            // navegar fuera no cancele el viewModelScope a mitad de la limpieza.
             DeleteAccountOutcome.Deleted -> {
+                clearUserDrafts.clearForUser(session.account.id)
                 signOut.signOut()
                 state = DeleteAccountState.LoggedOut
             }

@@ -7,7 +7,7 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (Backend: 1a y 1b) y Parte B (`sharedLogic/`: 2a, 2b y 2c) completadas; siguiente: Parte C (`app/data/`: Paso 3a).
+Estado: **en progreso (2026-11-27)** — Parte A (1a–1b), Parte B (2a–2c) y Parte C · 3a-1 completados; siguiente: Parte C · Paso 3a-2 (Room v2 → v3).
 
 ## Relevo
 
@@ -46,10 +46,12 @@ Se **reescribe** al final de cada sesión; no se acumula.
       `ProcessCourseDraft(drafts, contents, sessions, gateway, cacheInvalidator, clock)` con
       `process(draftId, attempt): DraftWorkDecision` listo para invocar desde `CourseUploadWorker`
       (`Done -> Result.success()`, `Retry -> Result.retry()`, `GiveUp -> Result.failure()`).
-- **Siguiente paso:** **Parte C · Paso 3a** (`CourseDraftFiles` + lector `OpenDocument` con corte a
-  `MAX_COURSE_BYTES`, `CourseDraftEntity` / `CourseDraftDao` / `RoomCourseDraftStore` usando
-  `CourseReportJson`, `MIGRATION_2_3` en `ProgressDatabase` con esquema `3.json`, y limpieza en
-  `DeleteAccountViewModel`).
+- **Siguiente paso:** **Parte C · Subpaso 3a-2** (`CourseDraftEntity`, `CourseDraftMapper`,
+  `CourseDraftDao`, `RoomCourseDraftStore` usando `CourseReportJson`, y `MIGRATION_2_3` en
+  `ProgressDatabase` con esquema `3.json`). *(3a-1 — `CourseDraftStorage`, `CourseDraftFiles`,
+  `ClearUserDrafts`, `UserDraftsCleaner` y `DeleteAccountViewModel` — ya está revisado; 20 tests
+  JVM nuevos, 577 en `:app:testDebugUnitTest`, y 5 tests instrumentados en
+  `CourseDraftFilesAndroidTest` compilados y listos para emulador.)*
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -383,9 +385,15 @@ Se **reescribe** al final de cada sesión; no se acumula.
   `InMemory*`, política `DraftWorkDecision` y coordinador puro `ProcessCourseDraft`) completado y
   revisado (50 tests nuevos en `commonTest`, 1219 tests totales en verde, 0 avisos). **Parte B
   cerrada.**
+- 2026-11-27: Subpaso 3a-1 (`app/data/publication/`: `CourseDraftStorage`, `CourseDraftFiles`,
+  `ClearUserDrafts`, `UserDraftsCleaner`, integración en `DeleteAccountViewModel`) completado y
+  revisado (20 tests JVM nuevos, 577 en `:app:testDebugUnitTest` en verde, 0 avisos; 5 tests
+  instrumentados en `CourseDraftFilesAndroidTest` compilados con `:app:compileDebugAndroidTestKotlin`,
+  pendientes de pasar en emulador junto a los de 3a-2).
 
 ## Siguiente paso
 
-Iniciar la **Parte C (`app/data/`)** con el **paso 3a** (`CourseDraftFiles`, `CourseDraftEntity`,
-`CourseDraftDao`, `RoomCourseDraftStore`, `MIGRATION_2_3` en `ProgressDatabase` y limpieza en
-`DeleteAccountViewModel`), proponiendo primero ficheros, diseño y tests antes de escribir código.
+Continuar la **Parte C (`app/data/`)** con el **subpaso 3a-2** (`CourseDraftEntity`,
+`CourseDraftMapper`, `CourseDraftDao`, `RoomCourseDraftStore` y `MIGRATION_2_3` en
+`ProgressDatabase` con esquema `3.json`), proponiendo primero ficheros, diseño y tests antes de
+escribir código.
