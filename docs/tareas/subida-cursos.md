@@ -7,19 +7,19 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (Backend: 1a–1b), Parte B (`sharedLogic/`: 2a–2c) y Parte C (`app/data/`: 3a–3b) cerradas; siguiente: Parte D (`app/ui/`: Paso 4a).
+Estado: **en progreso (2026-11-27)** — Parte A (Backend: 1a–1b), Parte B (`sharedLogic/`: 2a–2c), Parte C (`app/data/`: 3a–3b) y Parte D · Paso 4a cerrados; siguiente: Parte D · Subpaso 4b-1.
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
 - **Dónde estamos (2026-11-27):** **Parte A (Backend)** cerrada (932 tests JUnit Jupiter), **Parte B
-  (`sharedLogic/`)** cerrada (1219 tests en `:sharedLogic:testAndroidHostTest`, 100 % KMP puro) y
-  **Parte C (`app/data/`) cerrada y revisada** (pasos 3a-1, 3a-2 y 3b en verde: 34 tests JVM nuevos,
-  591 tests totales en `:app:testDebugUnitTest`; 67/67 tests instrumentados en verde en
-  `emulator-5554` cubriendo `CourseDraftFilesAndroidTest`, `ProgressDatabaseMigrationTest`,
-  `ProgressDatabaseTest`, `RoomCourseDraftStoreTest`, `CourseUploadWorkerTest`,
-  `WorkUploadRequesterTest` y `AppContainerTest`; 0 errores ni avisos de compilación).
+  (`sharedLogic/`)** cerrada (1219 tests en `:sharedLogic:testAndroidHostTest`, 100 % KMP puro),
+  **Parte C (`app/data/`)** cerrada (591 tests en `:app:testDebugUnitTest`, 67/67 instrumentados) y
+  **Parte D · Paso 4a** cerrado y revisado (tokens de color en `Color.kt`/`Theme.kt` con
+  `GradusTheme.colors`, `secondaryContainer` y `errorContainer` claro/oscuro, 6 iconos vectoriales
+  Material Symbols Rounded en `res/drawable/` y 62 claves ES/EN con paridad exacta; compila y pasan
+  los 591 tests JVM sin avisos nuevos).
 - **Contratos y cableado listos para la Parte D (`app/ui/`):**
   - **Modelos y utilidades puras (`es.ulpgc.pamn.dominio.course.publication`):**
     - `MAX_COURSE_BYTES = 2_097_152`, `CourseIssue`, `CourseReport` (`isValid`, `hasWarnings`,
@@ -51,9 +51,9 @@ Se **reescribe** al final de cada sesión; no se acumula.
     - `AppContainer.clearUserDrafts: ClearUserDrafts` (`UserDraftsCleaner` ya cableado en
       `SettingsDestination.kt` → `DeleteAccountViewModel` para limpiar filas, ficheros y trabajos
       al eliminar cuenta).
-- **Siguiente paso:** **Parte D · Paso 4a** (recursos vectoriales, aprobación explícita previa de
-  tokens de color para badges «Publicado» y «Rechazado» en `Color.kt`/`Theme.kt`, y textos ES/EN en
-  `values/strings.xml` y `values-en/strings.xml`).
+- **Siguiente paso:** **Parte D · Subpaso 4b-1** (`MyCoursesState.kt`, `MyCoursesTexts.kt` +
+  `MyCoursesTextsTest` JVM, `UploadHeroCard.kt`, `CourseFilterHeader.kt`, `AuthorCourseCard.kt` y
+  sus previews en claro y oscuro).
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -308,7 +308,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
 
 ### Parte D · Interfaz y navegación (`app/ui/`)
 
-- [ ] **4a · Recursos, iconos, colores (con OK) y textos ES/EN.**
+- [x] **4a · Recursos, iconos, colores (con OK) y textos ES/EN.**
   *Modelo sugerido:* Gemini Neon · **Low**.
   - Icono vectorial `ic_upload.xml` (y los pequeños necesarios para avisos/reloj/desplegable).
   - Previa aprobación: tokens de color para badge «Publicado» y contenedor «Rechazado» en `Color.kt`
@@ -403,9 +403,13 @@ Se **reescribe** al final de cada sesión; no se acumula.
   revisado (5 tests JVM nuevos en `AppContainerInitTest`, 591 en `:app:testDebugUnitTest`; 31 tests
   instrumentados nuevos; batería completa de Parte C + `ProgressDatabaseTest` con 67/67 en verde en
   `emulator-5554`, 0 avisos). **Parte C cerrada.**
+- 2026-11-27: Paso 4a (`Color.kt`, `Theme.kt` con `GradusExtendedColors` / `GradusTheme.colors`,
+  6 iconos vectoriales Material Symbols Rounded en `res/drawable/` y 62 claves ES/EN con paridad
+  verificada en `values/strings.xml` y `values-en/strings.xml`; `:app:compileDebugKotlin` y
+  `:app:testDebugUnitTest` con 591/591 en verde, 0 avisos nuevos) completado y revisado.
 
 ## Siguiente paso
 
-Iniciar la **Parte D (`app/ui/`)** con el **paso 4a** (iconos vectoriales, aprobación previa de
-tokens de color en `Color.kt`/`Theme.kt` y cadenas ES/EN en `values/strings.xml` y
-`values-en/strings.xml`).
+Continuar la **Parte D (`app/ui/`)** con el **subpaso 4b-1** (`MyCoursesState.kt`, `MyCoursesTexts.kt`
++ `MyCoursesTextsTest` JVM, `UploadHeroCard.kt`, `CourseFilterHeader.kt` y `AuthorCourseCard.kt` con
+previews en claro y oscuro).
