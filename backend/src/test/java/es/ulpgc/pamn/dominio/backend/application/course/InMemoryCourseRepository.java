@@ -22,6 +22,15 @@ import java.util.UUID;
  */
 public final class InMemoryCourseRepository implements CourseRepository {
 
+    /**
+     * Orden total compartido por {@code search} y {@code findByAuthor}: fecha de publicación descendente y
+     * desempate por id como texto ascendente, coincidiendo con el orden byte a byte de UUID en PostgreSQL
+     * (distinto de {@code UUID.compareTo}, que compara enteros con signo).
+     */
+    private static final Comparator<CourseSummary> LATEST_FIRST =
+            Comparator.comparing(CourseSummary::publishedAt).reversed()
+                    .thenComparing(summary -> summary.id().toString());
+
     /** Las versiones de cada curso, en orden: la de la posición i es la versión i + 1. */
     private final Map<UUID, List<CourseVersion>> versionsByCourse = new HashMap<>();
 
@@ -75,11 +84,19 @@ public final class InMemoryCourseRepository implements CourseRepository {
         List<CourseSummary> matching = versionsByCourse.values().stream()
                 .map(versions -> versions.getLast().summary())
                 .filter(search::matches)
-                .sorted(Comparator.comparing(CourseSummary::publishedAt).reversed()
-                        .thenComparing(summary -> summary.id().toString()))
+                .sorted(LATEST_FIRST)
                 .toList();
         List<CourseSummary> items = matching.stream().skip(page.offset()).limit(page.size()).toList();
         return new Page<>(items, page, matching.size());
+    }
+
+    @Override
+    public synchronized List<CourseSummary> findByAuthor(UUID authorId) {
+        return versionsByCourse.values().stream()
+                .map(versions -> versions.getLast().summary())
+                .filter(summary -> summary.author().id().equals(authorId))
+                .sorted(LATEST_FIRST)
+                .toList();
     }
 
     /** Cuántas versiones hay guardadas en total, para comprobar que un rechazo no guarda nada. */

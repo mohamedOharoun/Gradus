@@ -195,6 +195,11 @@ class PublishCourseVersionTest {
             public Page<CourseSummary> search(CourseSearch search, PageRequest page) {
                 return repository.search(search, page);
             }
+
+            @Override
+            public List<CourseSummary> findByAuthor(UUID authorId) {
+                return repository.findByAuthor(authorId);
+            }
         };
     }
 }

@@ -60,4 +60,23 @@ class CatalogResponsesTest {
                         .formatted(JSON.writeValueAsString(CourseResponse.from(summary)))),
                 JSON.readTree(JSON.writeValueAsString(CoursePageResponse.from(page))));
     }
+
+    @Test
+    void aCourseListWrapsEachCourseResponseUnderCourses() throws JsonProcessingException {
+        CourseSummary first = PublishedCourses.summary(1);
+        CourseSummary second = PublishedCourses.summary(2);
+
+        assertEquals(JSON.readTree("""
+                {"courses": [%s, %s]}"""
+                        .formatted(JSON.writeValueAsString(CourseResponse.from(first)),
+                                JSON.writeValueAsString(CourseResponse.from(second)))),
+                JSON.readTree(JSON.writeValueAsString(CourseListResponse.from(List.of(first, second)))));
+    }
+
+    @Test
+    void anEmptyCourseListSerializesAsEmptyCoursesArray() throws JsonProcessingException {
+        assertEquals(JSON.readTree("""
+                {"courses": []}"""),
+                JSON.readTree(JSON.writeValueAsString(CourseListResponse.from(List.of()))));
+    }
 }

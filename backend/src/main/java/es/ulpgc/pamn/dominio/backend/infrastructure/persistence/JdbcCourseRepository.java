@@ -55,6 +55,8 @@ public final class JdbcCourseRepository implements CourseRepository {
             + CourseRows.FROM_LATEST + " WHERE c.id = ?";
     private static final String SELECT_VERSION = "SELECT " + CourseRows.SUMMARY_COLUMNS + ", v.content "
             + CourseRows.FROM_ANY_VERSION + " WHERE c.id = ? AND v.version = ?";
+    private static final String SELECT_BY_AUTHOR = "SELECT " + CourseRows.SUMMARY_COLUMNS + " "
+            + CourseRows.FROM_LATEST + " WHERE c.author_id = ? ORDER BY v.published_at DESC, c.id";
     // §4.5: el segundo criterio desempata. Sin un orden total, dos cursos con la misma fecha podrían
     // repetirse o saltarse entre páginas.
     private static final String ORDER_AND_PAGE = " ORDER BY v.published_at DESC, c.id LIMIT ? OFFSET ?";
@@ -145,6 +147,22 @@ public final class JdbcCourseRepository implements CourseRepository {
                 }
             }
             return new Page<>(items, page, total);
+        });
+    }
+
+    @Override
+    public List<CourseSummary> findByAuthor(UUID authorId) {
+        return transactions.inSnapshot(connection -> {
+            List<CourseSummary> items = new ArrayList<>();
+            try (PreparedStatement select = connection.prepareStatement(SELECT_BY_AUTHOR)) {
+                select.setObject(1, authorId);
+                try (ResultSet rows = select.executeQuery()) {
+                    while (rows.next()) {
+                        items.add(CourseRows.summary(rows));
+                    }
+                }
+            }
+            return List.copyOf(items);
         });
     }
 

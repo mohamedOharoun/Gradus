@@ -14,6 +14,7 @@ import es.ulpgc.pamn.dominio.backend.application.course.CourseInspector;
 import es.ulpgc.pamn.dominio.backend.application.course.CourseReader;
 import es.ulpgc.pamn.dominio.backend.application.course.CourseRepository;
 import es.ulpgc.pamn.dominio.backend.application.course.FindCourse;
+import es.ulpgc.pamn.dominio.backend.application.course.ListMyCourses;
 import es.ulpgc.pamn.dominio.backend.application.course.SearchCourses;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourse;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourseVersion;
@@ -45,6 +46,7 @@ import es.ulpgc.pamn.dominio.backend.web.SessionController;
 import es.ulpgc.pamn.dominio.backend.web.UserController;
 import es.ulpgc.pamn.dominio.backend.web.course.CourseCatalogController;
 import es.ulpgc.pamn.dominio.backend.web.course.CoursePublicationController;
+import es.ulpgc.pamn.dominio.backend.web.course.MyCoursesController;
 import es.ulpgc.pamn.dominio.backend.web.progress.ProgressController;
 import es.ulpgc.pamn.dominio.backend.web.progress.ProgressRequestReader;
 import es.ulpgc.pamn.dominio.backend.web.submission.MultipartErrors;
@@ -98,6 +100,7 @@ public final class App {
                 new PublishCourseVersion(courseInspector, courseReader, courseRepository, clock));
         CourseCatalogController courseCatalog = new CourseCatalogController(
                 new FindCourse(courseRepository), new SearchCourses(courseRepository, clock));
+        MyCoursesController myCourses = new MyCoursesController(new ListMyCourses(courseRepository));
 
         // Progreso: SyncProgress se crea una sola vez (lee el reloj en cada llamada); el lector es inmutable.
         ProgressController progress = new ProgressController(new ProgressRequestReader(),
@@ -126,6 +129,7 @@ public final class App {
             config.routes.patch("/api/users/me", requireSession.around(users::rename));
             config.routes.put("/api/users/me/password", requireSession.around(users::changePassword));
             config.routes.delete("/api/users/me", requireSession.around(users::deleteAccount));
+            config.routes.get("/api/users/me/courses", requireSession.around(myCourses::mine));
             config.routes.delete("/api/sessions/current", requireSession.around(sessions::logOut));
             config.routes.post("/api/courses/validate", requireSession.around(coursePublication::validate));
             config.routes.post("/api/courses", requireSession.around(coursePublication::publish));

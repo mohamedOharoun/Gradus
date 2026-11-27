@@ -8,6 +8,7 @@ import es.ulpgc.pamn.dominio.backend.domain.course.CourseVersionDraft;
 import es.ulpgc.pamn.dominio.backend.domain.course.Page;
 import es.ulpgc.pamn.dominio.backend.domain.course.PageRequest;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -35,4 +36,10 @@ public interface CourseRepository {
      * fecha de publicación descendente y después por id del curso, para que el orden sea total.
      */
     Page<CourseSummary> search(CourseSearch search, PageRequest page);
+
+    /**
+     * Devuelve únicamente la última versión de cada curso publicado por {@code authorId}, ordenada por fecha
+     * de publicación descendente y desempate por id ascendente en orden de texto (byte a byte en PostgreSQL).
+     */
+    List<CourseSummary> findByAuthor(UUID authorId);
 }
