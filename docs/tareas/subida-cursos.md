@@ -7,7 +7,7 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (Backend: 1a–1b), Parte B (`sharedLogic/`: 2a–2c), Parte C (`app/data/`: 3a–3b) y Parte D (4a, 4b-1) cerrados; siguiente: Parte D · Subpaso 4b-2.
+Estado: **en progreso (2026-11-27)** — Parte A (Backend: 1a–1b), Parte B (`sharedLogic/`: 2a–2c), Parte C (`app/data/`: 3a–3b) y Parte D (4a–4b) cerrados; siguiente: Parte D · Paso 4c.
 
 ## Relevo
 
@@ -15,10 +15,11 @@ Se **reescribe** al final de cada sesión; no se acumula.
 
 - **Dónde estamos (2026-11-27):** **Parte A (Backend)** cerrada (932 tests JUnit Jupiter), **Parte B
   (`sharedLogic/`)** cerrada (1219 tests en `:sharedLogic:testAndroidHostTest`, 100 % KMP puro),
-  **Parte C (`app/data/`)** cerrada (67/67 tests instrumentados) y **Parte D · 4a y 4b-1** cerrados
-  y revisados (tokens de tema, 6 iconos, 62 cadenas ES/EN, `MyCoursesState.kt`, `MyCoursesTexts.kt`,
-  `UploadHeroCard.kt`, `CourseFilterHeader.kt`, `AuthorCourseCard.kt` y `MyCoursesTextsTest.kt`;
-  607/607 tests en `:app:testDebugUnitTest`, previews claro/oscuro verificadas, 0 avisos nuevos).
+  **Parte C (`app/data/`)** cerrada (67/67 tests instrumentados) y **Parte D · 4a y 4b** cerrados y
+  revisados (tokens de tema, 6 iconos, 62 cadenas ES/EN, estado/acciones, `MyCoursesTexts.kt` +
+  16 tests JVM, `UploadHeroCard`, `CourseFilterHeader`, `AuthorCourseCard`, `CourseReportSheet`,
+  `DiscardDraftDialog`, `ScreenMyCourses` y `ScreenMyCoursesPreviews`; 607/607 tests JVM, 18/18
+  tests instrumentados en `emulator-5554` en ES y EN, previews claro/oscuro verificadas, 0 avisos).
 - **Contratos y cableado listos para la Parte D (`app/ui/`):**
   - **Modelos y utilidades puras (`es.ulpgc.pamn.dominio.course.publication`):**
     - `MAX_COURSE_BYTES = 2_097_152`, `CourseIssue`, `CourseReport` (`isValid`, `hasWarnings`,
@@ -50,9 +51,9 @@ Se **reescribe** al final de cada sesión; no se acumula.
     - `AppContainer.clearUserDrafts: ClearUserDrafts` (`UserDraftsCleaner` ya cableado en
       `SettingsDestination.kt` → `DeleteAccountViewModel` para limpiar filas, ficheros y trabajos
       al eliminar cuenta).
-- **Siguiente paso:** **Parte D · Subpaso 4b-2** (`CourseReportSheet.kt`, `DiscardDraftDialog.kt`,
-  `ScreenMyCourses.kt`, `ScreenMyCoursesPreviews.kt` y tests instrumentados en emulador:
-  `ScreenMyCoursesTest.kt` + verificación en inglés).
+- **Siguiente paso:** **Parte D · Paso 4c** (`MyCoursesViewModel.kt` + `MyCoursesViewModelTest`
+  JVM, `ScreenCourseGuide.kt`, `Route.CourseGuide`, `MyCoursesDestination.kt` con
+  `ActivityResultContracts.OpenDocument` y cableado mínimo en `MainNavGraph.kt`).
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -316,7 +317,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
     errores y guía temporal en `values/strings.xml` y `values-en/strings.xml`.
   - *Acepta si:* compila sin errores y todas las claves existen en ambos idiomas.
 
-- [ ] **4b · Componentes sin estado de «Mis cursos» y previews.**
+- [x] **4b · Componentes sin estado de «Mis cursos» y previews.**
   *Modelo sugerido:* Gemini Neon · **Medium**.
   - En `ui/screens/mycourses/`:
     - Cabecera con «Subir curso» y enlace «Ver la guía para crear cursos con IA >».
@@ -410,9 +411,15 @@ Se **reescribe** al final de cada sesión; no se acumula.
   `CourseFilterHeader.kt`, `AuthorCourseCard.kt` y `MyCoursesTextsTest.kt`; 16 tests JVM nuevos,
   607/607 en `:app:testDebugUnitTest`, previews claro/oscuro verificadas sin solapes ni avisos
   nuevos) completado y revisado.
+- 2026-11-27: Subpaso 4b-2 (`CourseReportSheet.kt`, `DiscardDraftDialog.kt`, `ScreenMyCourses.kt`,
+  `ScreenMyCoursesPreviews.kt` y `ScreenMyCoursesTest.kt`; `:app:compileDebugKotlin` y
+  `:app:testDebugUnitTest` con 607/607 en verde, 0 avisos nuevos; 18/18 tests instrumentados en
+  `emulator-5554` en ES y EN; previews claro/oscuro verificadas) completado y revisado. **Paso 4b
+  cerrado.**
 
 ## Siguiente paso
 
-Continuar la **Parte D (`app/ui/`)** con el **subpaso 4b-2** (`CourseReportSheet.kt`,
-`DiscardDraftDialog.kt`, `ScreenMyCourses.kt`, `ScreenMyCoursesPreviews.kt` y tests instrumentados
-en emulador: `ScreenMyCoursesTest.kt` + verificación en inglés).
+Completar la **Parte D (`app/ui/`)** con el **paso 4c** (`MyCoursesViewModel.kt` +
+`MyCoursesViewModelTest` JVM, `ScreenCourseGuide.kt`, `Route.CourseGuide`,
+`MyCoursesDestination.kt` con `ActivityResultContracts.OpenDocument` y cableado mínimo en
+`MainNavGraph.kt`).
