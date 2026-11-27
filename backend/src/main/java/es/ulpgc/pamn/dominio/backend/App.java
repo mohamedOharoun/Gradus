@@ -19,6 +19,7 @@ import es.ulpgc.pamn.dominio.backend.application.course.SearchCourses;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourse;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourseVersion;
 import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourse;
+import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourseVersion;
 import es.ulpgc.pamn.dominio.backend.application.progress.SyncProgress;
 import es.ulpgc.pamn.dominio.backend.application.submission.DownloadSubmissionPhoto;
 import es.ulpgc.pamn.dominio.backend.application.submission.ListMySubmissions;
@@ -96,6 +97,7 @@ public final class App {
         CourseRepository courseRepository = new JdbcCourseRepository(dataSource);
         CoursePublicationController coursePublication = new CoursePublicationController(
                 new ValidateCourse(courseInspector),
+                new ValidateCourseVersion(courseInspector, courseReader, courseRepository),
                 new PublishCourse(courseInspector, courseRepository, clock, UUID::randomUUID),
                 new PublishCourseVersion(courseInspector, courseReader, courseRepository, clock));
         CourseCatalogController courseCatalog = new CourseCatalogController(
@@ -133,6 +135,8 @@ public final class App {
             config.routes.delete("/api/sessions/current", requireSession.around(sessions::logOut));
             config.routes.post("/api/courses/validate", requireSession.around(coursePublication::validate));
             config.routes.post("/api/courses", requireSession.around(coursePublication::publish));
+            config.routes.post("/api/courses/{id}/versions/validate",
+                    requireSession.around(coursePublication::validateVersion));
             config.routes.post("/api/courses/{id}/versions", requireSession.around(coursePublication::publishVersion));
             config.routes.post("/api/progress/sync", requireSession.around(progress::sync));
             config.routes.post("/api/courses/{id}/exercises/{exerciseId}/submissions",

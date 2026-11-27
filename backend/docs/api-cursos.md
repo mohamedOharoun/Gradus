@@ -12,7 +12,9 @@ No se usa `10.0.2.2`: con `targetSdk` 37 (Android 17), la red local exige el per
 |---|---|---|
 | `POST /api/courses/validate` | sí | 200 informe (válido o no) · 401 · 413 |
 | `POST /api/courses` | sí | 201 publicado · 400 · 401 · 413 · 422 |
+| `POST /api/courses/{id}/versions/validate` | sí | 200 informe (válido o no) · 401 · 403 · 404 · 409 · 413 |
 | `POST /api/courses/{id}/versions` | sí | 201 · 400 · 401 · 403 · 404 · 409 · 413 · 422 |
+| `GET /api/users/me/courses` | sí | 200 cursos propios · 401 |
 | `GET /api/courses?q=&tag=&language=&author=&published=&page=&size=` | no | 200 página · 400 |
 | `GET /api/courses/{id}` | no | 200 última versión con contenido · 404 |
 | `GET /api/courses/{id}/versions/{version}` | no | 200 versión con contenido · 404 |
@@ -24,7 +26,7 @@ No se usa `10.0.2.2`: con `targetSdk` 37 (Android 17), la red local exige el per
 
 ## Cuerpos
 
-**Informe** (200 de validar; 400, 413 y 422 de publicar):
+**Informe** (200 de validar curso o nueva versión; 400, 413 y 422 de publicar):
 
 ```json
 { "valid": false,
@@ -34,6 +36,10 @@ No se usa `10.0.2.2`: con `targetSdk` 37 (Android 17), la red local exige el per
 
 `valid` es verdadero si y solo si `errors` está vacío. `path` es un JSON Pointer dentro del curso
 (`""` = la raíz). Los mensajes están en español y pensados para el autor; la app puede mostrarlos tal cual.
+En `POST /api/courses/{id}/versions/validate` se comprueba primero que el curso exista (404) y que el
+usuario de la sesión sea su autor (403); no guarda nada. Si el curso es válido e idéntico a la última
+versión devuelve 409 `IDENTICAL_TO_LATEST`; si es válido y distinto, incluye el aviso `REMOVED_IDS`
+comparando contra la última versión.
 
 **Metadatos de una versión** (cada elemento de la búsqueda y `course` del 201):
 
@@ -60,6 +66,10 @@ Para comprobar la descarga: el SHA-256 de los bytes de `content`, tal como viene
 
 **Página de la búsqueda**: `{ "items": [ …metadatos… ], "page": 0, "size": 20, "total": 37 }`.
 
+**Cursos propios** (`GET /api/users/me/courses`): `{ "courses": [ …metadatos… ] }` — últimas versiones de
+los cursos publicados por el usuario de la sesión, ordenados por `publishedAt` descendente (desempate por
+`id`), sin paginación; lista vacía si no tiene cursos publicados.
+
 **Otros errores** (como en cuentas y sesiones): `{ "errors": [ { "field": "…", "code": "…", "message": "…" } ] }`.
 
 ## Búsqueda
@@ -82,8 +92,8 @@ Para comprobar la descarga: el SHA-256 de los bytes de `content`, tal como viene
 | `code` | Estado | `field` | Cuándo |
 |---|---|---|---|
 | `COURSE_NOT_FOUND` | 404 | `id` o `version` | No existe el curso o la versión |
-| `NOT_COURSE_AUTHOR` | 403 | `id` | Publica una versión quien no es el autor |
-| `IDENTICAL_TO_LATEST` | 409 | `body` | El contenido es igual al de la última versión |
+| `NOT_COURSE_AUTHOR` | 403 | `id` | Publica o valida una versión quien no es el autor |
+| `IDENTICAL_TO_LATEST` | 409 | `body` | Al publicar o validar una versión, el contenido es igual al de la última versión |
 | `INVALID_PARAMETER` | 400 | `page`, `size` o `published` | Parámetro de búsqueda no válido (si hay varios, todos, en ese orden) |
 
 Los códigos de los problemas del curso (`errors`/`warnings` del informe) están en §3.3 de la

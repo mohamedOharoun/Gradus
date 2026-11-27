@@ -6,6 +6,8 @@ import es.ulpgc.pamn.dominio.backend.application.course.Publication;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourse;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourseVersion;
 import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourse;
+import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourseVersion;
+import es.ulpgc.pamn.dominio.backend.application.course.VersionValidationResult;
 import es.ulpgc.pamn.dominio.backend.domain.User;
 import es.ulpgc.pamn.dominio.backend.domain.course.CourseAuthor;
 import es.ulpgc.pamn.dominio.backend.domain.course.CourseReport;
@@ -24,17 +26,19 @@ import java.util.UUID;
 /**
  * Traduce HTTP ↔ casos de uso de validar y publicar (§4.3). Sin reglas de negocio: lee el cuerpo como bytes
  * (nunca con {@code bodyAsClass}) y elige la respuesta con un {@code switch} sobre cada resultado sellado.
- * Las tres rutas están protegidas con {@code RequireSession}: el autor es siempre el usuario de la sesión.
+ * Todas sus rutas están protegidas con {@code RequireSession}: el autor es siempre el usuario de la sesión.
  */
 public final class CoursePublicationController {
 
     private final ValidateCourse validateCourse;
+    private final ValidateCourseVersion validateCourseVersion;
     private final PublishCourse publishCourse;
     private final PublishCourseVersion publishCourseVersion;
 
-    public CoursePublicationController(ValidateCourse validateCourse, PublishCourse publishCourse,
-                                       PublishCourseVersion publishCourseVersion) {
+    public CoursePublicationController(ValidateCourse validateCourse, ValidateCourseVersion validateCourseVersion,
+                                       PublishCourse publishCourse, PublishCourseVersion publishCourseVersion) {
         this.validateCourse = Objects.requireNonNull(validateCourse, "validateCourse");
+        this.validateCourseVersion = Objects.requireNonNull(validateCourseVersion, "validateCourseVersion");
         this.publishCourse = Objects.requireNonNull(publishCourse, "publishCourse");
         this.publishCourseVersion = Objects.requireNonNull(publishCourseVersion, "publishCourseVersion");
     }
@@ -49,6 +53,27 @@ public final class CoursePublicationController {
         switch (validateCourse.validate(body.get())) {
             case CourseValidationResult.Checked checked -> report(ctx, HttpStatus.OK, checked.report());
             case CourseValidationResult.TooLarge tooLarge -> report(ctx, HttpStatus.CONTENT_TOO_LARGE, tooLarge.report());
+        }
+    }
+
+    /** {@code POST /api/courses/{id}/versions/validate}: 200 con el informe (válido o no), 403, 404, 409 o 413. */
+    public void validateVersion(Context ctx, AuthenticationResult.Authenticated authenticated) {
+        Optional<UUID> courseId = PathIds.courseId(ctx.pathParam("id"));
+        if (courseId.isEmpty()) {
+            courseNotFound(ctx);
+            return;
+        }
+        Optional<byte[]> body = body(ctx);
+        if (body.isEmpty()) {
+            tooLarge(ctx);
+            return;
+        }
+        switch (validateCourseVersion.validate(authenticated.user().id(), courseId.get(), body.get())) {
+            case VersionValidationResult.Checked checked -> report(ctx, HttpStatus.OK, checked.report());
+            case VersionValidationResult.TooLarge tooLarge -> report(ctx, HttpStatus.CONTENT_TOO_LARGE, tooLarge.report());
+            case VersionValidationResult.CourseNotFound notFound -> courseNotFound(ctx);
+            case VersionValidationResult.NotAuthor notAuthor -> notAuthor(ctx);
+            case VersionValidationResult.IdenticalToLatest identical -> identicalToLatest(ctx);
         }
     }
 
@@ -85,11 +110,8 @@ public final class CoursePublicationController {
             case Publication.Unreadable unreadable -> report(ctx, HttpStatus.BAD_REQUEST, unreadable.report());
             case Publication.Rejected rejected -> report(ctx, HttpStatus.UNPROCESSABLE_CONTENT, rejected.report());
             case Publication.CourseNotFound notFound -> courseNotFound(ctx);
-            case Publication.NotAuthor notAuthor -> ctx.status(HttpStatus.FORBIDDEN).json(ErrorResponse.of(
-                    "id", ErrorCode.NOT_COURSE_AUTHOR, "Solo el autor del curso puede publicar versiones nuevas."));
-            case Publication.IdenticalToLatest identical -> ctx.status(HttpStatus.CONFLICT).json(ErrorResponse.of(
-                    "body", ErrorCode.IDENTICAL_TO_LATEST,
-                    "El contenido es idéntico al de la última versión: no se ha creado ninguna versión nueva."));
+            case Publication.NotAuthor notAuthor -> notAuthor(ctx);
+            case Publication.IdenticalToLatest identical -> identicalToLatest(ctx);
         }
     }
 
@@ -129,5 +151,16 @@ public final class CoursePublicationController {
 
     private static void courseNotFound(Context ctx) {
         ctx.status(HttpStatus.NOT_FOUND).json(ErrorResponse.of("id", ErrorCode.COURSE_NOT_FOUND, "No existe ese curso."));
+    }
+
+    private static void notAuthor(Context ctx) {
+        ctx.status(HttpStatus.FORBIDDEN).json(ErrorResponse.of(
+                "id", ErrorCode.NOT_COURSE_AUTHOR, "Solo el autor del curso puede publicar versiones nuevas."));
+    }
+
+    private static void identicalToLatest(Context ctx) {
+        ctx.status(HttpStatus.CONFLICT).json(ErrorResponse.of(
+                "body", ErrorCode.IDENTICAL_TO_LATEST,
+                "El contenido es idéntico al de la última versión: no se ha creado ninguna versión nueva."));
     }
 }

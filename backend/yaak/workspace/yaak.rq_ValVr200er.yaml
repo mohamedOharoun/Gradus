@@ -1,0 +1,75 @@
+type: http_request
+model: http_request
+id: rq_ValVr200er
+createdAt: 2026-11-27T18:22:00.000000004
+updatedAt: 2026-11-27T18:22:00.000000004
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_pUw2uUvgMh
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "formatVersion": 1,
+      "title": "Curso de prueba compacto (con error)",
+      "description": "Un módulo con prerrequisito sobre sí mismo.",
+      "language": "es",
+      "tags": ["prueba", "yaak"],
+      "defaults": { "mastery": { "questions": 1, "minCorrect": 1 } },
+      "modules": [
+        {
+          "id": "intro",
+          "title": "Introducción",
+          "requires": ["intro"],
+          "steps": [
+            { "type": "lesson", "id": "intro-l1", "text": "Un **grafo** tiene vértices y aristas." },
+            {
+              "type": "singleChoice", "id": "intro-f1", "prompt": "¿Qué une dos vértices?",
+              "options": [ { "id": "a", "text": "Una arista" }, { "id": "b", "text": "Un grado" } ],
+              "answer": "a", "explanation": "Las aristas conectan vértices."
+            }
+          ],
+          "review": [
+            {
+              "type": "singleChoice", "id": "intro-r1", "prompt": "¿De qué está formado un grafo?",
+              "options": [ { "id": "a", "text": "Vértices y aristas" }, { "id": "b", "text": "Filas y columnas" } ],
+              "answer": "a", "explanation": "G = (V, E): vértices y aristas."
+            }
+          ]
+        }
+      ]
+    }
+bodyType: application/json
+description: 'Valida una versión con errores semánticos (SELF_PREREQUISITE): responde 200 con valid = false y la lista de errores.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_BidRTgEuwC', path='$.token') ]}
+  id: null
+method: POST
+name: Validar versión con errores (200)
+sortPriority: 19.0
+url: ${[ baseUrl ]}/api/courses/${[ response.body.path(request='rq_jAYMWnPgxc', path='$.course.id') ]}/versions/validate
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

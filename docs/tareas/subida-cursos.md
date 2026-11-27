@@ -7,20 +7,29 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Paso 1a completado; siguiente: Paso 1b.
+Estado: **en progreso (2026-11-27)** — Parte A (Backend: pasos 1a y 1b) completada; siguiente: Parte B (Paso 2a en `sharedLogic/`).
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-27):** Paso 1a (`GET /api/users/me/courses` con respuesta `{"courses": [...]}`)
-  implementado, revisado y en verde (919 tests en `backend/`, 0 avisos). Contrato cerrado para Parte A:
-  `GET /api/users/me/courses` devuelve `{"courses": [...]}` sin paginación;
-  `POST /api/courses/{id}/versions/validate` devuelve `200` con `CourseReportResponse` también cuando
-  el curso es inválido (coherente con `POST /api/courses/validate`), `413` si supera 2 MiB, `404`/`403`
-  por curso/autor y `409 IDENTICAL_TO_LATEST` si es válido e idéntico a la última versión.
-- **Siguiente paso:** **Paso 1b** (`POST /api/courses/{id}/versions/validate`, actualización de
-  `backend/docs/api-cursos.md` y peticiones en Yaak).
+- **Dónde estamos (2026-11-27):** **Parte A (Backend) cerrada y revisada** (pasos 1a y 1b en verde:
+  932 tests JUnit Jupiter, 0 avisos en `mvn clean test`, contrato congelado en
+  `backend/docs/api-cursos.md` y 7 peticiones nuevas en `backend/yaak/workspace/` listas para prueba
+  manual contra el backend local cuando se desee).
+- **Contrato congelado para la Parte B (`sharedLogic/`):**
+  - `GET /api/users/me/courses` (Bearer): `200` `{"courses": […metadatos…]}` sin paginación (últimas
+    versiones, `publishedAt DESC, id ASC`), `401 UNAUTHENTICATED`.
+  - `POST /api/courses/validate` (Bearer, JSON crudo ≤ 2 MiB): `200` informe (`valid`, `errors`,
+    `warnings`, válido o no), `401`, `413` informe (`PAYLOAD_TOO_LARGE`).
+  - `POST /api/courses/{id}/versions/validate` (Bearer, JSON crudo ≤ 2 MiB): `200` informe (válido
+    con `REMOVED_IDS` o `valid: false` con errores), `401`, `403 NOT_COURSE_AUTHOR`,
+    `404 COURSE_NOT_FOUND`, `409 IDENTICAL_TO_LATEST`, `413` informe (`PAYLOAD_TOO_LARGE`).
+  - `POST /api/courses` y `POST /api/courses/{id}/versions` (Bearer, JSON crudo ≤ 2 MiB): `201`
+    `{"course": …metadatos…, "warnings": […]}` y códigos de error documentados en
+    `backend/docs/api-cursos.md`.
+- **Siguiente paso:** **Parte B · Paso 2a** (modelos de publicación, borrador, informe, fusión/filtro
+  y lectura ligera de metadatos en `sharedLogic/`, test primero con `kotlin.test`).
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -188,7 +197,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
     orden por fecha y desempate por id, autor sin cursos, no devuelve cursos de otros) y `mvn test`
     en verde; comprobación manual contra la base de desarrollo (con permiso) dando 200 y 401.
 
-- [ ] **1b · Validar nueva versión (`POST /api/courses/{id}/versions/validate`).**
+- [x] **1b · Validar nueva versión (`POST /api/courses/{id}/versions/validate`).**
   *Modelo sugerido:* Gemini Neon · **High**.
   - Caso de uso `ValidateCourseVersion`: mismo orden de comprobación inicial que
     `PublishCourseVersion` (404 curso inexistente / id no UUID, 403 no es autor, 413 > 2 MiB,
@@ -336,8 +345,13 @@ Se **reescribe** al final de cada sesión; no se acumula.
 - 2026-11-27: Paso 1a (`GET /api/users/me/courses`) completado y revisado (`ListMyCourses`,
   `JdbcCourseRepository.findByAuthor`, `CourseListResponse`, `MyCoursesController`, ruta protegida
   en `App.java`; 919 tests en verde, 0 avisos).
+- 2026-11-27: Paso 1b (`POST /api/courses/{id}/versions/validate`) completado y revisado
+  (`ValidateCourseVersion`, `VersionValidationResult`, `RemovedIdsCheck` compartido con
+  `PublishCourseVersion`, `CoursePublicationController.validateVersion`, ruta en `App.java`,
+  contrato congelado en `backend/docs/api-cursos.md` y 7 peticiones en `backend/yaak/workspace/`;
+  932 tests en verde, 0 avisos). **Parte A cerrada.**
 
 ## Siguiente paso
 
-Empezar el **paso 1b** (`POST /api/courses/{id}/versions/validate`, `backend/docs/api-cursos.md` y
-Yaak), proponiendo primero ficheros, diseño y tests antes de escribir código.
+Iniciar la **Parte B (`sharedLogic/`)** empezando por el **paso 2a** (modelos de publicación,
+borrador e informe), proponiendo primero ficheros, diseño y tests antes de escribir código.
