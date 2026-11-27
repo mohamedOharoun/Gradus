@@ -1,6 +1,7 @@
 package es.ulpgc.pamn.dominio.ui.testing
 
 import android.content.res.Configuration
+import androidx.activity.compose.LocalActivityResultRegistryOwner
 import androidx.test.platform.app.InstrumentationRegistry
 import es.ulpgc.pamn.dominio.ui.text.ResourcesResolver
 import es.ulpgc.pamn.dominio.ui.text.UiText
@@ -27,19 +28,24 @@ fun InSpanish(content: @Composable () -> Unit) = InLocale(SPANISH, content)
 
 // stringResource y UiText.asString leen LocalResources; LocalContext y LocalConfiguration, por si algo
 // pregunta por el idioma (fechas, plurales): los tres pasan a ser los de un Context en ese idioma.
+// También conservamos LocalActivityResultRegistryOwner, porque createConfigurationContext deja de
+// envolver a la ComponentActivity y rememberLauncherForActivityResult lo necesita.
 @Composable
 fun InLocale(locale: Locale, content: @Composable () -> Unit) {
     val context = LocalContext.current
     val base = LocalConfiguration.current
+    val activityResultOwner = LocalActivityResultRegistryOwner.current
     val localized = remember(context, base, locale) {
         val configuration = Configuration(base).apply { setLocale(locale) }
         context.createConfigurationContext(configuration) to configuration
     }
-    CompositionLocalProvider(
+    val provided = listOfNotNull(
         LocalContext provides localized.first,
         LocalConfiguration provides localized.second,
         LocalResources provides localized.first.resources,
-    ) { content() }
+        activityResultOwner?.let { LocalActivityResultRegistryOwner provides it },
+    ).toTypedArray()
+    CompositionLocalProvider(*provided) { content() }
 }
 
 // La frase de un UiText tal como se ve en español (paso 9a), para buscarla en un test sin copiarla a mano.

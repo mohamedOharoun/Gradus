@@ -83,13 +83,14 @@ class RoomCourseCopyStoreTest {
     }
 
     @Test
-    fun database_opens_at_version_2_with_progress_and_course_copies_tables() = runTest {
+    fun database_opens_at_version_3_with_progress_course_copies_and_drafts_tables() = runTest {
         val db = database.openHelper.readableDatabase
 
-        assertEquals(2, db.version)
+        assertEquals(3, db.version)
         assertEquals(0, rowCount("enrollments"))
         assertEquals(0, rowCount("mastered_modules"))
         assertEquals(0, rowCount("course_copies"))
+        assertEquals(0, rowCount("course_drafts"))
     }
 
     // Ida y vuelta real: OfflineCourseGateway serializa demoCourse, Room lo guarda y lo recupera

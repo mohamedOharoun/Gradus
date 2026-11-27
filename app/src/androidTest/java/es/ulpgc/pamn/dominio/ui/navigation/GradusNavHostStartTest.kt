@@ -33,7 +33,7 @@ import org.junit.runner.RunWith
 // El arranque y salida de Main en la interfaz: qué se ve con cada StartState, cómo se sale de Main
 // según el motivo (ToLogin vs ToWelcome) y que la pila se restaura aunque el NavHost se componga
 // después de Loading. Con fakes y sin AppContainer.sessionStore: nunca toca la sesión real de la app.
-// Las pestañas que se abren (Inicio, Mis cursos) no usan AppContainer.
+// Las pantallas que se abren (Inicio y la guía provisional CourseGuide) no usan AppContainer.
 @RunWith(AndroidJUnit4::class)
 class GradusNavHostStartTest {
 
@@ -97,6 +97,7 @@ class GradusNavHostStartTest {
         destination.hasRoute<Route.Home>() -> "Home"
         destination.hasRoute<Route.Search>() -> "Search"
         destination.hasRoute<Route.MyCourses>() -> "MyCourses"
+        destination.hasRoute<Route.CourseGuide>() -> "CourseGuide"
         destination.hasRoute<Route.Settings>() -> "Settings"
         else -> destination.route.orEmpty()
     }
@@ -106,9 +107,9 @@ class GradusNavHostStartTest {
         navController.currentBackStack.value.map { it.destination }.filter { it !is NavGraph }.map(::label)
     }
 
-    // Pestaña dentro de Main que no toca AppContainer (a diferencia de SettingsRoute).
-    private fun goToMyCourses() {
-        rule.runOnIdle { navController.navigate(Route.MyCourses) }
+    // Pantalla provisional dentro de Main que no toca AppContainer (a diferencia de MyCoursesRoute o SettingsRoute).
+    private fun goToCourseGuide() {
+        rule.runOnIdle { navController.navigate(Route.CourseGuide) }
         rule.waitForIdle()
     }
 
@@ -162,7 +163,7 @@ class GradusNavHostStartTest {
     fun session_deleted_unexpectedly_inside_main_goes_to_login_and_the_stack_is_welcome_login() {
         launch()
         emitStart(StartState.SignedIn)
-        goToMyCourses()
+        goToCourseGuide()
         emitStart(StartState.SignedOut(MainExit.ToLogin))
         rule.onNodeWithText("Hola de nuevo").assertIsDisplayed()
         assertEquals(listOf("Welcome", "Login"), stack())
@@ -172,7 +173,7 @@ class GradusNavHostStartTest {
     fun voluntary_sign_out_inside_main_goes_directly_to_welcome_with_clean_stack() {
         launch()
         emitStart(StartState.SignedIn)
-        goToMyCourses()
+        goToCourseGuide()
         emitStart(StartState.SignedOut(MainExit.ToWelcome))
         rule.onNodeWithText(welcomeText).assertIsDisplayed()
         assertEquals(listOf("Welcome"), stack())
@@ -182,7 +183,7 @@ class GradusNavHostStartTest {
     fun after_voluntary_sign_out_the_user_can_log_in_again_and_enter_home() {
         launch()
         emitStart(StartState.SignedIn)
-        goToMyCourses()
+        goToCourseGuide()
         emitStart(StartState.SignedOut(MainExit.ToWelcome))
         rule.onNodeWithText("Iniciar sesión").performClick()
         fillAndSubmitLogin()
@@ -194,7 +195,7 @@ class GradusNavHostStartTest {
     fun after_leaving_main_to_login_back_goes_to_welcome_and_never_to_main() {
         launch()
         emitStart(StartState.SignedIn)
-        goToMyCourses()
+        goToCourseGuide()
         emitStart(StartState.SignedOut(MainExit.ToLogin))
         pressSystemBack()
         rule.onNodeWithText(welcomeText).assertIsDisplayed()
@@ -230,7 +231,7 @@ class GradusNavHostStartTest {
     fun restored_inside_main_without_session_goes_to_login_with_welcome_below() {
         launch()
         emitStart(StartState.SignedIn)
-        goToMyCourses()
+        goToCourseGuide()
         recreateWhileLoading()
         assertEquals(StartState.Loading, start)
         assertEquals(emptyList<String>(), stack()) // mientras se lee, solo el fondo
@@ -244,11 +245,11 @@ class GradusNavHostStartTest {
     fun restored_inside_main_with_session_keeps_the_stack() {
         launch()
         emitStart(StartState.SignedIn)
-        goToMyCourses()
+        goToCourseGuide()
         recreateWhileLoading()
         assertEquals(StartState.Loading, start)
         emitStart(StartState.SignedIn)
-        assertEquals(listOf("Home", "MyCourses"), stack())
+        assertEquals(listOf("Home", "CourseGuide"), stack())
     }
 
     // Empezar sin sesión, iniciar sesión (entrar en Main y pasar a SignedIn), recrear y seguir en Main.
@@ -260,10 +261,10 @@ class GradusNavHostStartTest {
         fillAndSubmitLogin()
         rule.onNodeWithText("¡Hola!").assertIsDisplayed()
         assertEquals(listOf("Home"), stack())
-        goToMyCourses()
+        goToCourseGuide()
         recreateWhileLoading()
         assertEquals(StartState.Loading, start)
         emitStart(StartState.SignedIn)
-        assertEquals(listOf("Home", "MyCourses"), stack())
+        assertEquals(listOf("Home", "CourseGuide"), stack())
     }
 }
