@@ -58,14 +58,15 @@ los dos estados principales del estudiante:
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-28): C2 hecha y revisada.** Textos ES/EN en `values/strings.xml` y
-  `values-en/strings.xml`, funciones puras en `CourseDetailTexts.kt` y 9 tests nuevos en
-  `CourseDetailTextsTest.kt` en verde (`:app:testDebugUnitTest` 659 passed,
-  `:app:compileDebugKotlin` y `:app:compileDebugAndroidTestKotlin` en verde).
-- **Toca:** implementar y revisar **C3** (`CourseDetailHeader.kt`, `CourseDetailContent.kt`,
-  `UnenrollCourseDialog.kt` e `ic_more_vert.xml`).
-- **Pendiente después:** C4 (`ScreenCourseDetail`, previews y `CourseDetailDestination`) → C5
-  (tests instrumentados).
+- **Estado (2026-11-28): C3 hecha y revisada.** Creados `ic_more_vert.xml`,
+  `CourseDetailHeader.kt` y `UnenrollCourseDialog.kt`, y actualizado `CourseDetailContent.kt`
+  (`CourseDetailBody` + `LearnList` intacto + `TagLabel` al final). Previews renderizadas en claro
+  y oscuro; `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` y
+  `:app:testDebugUnitTest` (659 passed) en verde.
+- **Toca:** implementar y revisar **C4** (rediseño de `ScreenCourseDetail.kt`,
+  `ScreenCourseDetailPreviews.kt`, cableado completo en `CourseDetailDestination.kt` y limpieza de
+  helpers obsoletos en `CourseDetailTexts.kt` si no los usa nadie más).
+- **Pendiente después:** C5 (tests instrumentados de UI y accesibilidad en emulador).
 
 ## Lo que ya hay y sirve de modelo
 
@@ -191,7 +192,7 @@ implementación y tests → revisión → mensaje de commit.
     singular/plural y lectura TalkBack con mes completo.
   - `./gradlew :app:testDebugUnitTest` en verde.
 
-### [ ] C3. Piezas de UI: `CourseDetailHeader`, `CourseDetailContent` y `UnenrollCourseDialog`
+### [x] C3. Piezas de UI: `CourseDetailHeader`, `CourseDetailContent` y `UnenrollCourseDialog`
 
 - **Modelo y esfuerzo mínimos:** Claude Sonnet 4.6 (esfuerzo **medio**) · Gemini 2.5 Pro (esfuerzo
   **medio**).
@@ -285,7 +286,15 @@ implementación y tests → revisión → mensaje de commit.
   hasta C4) y 9 tests nuevos en `CourseDetailTextsTest.kt`. En verde: `:app:compileDebugKotlin`,
   `:app:compileDebugAndroidTestKotlin` y `:app:testDebugUnitTest` (659 passed).
 
+- 2026-11-28: **C3 hecha y revisada.** Creados `ic_more_vert.xml`, `CourseDetailHeader.kt`
+  (cabecera tintada en `surfaceVariant`, menú `⋮` de 48 dp con «Pausar curso» y «Darse de baja»,
+  estadísticas no inscrito y bloque de progreso inscrito) y `UnenrollCourseDialog.kt` (estilo
+  `DeleteAccountDialog` con 4 `@LightDarkPreviews`), y actualizado `CourseDetailContent.kt`
+  (`CourseDetailBody` con descripción, `LearnList` intacto y `TagLabel` al final). Previews
+  verificadas en claro y oscuro; `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` y
+  `:app:testDebugUnitTest` (659 passed) en verde.
+
 ## Siguiente paso
 
-Lanzar el implementador para **C3** (`CourseDetailHeader.kt`, actualización de
-`CourseDetailContent.kt`, `UnenrollCourseDialog.kt` e icono vectorial `ic_more_vert.xml`).
+Lanzar el implementador para **C4** (rediseño de `ScreenCourseDetail.kt`,
+`ScreenCourseDetailPreviews.kt` y cableado completo en `CourseDetailDestination.kt`).

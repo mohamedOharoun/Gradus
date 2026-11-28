@@ -25,47 +25,35 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.course.Module
+import es.ulpgc.pamn.dominio.data.demoCourse
+import es.ulpgc.pamn.dominio.data.demoMastered
+import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
 import es.ulpgc.pamn.dominio.ui.components.TagLabel
-import es.ulpgc.pamn.dominio.ui.text.asString
+import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
-// Las piezas de la ficha lista (ScreenCourseDetail), separadas para que ningún fichero sea largo.
-
-// Título, autor, etiquetas, «2 módulos · nov 2026» y la descripción completa.
+// Cuerpo desplazable de la ficha del curso debajo de la cabecera: descripción, lista de módulos
+// y etiquetas al final (Decisiones C-1, C-2 y C-3).
 @Composable
-fun CourseDetailHeader(state: CourseDetailState.Ready, modifier: Modifier = Modifier) {
+fun CourseDetailBody(state: CourseDetailState.Ready, modifier: Modifier = Modifier) {
     val course = state.course
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            course.title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.semantics { heading() },
-        )
-        course.authorText()?.let {
-            Text(it.asString(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-        if (course.tags.isNotEmpty()) {
-            // Todas las etiquetas (en la tarjeta de Buscar caben 3): aquí hay sitio.
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                course.tags.forEach { TagLabel(it) }
-            }
-        }
-        // Fuera de semantics {}: ahí no se puede leer strings.xml.
-        val spokenMeta = course.spokenMetaText().asString()
-        Text(
-            course.metaText().asString(),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            // «nov 2026» se lee mal en voz alta: TalkBack oye «publicado en noviembre de 2026».
-            modifier = Modifier.semantics { contentDescription = spokenMeta },
-        )
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(24.dp)) {
         if (course.description.isNotBlank()) {
             Text(
-                course.description,
+                text = course.description,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(top = 4.dp),
             )
+        }
+        if (state.modules.isNotEmpty()) {
+            LearnList(state)
+        }
+        if (course.tags.isNotEmpty()) {
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                course.tags.forEach { TagLabel(it) }
+            }
         }
     }
 }
@@ -113,5 +101,24 @@ private fun LearnItem(number: Int, module: Module, mastered: Boolean) {
             }
         }
         Text(module.title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+    }
+}
+
+@LightDarkPreviews
+@Composable
+private fun CourseDetailBodyPreview() {
+    GradusTheme {
+        Surface(color = MaterialTheme.colorScheme.background) {
+            CourseDetailBody(
+                state = CourseDetailState.Ready(
+                    course = demoCourse.copy(
+                        description = "Conjuntos, relaciones, grafos y árboles paso a paso, con ejercicios interactivos.",
+                    ),
+                    mastered = demoMastered,
+                    enrolled = true,
+                ),
+                modifier = Modifier.padding(20.dp),
+            )
+        }
     }
 }
