@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static es.ulpgc.pamn.dominio.backend.infrastructure.persistence.Timestamps.toColumn;
@@ -45,6 +46,10 @@ public final class JdbcEnrollmentRepository implements EnrollmentRepository {
             WHERE user_id = ?
             ORDER BY module_id
             """;
+    private static final String DELETE_ENROLLMENT = """
+            DELETE FROM enrollments
+            WHERE user_id = ? AND course_id = ?
+            """;
 
     private final Transactions transactions;
 
@@ -75,6 +80,24 @@ public final class JdbcEnrollmentRepository implements EnrollmentRepository {
         return transactions.inSnapshot(connection -> EnrollmentRows.assemble(
                 query(connection, SELECT_ENROLLMENTS, userId, EnrollmentRows::enrollment),
                 query(connection, SELECT_MODULES, userId, EnrollmentRows::module)));
+    }
+
+    /**
+     * Borra la inscripción del usuario en el curso; PostgreSQL borra automáticamente sus filas en
+     * {@code mastered_modules} gracias a {@code ON DELETE CASCADE} (ver {@code 006_create_enrollments.sql}).
+     */
+    @Override
+    public void delete(UUID userId, UUID courseId) {
+        Objects.requireNonNull(userId, "userId");
+        Objects.requireNonNull(courseId, "courseId");
+        transactions.inTransaction(connection -> {
+            try (PreparedStatement delete = connection.prepareStatement(DELETE_ENROLLMENT)) {
+                delete.setObject(1, userId);
+                delete.setObject(2, courseId);
+                delete.executeUpdate();
+            }
+            return null;
+        });
     }
 
     private static void mergeEnrollments(Connection connection, UUID userId, List<Enrollment> ordered)

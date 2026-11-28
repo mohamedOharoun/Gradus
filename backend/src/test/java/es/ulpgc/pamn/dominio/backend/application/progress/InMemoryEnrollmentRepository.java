@@ -15,12 +15,20 @@ final class InMemoryEnrollmentRepository implements EnrollmentRepository {
     record MergeCall(UUID userId, List<Enrollment> enrollments) {
     }
 
+    record DeleteCall(UUID userId, UUID courseId) {
+    }
+
     private final Map<UUID, List<Enrollment>> byUser = new HashMap<>();
     private final List<MergeCall> mergeCalls = new ArrayList<>();
+    private final List<DeleteCall> deleteCalls = new ArrayList<>();
     private int findAllCalls;
 
     List<MergeCall> mergeCalls() {
         return List.copyOf(mergeCalls);
+    }
+
+    List<DeleteCall> deleteCalls() {
+        return List.copyOf(deleteCalls);
     }
 
     int findAllCalls() {
@@ -37,5 +45,16 @@ final class InMemoryEnrollmentRepository implements EnrollmentRepository {
     public List<Enrollment> findAll(UUID userId) {
         findAllCalls++;
         return byUser.getOrDefault(userId, List.of());
+    }
+
+    @Override
+    public void delete(UUID userId, UUID courseId) {
+        deleteCalls.add(new DeleteCall(userId, courseId));
+        byUser.computeIfPresent(userId, (id, current) -> {
+            List<Enrollment> remaining = current.stream()
+                    .filter(enrollment -> !enrollment.courseId().equals(courseId))
+                    .toList();
+            return remaining.isEmpty() ? null : remaining;
+        });
     }
 }

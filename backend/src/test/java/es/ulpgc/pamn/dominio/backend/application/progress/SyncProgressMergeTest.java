@@ -182,6 +182,10 @@ class SyncProgressMergeTest {
             public List<Enrollment> findAll(UUID userId) {
                 return List.of();
             }
+
+            @Override
+            public void delete(UUID userId, UUID courseId) {
+            }
         };
 
         IllegalStateException thrown = assertThrows(IllegalStateException.class,
