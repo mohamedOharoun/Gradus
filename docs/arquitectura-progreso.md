@@ -89,8 +89,8 @@ Paquete `app/.../data/course/` (copias locales de cursos en Room; solo Android, 
 | `CourseCopyEntity` | Tabla `course_copies(course_id, json)`, clave primaria `course_id`. Sin `user_id` ni clave foránea a `enrollments`: las copias son globales al dispositivo | Entidad de persistencia |
 | `CourseCopyDao` | `save(copy)` con `@Insert(onConflict = OnConflictStrategy.REPLACE)` (compatible con SQLite 3.22 / `minSdk` 29) y `loadJson(courseId): String?` | *DAO* |
 | `RoomCourseCopyStore(dao)` | Implementa `CourseCopyStore` sobre `CourseCopyDao`. En `AppContainer`, `courseGateway` es `CachingCourseGateway(OfflineCourseGateway(http, RoomCourseCopyStore))` | *Adapter* del puerto |
-| `CourseCopyRequester` (12b-2) | `fun interface` con `requestCopy(courseId)` (no `suspend`): pide precargar la copia local sin esperar al resultado. Es lo único que recibe `EnrollmentViewModel` | *Command* |
-| `CourseCopyLauncher(gateway, scope)` (12b-2) | Implementa `CourseCopyRequester` lanzando `gateway.course(courseId)` en `appScope` (no se cancela al salir de `ScreenCourseOverview`). Precarga oportunista (*best effort*): descarta desenlaces de fallo sin reintentar, relanza siempre `CancellationException` y captura `Exception` (no `Throwable`) para que un fallo de disco no tumbe la app tras inscribirse bien | *Command*; inyección de dependencias |
+| `CourseCopyRequester` (12b-2) | `fun interface` con `requestCopy(courseId)` (no `suspend`): pide precargar la copia local sin esperar al resultado. Es lo único que recibe `CourseDetailViewModel` | *Command* |
+| `CourseCopyLauncher(gateway, scope)` (12b-2) | Implementa `CourseCopyRequester` lanzando `gateway.course(courseId)` en `appScope` (no se cancela al salir de `ScreenCourseDetail`). Precarga oportunista (*best effort*): descarta desenlaces de fallo sin reintentar, relanza siempre `CancellationException` y captura `Exception` (no `Throwable`) para que un fallo de disco no tumbe la app tras inscribirse bien | *Command*; inyección de dependencias |
 
 Paquete `app/.../data/session/` (la sesión guardada cifrada; desde 11b, conectada a `AppContainer` en
 11c-1):
@@ -375,12 +375,13 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   3. **No captures** la `IllegalStateException` de `markMastered`: es el invariante y avisa de un fallo
      de programación (se llegó a dominar sin comprobar `studyAccess`). Taparla escondería el fallo.
   4. Nunca escribas lo dominado por otro camino que no sea `markMastered`.
-- **Inscribirse desde otra pantalla:** `EnrollmentViewModel(courseId, enrollmentStore, progressSync,
-  courseCopy)` (en `ui/screens/enrollment/`, con su `factory`) + `EnrollButton(state, onEnroll)` (en
-  `ui/components/`). El ViewModel expone un `EnrollmentState` (`Unknown`, `NotEnrolled`, `Enrolling`,
-  `Enrolled`), pide sincronizar y precargar la copia local tras terminar `enroll`, y el botón solo lo
-  pinta: ninguno navega ni sabe en qué página están. No captures la `IllegalStateException` de `enroll`
-  sin sesión (fallo de programación).
+- **Inscribirse y darse de baja desde la ficha (o desde otra pantalla):** `CourseDetailViewModel(courseId,
+  gateway, enrollment, progress, progressSync, courseCopy, unenroll)` (en `ui/screens/detail/`, cableado
+  en `CourseDetailDestination.kt`) combina `enrollment.enrolled(courseId)` y `progress.mastered(courseId)`
+  con `combine`, pide sincronizar y precargar la copia local tras terminar `enroll`, y ejecuta la baja en
+  línea mediante `UnenrollFromCourse`. No captures la `IllegalStateException` de `enroll` sin sesión
+  (fallo de programación). Si otra pantalla necesitara inscribirse por su cuenta, inyecta los mismos
+  puertos (`EnrollmentStore`, `ProgressSyncRequester`, `CourseCopyRequester`) desde `AppContainer`.
 - **Otra forma de guardar el progreso (otra base de datos, otro servidor):** implementa
   `ProgressStore` y `EnrollmentStore` cumpliendo los invariantes de arriba (por usuario, nada escrito
   si falla, primera fecha, sin sesión). Para sincronizar, implementa también `ProgressSyncStore`:
@@ -412,8 +413,8 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
        `SignedOut → SignedIn` tras Login, para no pisar a `LoginViewModel`).
      - `LoginViewModel`: justo después de `sessionStore.save` de un inicio de sesión correcto (trae lo
        dominado en otros móviles). Con un inicio fallido (credenciales, servidor, formulario no válido) no se pide.
-     - `EnrollmentViewModel`: después de que `enroll` termine. Si el botón no actúa (`Unknown`,
-       `Enrolling`, `Enrolled`) no se pide; si `enroll` lanza, tampoco.
+     - `CourseDetailViewModel`: después de que `enroll` termine. Si el botón no actúa (ya inscrito,
+       inscribiendo o fuera de `Ready`) no se pide; si `enroll` lanza, tampoco.
      - `ExerciseViewModel`: después de `markMastered`, solo al aprobar la prueba de dominio (el mismo
        sitio donde se llama a `markMastered`), no en cada «Continuar»; si `markMastered` lanza, no.
   2. Qué hace `ProgressSyncWorker` con cada desenlace (mediante `SessionProgressSync` + `backgroundSyncDecision`):
@@ -445,12 +446,12 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
   (junto a `android:localeConfig="@xml/locales_config"` y el permiso `CAMERA`). Sin `GradusApplication`,
   usar progreso, sesión, copias, notas o ajustes lanza `IllegalStateException` («AppContainer.init(context) must be called first»). Solo `accountGateway` y `submissionGateway` no necesitan `Context`.
-- **Fábricas con parámetros nuevos (9b, 8b, 13b-2, 12b-2 y merge `dev/joel`):** `CourseViewModel.factory(courseId, gateway, progress, enrollment, notes)`, `ExerciseViewModel.factory(course, moduleId, progress, enrollment, progressSync, submissions, sessions, photos, cleanup, random)`, `EnrollmentViewModel.factory(courseId, enrollment, progressSync, courseCopy)`, `LoginViewModel.factory(accountGateway, sessionStore, progressSync)`, `StartViewModel.factory(sessions, progressSync)`, `SettingsViewModel.factory(accounts, sessions, settings, languages, signOut)` y `DeleteAccountViewModel.factory(accounts, sessions, signOut)`.
+- **Fábricas con parámetros nuevos (9b, 8b, 13b-2, 12b-2, merge `dev/joel` y ficha del curso):** `CourseViewModel.factory(courseId, gateway, progress, enrollment, notes)`, `ExerciseViewModel.factory(course, moduleId, progress, enrollment, progressSync, submissions, sessions, photos, cleanup, random)`, `CourseDetailViewModel.factory(courseId, gateway, enrollment, progress, progressSync, courseCopy, unenroll)`, `LoginViewModel.factory(accountGateway, sessionStore, progressSync)`, `StartViewModel.factory(sessions, progressSync)`, `SettingsViewModel.factory(accounts, sessions, settings, languages, signOut)` y `DeleteAccountViewModel.factory(accounts, sessions, signOut)`.
 - **`ExerciseViewModel` ya no se alcanza sin inscripción (9b):** el camino no abre la hoja ni la práctica sin
   inscripción (`tapModule`), y la entrada de `Route.Exercise` en `MainNavGraph` vuelve atrás según
   `exerciseViewModel.access` antes de componer `ScreenExercise`. Por eso `markMastered` ya no lanza en
   uso normal (y no se captura: si lanzara, sería un fallo de programación). Al aprobar, `onContinue` llama a `progress.markMastered` y `progressSync.requestSync()`.
-- **Buscar abre `Route.CourseOverview` (10b; provisional tras el merge):** en `MainNavGraph`, la pestaña Buscar navega con `Route.CourseOverview(id)` para conservar el acceso a inscribirse (`EnrollmentViewModel` + `EnrollButton`), mientras `courseDetailDestination` (`Route.CourseDetail`) queda registrado listo para integrar `EnrollButton` y retirar `ScreenCourseOverview` en la siguiente tarea.
+- **Buscar abre `Route.CourseDetail` (ficha definitiva):** en `MainNavGraph`, la pestaña Buscar navega con `Route.CourseDetail(id)` (registrado mediante `courseDetailDestination(navController)`). La pantalla provisional `ScreenCourseOverview`, `Route.CourseOverview`, `EnrollmentViewModel` y `EnrollButton` se retiraron al integrarse la ficha definitiva.
 - **`CourseViewModel` (`mastered`, `enrolled` y `notes`):** escucha los tres con `combine`; sin sesión ve el progreso vacío y sin inscripción. Sin inscripción, tocar cualquier módulo saca `CourseNotice.NotEnrolled` (`UiText.of(R.string.course_not_enrolled)`); con inscripción, `ModuleTap.OpenPractice` abre `ModuleSheet` (`sheet = moduleId`) y desde ahí «Estudiar» abre la práctica. `CourseUiState.enrolled` vale `false` por defecto.
 - **`courseId` en mayúsculas:** `settle` compara el `courseId` tal cual, y el servidor lo devuelve en
   minúsculas (forma canónica). Si los ids de curso que usa el móvil vinieran en mayúsculas, el mismo

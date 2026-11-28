@@ -43,7 +43,8 @@ desbloquea cuando se dominan sus prerrequisitos, y los repasos espaciados evitan
 4. Hoy se guardan por cuenta en Room (`ProgressDatabase` v3) las inscripciones, el **hecho**
    «módulo dominado en la fecha Y» (no se recalcula si el autor cambia `minCorrect`) y los
    borradores locales de cursos; el progreso se sincroniza con el servidor mediante
-   `POST /api/progress/sync` y WorkManager en segundo plano. Más adelante se añadirá el registro
+   `POST /api/progress/sync` y WorkManager en segundo plano, y la baja de un curso se ejecuta en
+   línea con `DELETE /api/progress/enrollments/{courseId}`. Más adelante se añadirá el registro
    inmutable de cada respuesta individual (pregunta, acierto, fecha) para programar los repasos SM-2
    (ver `tareas/seguimiento-progreso.md`).
 5. Si se falla el repaso de un módulo dominado, se marca como «necesita repaso», pero **no** se
@@ -102,15 +103,29 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
   - Etiquetas preferidas: ordenan antes los cursos con esas etiquetas.
   - Cerrar sesión y eliminar cuenta.
 
-**Dentro de un curso** (sin barra inferior; diseñadas en Compose, el Figma no las tiene; ver
+**Dentro de un curso** (sin barra inferior; ver `tareas/ficha-e-inscripcion-curso.md`,
 `tareas/camino-curso-y-ejercicios.md` y `tareas/cursos-backend-app.md`):
 
+- **Ficha del curso** (`tareas/ficha-e-inscripcion-curso.md`):
+  - Al pulsar un curso en **Buscar**, se abre su ficha con dos estados (sin valoraciones ni
+    marcador en esta versión):
+    - **No inscrito:** cabecera tintada con título, autor, número de módulos y fecha de
+      publicación; cuerpo con descripción, lista «Qué aprenderás» (módulos en orden de aprendizaje)
+      y etiquetas del curso como chips al final; y botón inferior fijo **«Inscribirse al curso»**.
+      Al inscribirse se guarda en Room, se solicita sincronización y precarga de la copia local, y
+      la pantalla cambia automáticamente al estado inscrito.
+    - **Ya inscrito:** cabecera tintada con menú `⋮`, fecha de publicación y bloque de progreso
+      (porcentaje, barra lineal y «X de Y módulos dominados»), mismo cuerpo y botón inferior fijo
+      **«Ir al curso →»**.
+  - El menú `⋮` ofrece **«Pausar curso»** (provisional, sin acción todavía) y **«Darse de baja»**
+    (en línea, con diálogo destructivo de confirmación): confirma contra el servidor
+    (`DELETE /api/progress/enrollments/{courseId}`), borra únicamente la inscripción y los módulos
+    dominados de esa cuenta en servidor y móvil (sin borrar notas con cámara, entregas con foto ni
+    la copia local del curso) y devuelve la ficha al estado no inscrito. Si no hay conexión o el
+    servidor falla, avisa dentro del diálogo y no borra nada.
 - **Camino del curso:**
-  - Para empezar a estudiar hace falta inscribirse explícitamente en el curso. Hoy, desde Buscar se
-    entra primero en una página de relleno del curso con «Inscribirse» e «Ir al camino» y, sin
-    inscripción, el camino solo sirve de vista previa (tocar un módulo avisa y no abre la práctica).
-    *(Decisión provisional a reconsiderar cuando se diseñe la página definitiva del curso o se valore
-    permitir inscribirse desde el propio camino; ver `tareas/progreso-app.md`, C-6.)*
+  - Para empezar a estudiar hace falta inscribirse desde la ficha del curso. Sin inscripción, el
+    camino sirve solo de vista previa (tocar un módulo avisa y no abre la práctica).
   - El curso se descarga del servidor al abrirlo (y en segundo plano al inscribirse) y se guarda una
     copia local en Room; con red siempre prevalece el servidor, y sin conexión se abre desde la copia.
     Mientras carga, una rueda; si falla y no hay copia, el motivo (no existe, sin conexión, formato
@@ -214,7 +229,7 @@ Previstos para versiones posteriores del formato:
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
 | API del dispositivo | Cámara (CameraX, dentro de la app) para fotografiar apuntes y asociarlos a módulos, y para entregar los ejercicios con foto |
 | SQLite | Room: `ProgressDatabase` v3 (`gradus-progress.db`) para inscripciones, módulos dominados por cuenta, copias locales de cursos sin conexión y borradores locales de cursos (con el JSON como fichero privado), y `GradusDatabase` (`gradus.db`) para las notas con cámara (fotos como ficheros; en la base de datos, su ruta, curso, módulo, fecha y pie). Pendiente: registro de respuestas. Además, la sesión se guarda cifrada con DataStore y Android Keystore |
-| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga, entregas con foto, sincronización del progreso (`POST /api/progress/sync`) y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` y sincroniza en segundo plano con WorkManager |
+| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga, entregas con foto, progreso (`POST /api/progress/sync` y `DELETE /api/progress/enrollments/{courseId}`) y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` y sincroniza en segundo plano con WorkManager |
 
 ## 9. Plan por anillos
 
