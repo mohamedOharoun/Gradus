@@ -320,7 +320,6 @@
     <string name="tab_search">Buscar</string>
     <string name="tab_my_courses">Mis cursos</string>
     <string name="tab_settings">Ajustes</string>
-    <string name="home_hello">¡Hola!</string>
     <string name="placeholder_note">Pantalla provisional</string>
 
     <!-- Tarjeta y ficha de un curso (paso 9a). Título, autor y etiquetas los escribe la persona: van como dato. -->
@@ -386,4 +385,33 @@
     <string name="published_any_inline">cualquiera</string>
     <string name="published_last_month_inline">último mes</string>
     <string name="published_last_year_inline">último año</string>
+
+    <!-- Inicio: cabecera (docs/tareas/inicio.md, paso 4a). El patrón es de java.time (DateTimeFormatter). -->
+    <string name="home_date_pattern" translatable="false">EEEE, d \'de\' MMMM</string>
+    <string name="home_greeting">Hola, %1$s</string>
+    <string name="home_greeting_no_name">Hola</string>
+
+    <!-- Inicio: «Tus cursos» (paso 4b). Título y autor los escribe la persona: van como dato. -->
+    <string name="home_your_courses">Tus cursos</string>
+    <string name="home_course_count">%1$d de %2$d</string>
+    <string name="home_course_detail">%1$s · %2$s</string>
+    <!-- Con espacio fijo antes de %: «35 %» no se parte entre dos líneas. -->
+    <string name="home_percent">%1$d %%</string>
+    <plurals name="home_mastered_of">
+        <item quantity="one">%1$d de %2$d concepto dominado</item>
+        <item quantity="other">%1$d de %2$d conceptos dominados</item>
+    </plurals>
+
+    <!-- Inicio: «Continúa donde lo dejaste» (paso 4c). El título del módulo lo escribe el autor. -->
+    <string name="home_continue_title">Continúa donde lo dejaste</string>
+    <string name="home_next_module">Siguiente: %1$s</string>
+
+    <!-- Inicio: la pantalla entera (paso 4d) -->
+    <string name="home_loading">Cargando tus cursos</string>
+    <string name="home_empty_title">Todavía no estás en ningún curso</string>
+    <string name="home_empty_body">Busca uno que te interese y empieza a aprender.</string>
+    <plurals name="home_unavailable">
+        <item quantity="one">No se ha podido cargar %d curso. Comprueba la conexión.</item>
+        <item quantity="other">No se han podido cargar %d cursos. Comprueba la conexión.</item>
+    </plurals>
 </resources>

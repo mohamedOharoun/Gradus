@@ -41,6 +41,14 @@ interface ProgressDao {
     @Query("SELECT module_id FROM mastered_modules WHERE user_id = :userId AND course_id = :courseId")
     fun watchMasteredIds(userId: String, courseId: String): Flow<List<String>>
 
+    // Todas las filas del usuario, para Inicio (docs/tareas/inicio.md, paso 2). Solo lectura. Cada una
+    // vuelve a consultar al cambiar su tabla; RoomProgressStore.enrollments las junta.
+    @Query("SELECT * FROM enrollments WHERE user_id = :userId")
+    fun watchEnrollments(userId: String): Flow<List<EnrollmentEntity>>
+
+    @Query("SELECT * FROM mastered_modules WHERE user_id = :userId")
+    fun watchMasteredModules(userId: String): Flow<List<MasteredModuleEntity>>
+
     // --- Sincronización (7c): lo usan pendingRows y settle, de abajo. ---
 
     // Las inscripciones que hay que subir: las pendientes y las que tienen algún módulo pendiente (el

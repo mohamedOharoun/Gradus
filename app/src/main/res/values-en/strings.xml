@@ -311,7 +311,6 @@
     <string name="tab_search">Search</string>
     <string name="tab_my_courses">My courses</string>
     <string name="tab_settings">Settings</string>
-    <string name="home_hello">Hello!</string>
     <string name="placeholder_note">Placeholder screen</string>
 
     <!-- Course card and course page (step 9a). Title, author and tags are written by people: passed as data. -->
@@ -377,4 +376,32 @@
     <string name="published_any_inline">any time</string>
     <string name="published_last_month_inline">last month</string>
     <string name="published_last_year_inline">last year</string>
+
+    <!-- Home: header (inicio.md, step 4a). The pattern is java.time's (DateTimeFormatter). -->
+    <string name="home_date_pattern" translatable="false">EEEE, MMMM d</string>
+    <string name="home_greeting">Hello, %1$s</string>
+    <string name="home_greeting_no_name">Hello</string>
+
+    <!-- Home: «Your courses» (step 4b). Title and author are written by people: passed as data. -->
+    <string name="home_your_courses">Your courses</string>
+    <string name="home_course_count">%1$d of %2$d</string>
+    <string name="home_course_detail">%1$s · %2$s</string>
+    <string name="home_percent">%1$d%%</string>
+    <plurals name="home_mastered_of">
+        <item quantity="one">%1$d of %2$d concept mastered</item>
+        <item quantity="other">%1$d of %2$d concepts mastered</item>
+    </plurals>
+
+    <!-- Home: «Pick up where you left off» (step 4c). The module title is written by the author. -->
+    <string name="home_continue_title">Pick up where you left off</string>
+    <string name="home_next_module">Next: %1$s</string>
+
+    <!-- Home: the whole screen (step 4d) -->
+    <string name="home_loading">Loading your courses</string>
+    <string name="home_empty_title">You\'re not in any course yet</string>
+    <string name="home_empty_body">Find one you like and start learning.</string>
+    <plurals name="home_unavailable">
+        <item quantity="one">%d course couldn\'t be loaded. Check your connection.</item>
+        <item quantity="other">%d courses couldn\'t be loaded. Check your connection.</item>
+    </plurals>
 </resources>

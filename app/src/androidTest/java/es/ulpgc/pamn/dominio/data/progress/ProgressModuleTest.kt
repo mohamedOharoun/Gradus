@@ -33,6 +33,27 @@ class ProgressModuleTest {
         assertSame(module.enrollmentStore, module.syncStore)
     }
 
+    // Inicio (docs/tareas/inicio.md, paso 4d): el lector de inscripciones es el mismo almacén.
+    @Test
+    fun the_enrollments_reader_is_the_same_object() {
+        val module = module
+
+        assertSame(module.enrollmentStore, module.enrollmentsReader)
+    }
+
+    @Test
+    fun what_is_enrolled_and_mastered_is_seen_by_the_enrollments_reader() = runTest {
+        val module = module
+        progress.logInAs(ANA)
+        module.enrollmentStore.enroll(GRAPHS)
+        module.progressStore.markMastered(GRAPHS, "bfs")
+
+        val enrollment = module.enrollmentsReader.enrollments().first().single()
+
+        assertEquals(GRAPHS, enrollment.enrollment.courseId)
+        assertEquals(listOf("bfs"), enrollment.mastered.map { it.moduleId })
+    }
+
     @Test
     fun what_is_enrolled_through_the_enrollment_port_is_seen_by_the_progress_port() = runTest {
         val module = module

@@ -19,7 +19,6 @@ import androidx.navigation.toRoute
 import es.ulpgc.pamn.dominio.course.progress.StudyAccess
 import es.ulpgc.pamn.dominio.data.AppContainer
 import es.ulpgc.pamn.dominio.ui.components.MainScaffold
-import es.ulpgc.pamn.dominio.ui.screens.ScreenHome
 import es.ulpgc.pamn.dominio.ui.screens.ScreenMyCourses
 import es.ulpgc.pamn.dominio.ui.screens.ScreenSearch
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseActions
@@ -48,7 +47,9 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         popEnterTransition = { EnterTransition.None },
         popExitTransition = { ExitTransition.None },
     ) {
-        tab<Route.Home>(TopLevelDestination.HOME, navController) { ScreenHome(it) }
+        tab<Route.Home>(TopLevelDestination.HOME, navController) {
+            HomeRoute(navController, onSearch = { navController.navigateToTab(TopLevelDestination.SEARCH) }, modifier = it)
+        }
         // El ViewModel vive con la entrada de Buscar: al abrir un curso y volver, o al cambiar de
         // pestaña y volver (saveState/restoreState), la búsqueda sigue igual.
         tab<Route.Search>(TopLevelDestination.SEARCH, navController) { modifier ->

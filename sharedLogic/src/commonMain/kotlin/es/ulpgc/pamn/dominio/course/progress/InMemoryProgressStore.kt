@@ -11,14 +11,14 @@ import kotlinx.coroutines.flow.update
 import kotlin.time.Clock
 import kotlin.time.Instant
 
-// ProgressStore, EnrollmentStore y ProgressSyncStore en memoria: el progreso dura mientras la app
-// está abierta (como InMemorySessionStore). Un solo objeto cumple los tres puertos.
+// ProgressStore, EnrollmentStore, ProgressSyncStore y EnrollmentsReader en memoria: el progreso dura mientras la app
+// está abierta (como InMemorySessionStore). Un solo objeto cumple los cuatro puertos.
 // Un solo MutableStateFlow con el progreso de cada usuario: id de la cuenta de la sesión →
 // UserProgress. La sesión y el reloj se inyectan (el reloj, para fijar las fechas en los tests).
 class InMemoryProgressStore(
     private val sessions: SessionStore,
     private val clock: Clock = Clock.System,
-) : ProgressStore, EnrollmentStore, ProgressSyncStore {
+) : ProgressStore, EnrollmentStore, ProgressSyncStore, EnrollmentsReader {
 
     private val progress = MutableStateFlow<Map<String, UserProgress>>(emptyMap())
 
@@ -27,6 +27,10 @@ class InMemoryProgressStore(
 
     override fun enrolled(courseId: String): Flow<Boolean> =
         watch(whenNoSession = false) { it.isEnrolledIn(courseId) }
+
+    // Inicio (docs/tareas/inicio.md, paso 2): todas las inscripciones, con lo dominado.
+    override fun enrollments(): Flow<List<EnrollmentSnapshot>> =
+        watch(whenNoSession = emptyList()) { it.snapshot() }
 
     override suspend fun enroll(courseId: String) {
         change { user, now -> user.enrolledIn(courseId, now) }

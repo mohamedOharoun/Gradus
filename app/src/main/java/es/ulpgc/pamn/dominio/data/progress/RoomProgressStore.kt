@@ -1,18 +1,21 @@
 package es.ulpgc.pamn.dominio.data.progress
 
 import es.ulpgc.pamn.dominio.account.SessionStore
+import es.ulpgc.pamn.dominio.course.progress.EnrollmentSnapshot
 import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
+import es.ulpgc.pamn.dominio.course.progress.EnrollmentsReader
 import es.ulpgc.pamn.dominio.course.progress.ProgressSnapshot
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressSyncStore
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlin.time.Clock
 
-// ProgressStore, EnrollmentStore y ProgressSyncStore guardados en el móvil con Room (Adapter de los
+// ProgressStore, EnrollmentStore, ProgressSyncStore y EnrollmentsReader guardados en el móvil con Room (Adapter de los
 // puertos). Se comporta igual que InMemoryProgressStore: por usuario (session.account.id), primera
 // fecha, pending solo al insertar, sin sesión lee vacío y escribir lanza.
 // enroll y markMastered van sin transacción: no hay baja (decisión 7), así que una inscripción
@@ -22,13 +25,24 @@ class RoomProgressStore(
     private val dao: ProgressDao,
     private val sessions: SessionStore,
     private val clock: Clock = Clock.System,
-) : ProgressStore, EnrollmentStore, ProgressSyncStore {
+) : ProgressStore, EnrollmentStore, ProgressSyncStore, EnrollmentsReader {
 
     override fun mastered(courseId: String): Flow<Set<String>> =
         watch(whenNoSession = emptySet()) { userId -> dao.watchMasteredIds(userId, courseId).map { it.toSet() } }
 
     override fun enrolled(courseId: String): Flow<Boolean> =
         watch(whenNoSession = false) { userId -> dao.watchEnrolled(userId, courseId) }
+
+    // Inicio (docs/tareas/inicio.md, paso 2): las dos tablas del usuario, juntas con el Mapper de
+    // ProgressRows (cada inscripción con sus módulos). combine emite cuando cambia cualquiera de las dos.
+    // Por la clave foránea no hay módulo sin inscripción; si un instante llegara antes el módulo que su
+    // inscripción, toSnapshot lo deja fuera y entra en el siguiente valor.
+    override fun enrollments(): Flow<List<EnrollmentSnapshot>> =
+        watch(whenNoSession = emptyList()) { userId ->
+            combine(dao.watchEnrollments(userId), dao.watchMasteredModules(userId)) { enrollments, modules ->
+                ProgressRows(enrollments, modules).toSnapshot().enrollments
+            }
+        }
 
     // Si ya estaba inscrito, INSERT OR IGNORE no toca la fila: se conservan la fecha y pending.
     override suspend fun enroll(courseId: String) {
