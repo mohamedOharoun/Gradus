@@ -3,6 +3,8 @@ package es.ulpgc.pamn.dominio.data.progress
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import es.ulpgc.pamn.dominio.course.progress.FakeProgressGateway
 import es.ulpgc.pamn.dominio.course.progress.ProgressGateway
+import es.ulpgc.pamn.dominio.course.progress.UnenrollOutcome
+import es.ulpgc.pamn.dominio.course.progress.UnenrollResult
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -98,6 +100,23 @@ class ProgressModuleTest {
         assertEquals(remote, outcome)
         assertTrue(module.enrollmentStore.enrolled(TREES).first())
         assertEquals(setOf("root"), module.progressStore.mastered(TREES).first())
+        assertTrue(module.syncStore.pending(ANA).isEmpty)
+    }
+
+    // B4: el caso de uso unenroll del módulo usa el MISMO RoomProgressStore. Dar de baja a través
+    // de module.unenroll se refleja en enrollmentStore, progressStore y syncStore.
+    @Test
+    fun the_unenroll_of_the_module_removes_progress_from_the_same_room_store() = runTest {
+        val module = moduleWith(FakeProgressGateway())
+        progress.logInAs(ANA)
+        module.enrollmentStore.enroll(GRAPHS)
+        module.progressStore.markMastered(GRAPHS, "bfs")
+
+        val result = module.unenroll.unenroll(GRAPHS)
+
+        assertEquals(UnenrollResult.Finished(UnenrollOutcome.Unenrolled), result)
+        assertFalse(module.enrollmentStore.enrolled(GRAPHS).first())
+        assertTrue(module.progressStore.mastered(GRAPHS).first().isEmpty())
         assertTrue(module.syncStore.pending(ANA).isEmpty)
     }
 }

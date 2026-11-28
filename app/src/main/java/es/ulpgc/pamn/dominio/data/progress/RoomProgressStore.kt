@@ -14,10 +14,10 @@ import kotlin.time.Clock
 
 // ProgressStore, EnrollmentStore y ProgressSyncStore guardados en el móvil con Room (Adapter de los
 // puertos). Se comporta igual que InMemoryProgressStore: por usuario (session.account.id), primera
-// fecha, pending solo al insertar, sin sesión lee vacío y escribir lanza.
-// enroll y markMastered van sin transacción: no hay baja (decisión 7), así que una inscripción
-// comprobada no desaparece antes del INSERT, y dos INSERT OR IGNORE de la misma fila dejan una sola.
-// pending y settle sí van cada uno en su transacción (en ProgressDao).
+// fecha, pending solo al insertar, sin sesión lee vacío y escribir (enroll / markMastered) lanza.
+// unenroll recibe userId explícito, es idempotente y borra inscripción + dominados en una
+// transacción; markMastered comprueba e inserta en @Transaction para evitar carreras con una baja
+// concurrente (decisión B-5). pending y settle van también cada uno en su transacción.
 class RoomProgressStore(
     private val dao: ProgressDao,
     private val sessions: SessionStore,
@@ -36,13 +36,20 @@ class RoomProgressStore(
         dao.insertEnrollmentIfAbsent(EnrollmentEntity(userId, courseId, clock.now(), pending = true))
     }
 
-    // La inscripción se comprueba antes de escribir: así lanza la IllegalStateException del puerto
-    // (con el curso, nunca el token) y no la de la clave foránea, que queda como segunda capa.
+    // La inscripción se comprueba e inserta en la misma transacción (markMasteredIfEnrolled): así
+    // no puede entrelazarse con una baja concurrente y lanza la IllegalStateException del puerto
+    // (con el curso, nunca el token), quedando la clave foránea como segunda capa.
     override suspend fun markMastered(courseId: String, moduleId: String) {
         val userId = currentUserId()
-        checkNotNull(dao.enrollment(userId, courseId)) { "Not enrolled in course $courseId: enroll before mastering it" }
-        dao.insertMasteredModuleIfAbsent(MasteredModuleEntity(userId, courseId, moduleId, clock.now(), pending = true))
+        val saved = dao.markMasteredIfEnrolled(
+            MasteredModuleEntity(userId, courseId, moduleId, clock.now(), pending = true),
+        )
+        check(saved) { "Not enrolled in course $courseId: enroll before mastering it" }
     }
+
+    // El usuario va por parámetro (decisión B-2): no lee SessionStore y es idempotente.
+    override suspend fun unenroll(userId: String, courseId: String) =
+        dao.deleteEnrollmentWithMastered(userId, courseId)
 
     // El usuario va por parámetro (decisión 11): estos dos no leen la sesión.
     override suspend fun pending(userId: String): ProgressSnapshot = dao.pendingRows(userId).toSnapshot()

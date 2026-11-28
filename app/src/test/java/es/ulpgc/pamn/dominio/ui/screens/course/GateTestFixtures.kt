@@ -45,4 +45,5 @@ internal class FixedMasteredStore(mastered: Set<String>) : ProgressStore {
 internal class SilentEnrollmentStore : EnrollmentStore {
     override fun enrolled(courseId: String): Flow<Boolean> = MutableSharedFlow()
     override suspend fun enroll(courseId: String) = error("Not used in these tests")
+    override suspend fun unenroll(userId: String, courseId: String) = error("Not used in these tests")
 }

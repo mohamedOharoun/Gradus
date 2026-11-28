@@ -9,7 +9,7 @@ Este documento es el **índice común**: objetivo, decisiones aprobadas, reparto
 de aceptación y acuerdos de proceso. El detalle de cada parte vive en su propio documento para que
 cada orquestador cargue solo lo suyo.
 
-Estado: **Parte A (Backend) cerrada y contrato congelado — Parte B (`sharedLogic` y Room) lista para iniciar** (2026-11-28).
+Estado: **Partes A (Backend) y B (`sharedLogic` y Room) cerradas — Parte C (Interfaz `ui/screens/detail/`) lista para iniciar** (2026-11-28).
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -27,28 +27,35 @@ Estado: **Parte A (Backend) cerrada y contrato congelado — Parte B (`sharedLog
 
 Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumula.
 
-- **Dónde estamos (2026-11-28):** **Parte A (Backend) terminada y cerrada** (ver
-  `backend/docs/tareas/baja-curso-backend.md`).
-  - `DELETE /api/progress/enrollments/{courseId}` está implementado, probado con 968 tests JUnit
-    (`mvn test`) y comprobado contra PostgreSQL real (7 escenarios incluyendo `ON DELETE CASCADE` en
-    `mastered_modules`, aislamiento por usuario/curso, idempotencia y reinscripción limpia), con
-    petición en `backend/yaak/workspace/yaak.rq_kN8pQr4WvX.yaml`.
-  - **Contrato congelado en `backend/docs/api-progreso.md`:** `DELETE /api/progress/enrollments/{courseId}`
-    requiere `Authorization: Bearer <token>` y devuelve `204 No Content` sin cuerpo (idempotente
-    incluso si el usuario no estaba inscrito o el UUID no corresponde a ningún curso), `401
-    UNAUTHENTICATED` (`WWW-Authenticate: Bearer`) si la sesión no es válida, y `404 COURSE_NOT_FOUND`
-    (`field: "courseId"`) si `{courseId}` no es un UUID canónico (`8-4-4-4-12` hex). `POST /api/progress/sync`
-    no ha cambiado. La app trata cualquier respuesta distinta de `204` y `401` como `ServerFailure`.
-  - En la app todavía no se ha tocado nada: `ProgressDatabase` sigue congelada en **v3**
-    (`app/schemas/.../3.json`), `ScreenCourseDetail` sigue desconectada de Buscar y Buscar sigue
+- **Dónde estamos (2026-11-28):** **Parte A (Backend) y Parte B (`sharedLogic` y Room) terminadas
+  y cerradas** (ver `backend/docs/tareas/baja-curso-backend.md` y
+  `docs/tareas/ficha-curso-logica.md`).
+  - **Backend (Parte A):** `DELETE /api/progress/enrollments/{courseId}` implementado y congelado en
+    `backend/docs/api-progreso.md` (`204` idempotente con `ON DELETE CASCADE` en PostgreSQL, `401
+    UNAUTHENTICATED`, `404 COURSE_NOT_FOUND` si `{courseId}` no es UUID canónico; `POST
+    /api/progress/sync` sin cambios), 968 tests JUnit y 7 escenarios contra PostgreSQL real.
+  - **`sharedLogic` y Room (Parte B):** implementados `ProgressGateway.unenroll` + `UnenrollOutcome`
+    (`HttpProgressGateway` + `FakeProgressGateway`), `EnrollmentStore.unenroll(userId, courseId)`
+    (`InMemoryProgressStore` y `RoomProgressStore`), `UnenrollFromCourse` + `UnenrollResult`
+    (`NoSession | Finished(outcome)`), `@Transaction` en `ProgressDao` (`deleteEnrollmentWithMastered`
+    y `markMasteredIfEnrolled`), comentario para `MIGRATION_3_4` en `MasteredModuleEntity`,
+    `ProgressModule.unenroll` y `AppContainer.unenrollFromCourse`. `ProgressDatabase` sigue
+    congelada en **v3** (`app/schemas/.../3.json` intacto). En verde: 1275 tests en
+    `:sharedLogic:testAndroidHostTest`, 630 en `:app:testDebugUnitTest`, 138 instrumentados en
+    `data.progress` y 16 en `AppContainerTest`. Referencia viva actualizada en
+    `docs/arquitectura-progreso.md`.
+  - **Interfaz todavía sin tocar:** `ScreenCourseDetail` sigue desconectada de Buscar y Buscar sigue
     navegando a `Route.CourseOverview`.
-- **Siguiente:** abrir el chat orquestador/planificador de la **Parte B (`sharedLogic` y Room)**
-  para crear `docs/tareas/ficha-curso-logica.md` e implementar `ProgressGateway.unenroll`
-  (`UnenrollOutcome`), `EnrollmentStore.unenroll` (`InMemory` y `Room`), `UnenrollFromCourse` y el
-  `@Transaction` de `ProgressDao` + `RoomProgressStore.markMastered`.
+- **Siguiente:** abrir el chat orquestador/planificador de la **Parte C (Interfaz
+  `ui/screens/detail/`)** para crear `docs/tareas/ficha-curso-ui.md` e implementar
+  `CourseDetailViewModel` con inscripción y baja (usando `AppContainer.unenrollFromCourse`,
+  `enrollmentStore`, `progressStore`, `progressSync` y `courseCopy`), el rediseño de
+  `ScreenCourseDetail` según ambos mockups (sin valoraciones ni marcador), menú `⋮` («Pausar curso»
+  sin acción + «Darse de baja»), diálogo destructivo de confirmación, ES/EN, previews claro/oscuro
+  y tests.
 - **Dependencias entre partes:**
-  - ~~Parte B depende del contrato `DELETE` congelado por la Parte A.~~ (**desbloqueada**)
-  - Parte C depende de `UnenrollFromCourse` y `EnrollmentStore.unenroll` de la Parte B.
+  - ~~Parte B depende del contrato `DELETE` congelado por la Parte A.~~ (**cerrada**)
+  - ~~Parte C depende de `UnenrollFromCourse` y `EnrollmentStore.unenroll` de la Parte B.~~ (**desbloqueada**)
   - Parte D depende de la Parte C probada en el emulador.
 - **Nota de deuda técnica deliberada (para «Pausar curso»):** `ProgressDatabase` se queda en **v3**
   en esta rama (borrando `mastered_modules` y `enrollments` en un `@Transaction` en `ProgressDao`).
@@ -114,7 +121,7 @@ La casilla ✅ la marca el revisor (el orquestador de la parte), no quien implem
 | Parte | Qué cubre | Documento | Orquestador |
 |---|---|---|---|
 | **A · Backend** ✅ | Endpoint `DELETE /api/progress/enrollments/{courseId}`, caso de uso `UnenrollCourse`, JDBC, contrato `api-progreso.md`, Yaak y tests JUnit | `backend/docs/tareas/baja-curso-backend.md` (cerrada) | Propio |
-| **B · `sharedLogic` y Room** | `ProgressGateway.unenroll` + HTTP + Fake, `EnrollmentStore.unenroll` (`InMemory` y `Room`), caso de uso `UnenrollFromCourse`, `@Transaction` en `ProgressDao` y `markMastered` seguro, tests `kotlin.test` + instrumentados Room | `docs/tareas/ficha-curso-logica.md` (lo crea el orquestador B) | Propio |
+| **B · `sharedLogic` y Room** ✅ | `ProgressGateway.unenroll` + HTTP + Fake, `EnrollmentStore.unenroll` (`InMemory` y `Room`), caso de uso `UnenrollFromCourse`, `@Transaction` en `ProgressDao` y `markMastered` seguro, `ProgressModule` + `AppContainer`, tests `kotlin.test` + instrumentados Room | `docs/tareas/ficha-curso-logica.md` (cerrada) | Propio |
 | **C · Interfaz (`ui/screens/detail/`)** | `CourseDetailViewModel` con inscripción y baja, rediseño de `ScreenCourseDetail` según ambos mockups (sin valoraciones), menú `⋮` («Pausar curso» + «Darse de baja»), diálogo destructivo, ES/EN, previews claro/oscuro y tests | `docs/tareas/ficha-curso-ui.md` (lo crea el orquestador C) | Propio |
 | **D · Integración y cierre** | Conectar Buscar → `Route.CourseDetail`, retirar `ScreenCourseOverview` y `Route.CourseOverview` (con permiso), prueba manual en emulador, batería completa y actualización de `docs/especificacion.md` y `docs/arquitectura-progreso.md` | Este documento (o con el orquestador C) | El último que termine |
 
@@ -192,3 +199,11 @@ La casilla ✅ la marca el revisor (el orquestador de la parte), no quien implem
   escenarios comprobados contra PostgreSQL real, petición añadida en Yaak
   (`yaak.rq_kN8pQr4WvX.yaml`) y ampliación congelada en `backend/docs/api-progreso.md`. **Parte B
   desbloqueada.**
+- 2026-11-28: **Parte B (`sharedLogic` y Room) cerrada (tareas B1–B4).** Implementados
+  `ProgressGateway.unenroll` (`UnenrollOutcome`, HTTP y Fake), `EnrollmentStore.unenroll`
+  (`InMemoryProgressStore` y `RoomProgressStore`), `UnenrollFromCourse` (`UnenrollResult`),
+  `@Transaction` en `ProgressDao` (`deleteEnrollmentWithMastered` y `markMasteredIfEnrolled`),
+  comentario para `MIGRATION_3_4` en `MasteredModuleEntity`, `ProgressModule.unenroll`,
+  `AppContainer.unenrollFromCourse` y actualización de `docs/arquitectura-progreso.md`.
+  `ProgressDatabase` v3 y `3.json` intactos. En verde: 1275 tests `sharedLogic`, 630 unitarios
+  `app`, 138 instrumentados en `data.progress` y 16 en `AppContainerTest`. **Parte C desbloqueada.**

@@ -8,8 +8,9 @@ import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 import kotlin.time.Instant
 
-// Acceso a las tablas del progreso: insertar y leer (7a), lo que usa RoomProgressStore (7b) y la
-// sincronización (7c: pendingRows y settle, cada una en su transacción). Nunca se borra nada.
+// Acceso a las tablas del progreso: insertar y leer (7a), lo que usa RoomProgressStore (7b),
+// sincronización (7c: pendingRows y settle) y baja / marcado protegido en transacción (B4).
+// Patrón Unit of Work (@Transaction) para operaciones compuestas atómicas.
 @Dao
 interface ProgressDao {
 
@@ -104,5 +105,32 @@ interface ProgressDao {
             insertMasteredModuleIfAbsent(it)
             keepOlderMasteredDate(it.userId, it.courseId, it.moduleId, it.masteredAt)
         }
+    }
+
+    // --- Baja local y marcado protegido en transacción (B4) ---
+
+    @Query("DELETE FROM mastered_modules WHERE user_id = :userId AND course_id = :courseId")
+    suspend fun deleteMasteredModules(userId: String, courseId: String)
+
+    @Query("DELETE FROM enrollments WHERE user_id = :userId AND course_id = :courseId")
+    suspend fun deleteEnrollment(userId: String, courseId: String)
+
+    // Borra primero los módulos dominados y luego la inscripción en una misma transacción para
+    // respetar la clave foránea de v3 (sin onDelete = CASCADE). Room serializa los @Transaction,
+    // así que una baja no puede entrelazarse con markMasteredIfEnrolled.
+    @Transaction
+    suspend fun deleteEnrollmentWithMastered(userId: String, courseId: String) {
+        deleteMasteredModules(userId, courseId)
+        deleteEnrollment(userId, courseId)
+    }
+
+    // Comprueba la inscripción e inserta el módulo en la misma transacción: evita carreras con una
+    // baja concurrente. Devuelve false si el usuario no está inscrito (el almacén lanza la
+    // IllegalStateException del puerto).
+    @Transaction
+    suspend fun markMasteredIfEnrolled(module: MasteredModuleEntity): Boolean {
+        if (enrollment(module.userId, module.courseId) == null) return false
+        insertMasteredModuleIfAbsent(module)
+        return true
     }
 }

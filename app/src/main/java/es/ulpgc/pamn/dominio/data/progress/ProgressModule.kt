@@ -7,6 +7,7 @@ import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressSync
 import es.ulpgc.pamn.dominio.course.progress.ProgressSyncStore
 import es.ulpgc.pamn.dominio.course.progress.SessionProgressSync
+import es.ulpgc.pamn.dominio.course.progress.UnenrollFromCourse
 
 // Facade: una sola puerta al progreso guardado en el móvil. Crea UN RoomProgressStore y lo enseña
 // por los tres puertos, que por tanto son el mismo objeto (si fueran dos, inscribirse no abriría
@@ -24,4 +25,7 @@ class ProgressModule(database: ProgressDatabase, sessions: SessionStore, gateway
 
     // Sincroniza con la sesión guardada y trata el 401 (lo usa ProgressSyncWorker).
     val sessionSync = SessionProgressSync(sessions, sync)
+
+    // Baja en línea de un curso usando el MISMO store local y la misma pasarela HTTP.
+    val unenroll = UnenrollFromCourse(sessions, gateway, store)
 }

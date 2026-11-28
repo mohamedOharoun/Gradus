@@ -38,23 +38,24 @@ y mantener `ProgressDatabase` congelada en **v3** protegiendo las operaciones co
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-28):** **B1, B2 y B3 hechos y revisados** — toda la lógica multiplataforma en
-  `sharedLogic` está terminada y probada (`ProgressGateway.unenroll` + HTTP/Fake,
-  `EnrollmentStore.unenroll` + `InMemoryProgressStore`, `UnenrollFromCourse` + `UnenrollResult`;
-  1275 tests en `:sharedLogic:testAndroidHostTest`, todos en verde). `app/` sigue pendiente de
-  adaptarse en **B4**.
-- **Toca:** paso **B4** (Room: `ProgressDao`, `RoomProgressStore`, comentario en
-  `MasteredModuleEntity`, `ProgressModule`, `AppContainer.unenrollFromCourse`, adaptación de fakes
-  de `EnrollmentStore` en tests de `app/`, tests instrumentados de Room y actualización de
-  `docs/arquitectura-progreso.md`).
-- **Riesgos y notas técnicas:**
-  - En **B2**, añadir `unenroll(userId, courseId)` a `EnrollmentStore` hará que `app/`
-    (`RoomProgressStore` y posibles fakes de tests) no compile hasta **B4**; `:sharedLogic` compila
-    y pasa sus tests de forma independiente.
-  - Gradle: `--rerun` a veces da `testAndroidHostTest NO-SOURCE`. Orden fiable:
-    `./gradlew :sharedLogic:compileAndroidHostTest --rerun :sharedLogic:testAndroidHostTest --rerun`.
-  - En **B4**, `MasteredModuleEntity` **no** puede cambiar su anotación `@ForeignKey` (alteraría
-    el hash del esquema v3); solo comentario para la futura `MIGRATION_3_4`.
+- **Estado (2026-11-28): parte B terminada y cerrada** (pasos B1–B4 revisados y en verde:
+  1275 tests en `:sharedLogic:testAndroidHostTest`, 630 unitarios en `:app:testDebugUnitTest`,
+  138 instrumentados en `data.progress` y 16 en `AppContainerTest` en el emulador `emulator-5554`).
+  `ProgressDatabase` sigue congelada en **v3** (`app/schemas/.../3.json` intacto). Referencia viva
+  actualizada en `docs/arquitectura-progreso.md` y Relevo general actualizado en
+  `docs/tareas/ficha-e-inscripcion-curso.md`.
+- **Toca:** nada en la parte B. **Parte C (Interfaz `ui/screens/detail/`) desbloqueada.**
+- **Para quien use esto (parte C):**
+  - Dependencia lista en `AppContainer`: `AppContainer.unenrollFromCourse` (`UnenrollFromCourse`,
+    conectado al mismo `RoomProgressStore` que `AppContainer.enrollmentStore` y
+    `AppContainer.progressStore`).
+  - Llamada: `unenrollFromCourse.unenroll(courseId): UnenrollResult` (`NoSession | Finished(outcome)`
+    con `UnenrollOutcome`: `Unenrolled | SessionExpired | Unreachable | ServerFailure`).
+  - Tras `Unenrolled`, los `Flow` de `enrollmentStore.enrolled(courseId)` y
+    `progressStore.mastered(courseId)` emiten automáticamente `false` y `emptySet()`.
+  - Tras `SessionExpired`, la sesión ya se ha limpiado con `clearIfCurrent` y `GradusNavHost`
+    redirige a Login automáticamente (el ViewModel no navega).
+  - La baja no borra `course_copies`, notas locales ni entregas con foto.
 
 ## Lo que ya hay y sirve de modelo
 
@@ -182,7 +183,7 @@ tests primero (rojo → verde → refactor en lógica pura) → revisión → me
   - `./gradlew :sharedLogic:compileAndroidHostTest --rerun :sharedLogic:testAndroidHostTest --rerun`
     en verde.
 
-### [ ] B4. Room (`ProgressDao`, `RoomProgressStore`, `MasteredModuleEntity`, `ProgressModule`, `AppContainer`) y referencia viva
+### [x] B4. Room (`ProgressDao`, `RoomProgressStore`, `MasteredModuleEntity`, `ProgressModule`, `AppContainer`) y referencia viva
 
 - **Modelo y esfuerzo mínimos:** Claude Sonnet 4.5 / 4.6 (esfuerzo **medio–alto**) · Gemini 2.5 Pro
   (esfuerzo **medio**).
@@ -232,8 +233,15 @@ tests primero (rojo → verde → refactor en lógica pura) → revisión → me
   `UnenrollFromCourse`, con 18 tests repartidos en `UnenrollFromCourseTest` (10) y
   `UnenrollFromCourseConcurrencyTest` (8, con `CompletableDeferred` y propagación de
   `CancellationException`); 1275 passed en `sharedLogic`.
+- 2026-11-28: **B4 hecho y revisado; parte B terminada y cerrada.** Implementados
+  `ProgressDao.deleteEnrollmentWithMastered` y `markMasteredIfEnrolled` (`@Transaction`),
+  `RoomProgressStore.unenroll` y `markMastered` protegido, comentario en `MasteredModuleEntity` para
+  `MIGRATION_3_4`, `ProgressModule.unenroll`, `AppContainer.unenrollFromCourse`, adaptación de
+  `SilentEnrollmentStore` y `CountingEnrollmentStore`, 17 tests instrumentados nuevos/ampliados
+  (`RoomUnenrollTest`, `RoomUnenrollFlowTest`, `ProgressModuleTest`, `AppContainerTest`) y
+  actualización de `docs/arquitectura-progreso.md`. `ProgressDatabase` v3 y `3.json` intactos.
 
 ## Siguiente paso
 
-Ejecutar el paso **B4** con su implementador (Room, `ProgressModule`, `AppContainer`, tests
-instrumentados y actualización de `docs/arquitectura-progreso.md`).
+Parte B cerrada. Abrir el chat orquestador/planificador de la **Parte C (Interfaz
+`ui/screens/detail/`)**.

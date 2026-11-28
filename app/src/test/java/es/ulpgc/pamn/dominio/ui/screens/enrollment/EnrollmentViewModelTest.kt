@@ -359,4 +359,7 @@ private class CountingEnrollmentStore(
         gate?.await()
         delegate.enroll(courseId)
     }
+
+    override suspend fun unenroll(userId: String, courseId: String) =
+        delegate.unenroll(userId, courseId)
 }

@@ -61,6 +61,12 @@ class AppContainerTest {
         assertSame(AppContainer.sessionProgressSync, AppContainer.sessionProgressSync)
     }
 
+    // B4: el caso de uso de baja sale del mismo ProgressModule y es una sola instancia.
+    @Test
+    fun unenroll_from_course_is_a_single_instance() {
+        assertSame(AppContainer.unenrollFromCourse, AppContainer.unenrollFromCourse)
+    }
+
     // 12b-1: el catálogo envuelve Room (copia local) y caché en memoria en una sola instancia.
     @Test
     fun course_gateway_is_a_single_instance() {

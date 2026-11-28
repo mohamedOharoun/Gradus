@@ -20,22 +20,25 @@ Paquete `course/progress/` (Kotlin puro, sin textos):
 | `ModuleTap` (`OpenPractice \| Locked(missing) \| NotEnrolled`) y `Course.tapModule(moduleId, mastered, access): ModuleTap?` | Qué pasa al tocar un módulo del camino: combina `StudyAccess` con `ModuleState`. Sin inscripción gana `NotEnrolled` (C-6); `Locked` lleva los prerrequisitos directos que faltan (`missingFor`); `null` si el módulo no existe | Jerarquía sellada (tipo suma) y función pura (extensión) |
 | `Enrollment(courseId, enrolledAt)` | Una inscripción y su fecha | *Value object* (`data class`) |
 | `MasteredModule(moduleId, masteredAt)` | Un módulo dominado y su fecha | *Value object* (`data class`) |
-| `EnrollmentStore` | Puerto: `enrolled(courseId): Flow<Boolean>` y `suspend enroll(courseId)` | *Strategy* (puerto con implementaciones intercambiables) |
+| `EnrollmentStore` | Puerto: `enrolled(courseId): Flow<Boolean>`, `suspend enroll(courseId)` y `suspend unenroll(userId, courseId)` (`userId` explícito, idempotente, sin leer sesión) | *Strategy* (puerto con implementaciones intercambiables) |
 | `ProgressStore` | Puerto: `mastered(courseId): Flow<Set<String>>` y `suspend markMastered(courseId, moduleId)` | *Strategy* |
 | `ProgressSnapshot(enrollments)` → `EnrollmentSnapshot(enrollment, mastered)` | Lo que se envía o se recibe al sincronizar, con la forma del contrato (lo dominado dentro de su inscripción). Las listas no tienen orden garantizado; `isEmpty` = nada que subir (`ProgressSync` llama igual, B-10) | *Value object* / DTO de dominio |
 | `ProgressSyncStore` | Puerto de la sincronización: `suspend pending(userId)` y `suspend settle(userId, sent, remote)`; el usuario va por parámetro (decisión 11) | *Strategy* |
 | `InMemoryProgressStore(sessions, clock)` | Implementa **los tres puertos** con un solo `MutableStateFlow`; en la app se usa `RoomProgressStore` (queda para tests en `sharedLogic`) | *Interface Segregation* (un objeto, tres puertos pequeños); inyección de dependencias (`SessionStore`, `Clock`) |
-| `UserProgress` → `CourseProgress` (`internal`) | El estado de un usuario: `courses: courseId → CourseProgress(enrollment, mastered, enrollmentPending, pendingModules)` | Valor inmutable con transformaciones puras (enfoque funcional) |
+| `UserProgress` → `CourseProgress` (`internal`) | El estado de un usuario: `courses: courseId → CourseProgress(enrollment, mastered, enrollmentPending, pendingModules)`, con transformación pura `withoutCourse(courseId)` para la baja | Valor inmutable con transformaciones puras (enfoque funcional) |
 | `UserProgress.pending()` y `.settled(sent, remote)` (`internal`, `UserProgressSync.kt`) | Las transformaciones puras de la sincronización | Funciones puras (extensión) |
 | `SyncResponse(remote, skipped)` | Un 200 de la sincronización en el modelo de la app: todo el progreso remoto (`ProgressSnapshot`) y lo omitido | *Value object* |
 | `SkippedProgress` (`WholeEnrollment \| SingleModule`) | Lo que el servidor no guardó, con su `code` como texto. Solo informativo (B-8, B-9) | Jerarquía sellada (tipo suma) |
-| `ProgressGateway` | Puerto: `suspend sync(session, pending): SyncOutcome`. La `Session` va por parámetro (decisión 11) | *Strategy* |
-| `SyncOutcome` (`Synced(SyncResponse) \| SessionExpired \| Unreachable \| ServerFailure`) | Desenlace de la llamada, sin textos; nunca se lanza una excepción por red o servidor | Jerarquía sellada (tipo suma) |
+| `ProgressGateway` | Puerto: `suspend sync(session, pending): SyncOutcome` y `suspend unenroll(session, courseId): UnenrollOutcome`. La `Session` va por parámetro (decisión 11) | *Strategy* |
+| `SyncOutcome` (`Synced(SyncResponse) \| SessionExpired \| Unreachable \| ServerFailure`) | Desenlace de la sincronización, sin textos; nunca se lanza una excepción por red o servidor | Jerarquía sellada (tipo suma) |
+| `UnenrollOutcome` (`Unenrolled \| SessionExpired \| Unreachable \| ServerFailure`) | Desenlace de la baja en línea (`DELETE`), sin textos; nunca se lanza una excepción por red o servidor | Jerarquía sellada (tipo suma) |
 | `ProgressGateways.http(baseUrl)` | La única forma de obtener el gateway real desde fuera de `sharedLogic`. `AppContainer` se lo pasa a `ProgressModule` (C8a) | *Factory method* |
-| `FakeProgressGateway(answer)` y `SyncCall(userId, sent)` | Gateway sin red para los tests de `ProgressSync`: responde lo configurado y recuerda **el id del usuario** y lo enviado, nunca la `Session` (el token no queda guardado). `answer` es `suspend` (puede esperar a un `CompletableDeferred`: el test decide cuándo llega la respuesta) y la llamada se apunta antes de responder | *Test double* (fake) |
+| `FakeProgressGateway(answer, unenrollAnswer)` y `SyncCall(userId, sent)` / `UnenrollCall(userId, courseId)` | Gateway sin red para los tests de `ProgressSync` y `UnenrollFromCourse`: responde lo configurado y recuerda **el id del usuario**, nunca la `Session` (el token no queda guardado). Las lambdas son `suspend` (pueden esperar a un `CompletableDeferred`) y cada llamada se apunta antes de suspender | *Test double* (fake) |
 | `ProgressSync(store, gateway)` y `suspend sync(session): SyncOutcome` | Caso de uso de la sincronización: sube lo pendiente del usuario de la sesión, fusiona la respuesta y devuelve el desenlace del gateway tal cual | Caso de uso (*Interactor*) sobre dos puertos inyectados (*Strategy*) |
-| `SessionProgressSync(sessions, sync)` y `suspend run(): SessionSyncResult` (11a) | Sincroniza con la sesión **guardada**: sin sesión devuelve `NoSession` sin llamar; si no, `Finished(outcome)` con el desenlace tal cual. Con `SessionExpired` borra la sesión con `clearIfCurrent(session)` (la que se leyó al empezar). Es **el único sitio que trata el 401**; la interfaz solo reacciona a «la sesión se ha borrado». Lo ejecuta `ProgressSyncWorker` (13b) | Caso de uso que compone dos puertos |
+| `SessionProgressSync(sessions, sync)` y `suspend run(): SessionSyncResult` (11a) | Sincroniza con la sesión **guardada**: sin sesión devuelve `NoSession` sin llamar; si no, `Finished(outcome)` con el desenlace tal cual. Con `SessionExpired` borra la sesión con `clearIfCurrent(session)` (la que se leyó al empezar). Lo ejecuta `ProgressSyncWorker` (13b) | Caso de uso que compone dos puertos |
 | `SessionSyncResult` (`NoSession \| Finished(outcome)`) | Qué pasó al sincronizar con la sesión guardada | Jerarquía sellada (tipo suma) |
+| `UnenrollFromCourse(sessions, gateway, enrollments)` y `suspend unenroll(courseId): UnenrollResult` | Caso de uso de la baja en línea: sin sesión devuelve `NoSession`; si hay sesión llama una sola vez a `gateway.unenroll(session, courseId)`, con `Unenrolled` borra `(session.account.id, courseId)` en `EnrollmentStore`, con `SessionExpired` llama a `sessions.clearIfCurrent(session)` sin borrar progreso local, y con `Unreachable`/`ServerFailure` no toca nada | Caso de uso (*Interactor*) sobre tres puertos inyectados |
+| `UnenrollResult` (`NoSession \| Finished(outcome)`) | Espejo de `SessionSyncResult`: qué pasó al darse de baja con la sesión guardada | Jerarquía sellada (tipo suma) |
 | `BackgroundSyncDecision` (`Done \| Retry \| GiveUp`), `MAX_SERVER_FAILURE_ATTEMPTS = 5` y `backgroundSyncDecision(result, attempt)` (13a) | Política de reintento del trabajo en segundo plano (sin acoplar a WorkManager): `NoSession` o `Synced` → `Done`; `Unreachable` → `Retry` siempre; `ServerFailure` → `Retry` en intentos `0..3` y `GiveUp` desde `4` (5.º intento, `runAttemptCount` 0-based); `SessionExpired` → `GiveUp`. `attempt < 0` lanza `IllegalArgumentException` | Jerarquía sellada (tipo suma) y función pura |
 
 Paquete `course/` y `course/http/` (copia local de cursos; Kotlin puro, desde 12a):
@@ -61,23 +64,23 @@ Paquete `course/progress/http/` (`internal`, traduce entre el modelo y el JSON; 
 | `ProgressDtos.kt` (`SyncRequestDto`, `EnrollmentDto`, `MasteredDto`, `SyncResponseDto`, `SkippedDto`) | El JSON de `POST /api/progress/sync`, campo a campo | DTO |
 | `encodeSyncRequest(snapshot)` | `ProgressSnapshot` → texto JSON de la petición | *Mapper*, función pura |
 | `decodeSyncResponse(body)` | Texto JSON de un 200 → `SyncResponse?` (`null` = no se puede leer; no lanza) | *Mapper*, función pura |
-| `HttpProgressGateway(client, baseUrl)` | Adaptador Ktor del puerto: `POST /api/progress/sync` con `Authorization: Bearer`. Solo HTTP: el JSON es de los mappers; las excepciones van por `callServer` | Adaptador (*Adapter*); `callServer` es una función de orden superior |
+| `HttpProgressGateway(client, baseUrl)` | Adaptador Ktor del puerto: `POST /api/progress/sync` y `DELETE /api/progress/enrollments/{courseId}` (`encodeSlash = true`, sin cuerpo) con `Authorization: Bearer`. Solo HTTP: el JSON es de los mappers; las excepciones van por `callServer` | Adaptador (*Adapter*); `callServer` es una función de orden superior |
 
 Paquete `app/.../data/progress/` (Room, solo Android; desde 7a–7c, conectado a `AppContainer` en 7d a través de `ProgressModule`):
 
 | Pieza | Qué es | Patrón |
 |---|---|---|
 | `EnrollmentEntity` | Tabla `enrollments(user_id, course_id, enrolled_at, pending)`, clave primaria `(user_id, course_id)` | Entidad de persistencia (fila de tabla) |
-| `MasteredModuleEntity` | Tabla `mastered_modules(user_id, course_id, module_id, mastered_at, pending)`, clave primaria `(user_id, course_id, module_id)` y clave foránea `(user_id, course_id)` → `enrollments` (sin `onDelete`: nunca se borra). La clave foránea es el principio de la clave primaria, así que el índice de la clave primaria la cubre (sin índice aparte ni avisos de Room) | Entidad de persistencia |
+| `MasteredModuleEntity` | Tabla `mastered_modules(user_id, course_id, module_id, mastered_at, pending)`, clave primaria `(user_id, course_id, module_id)` y clave foránea `(user_id, course_id)` → `enrollments`. En v3 la clave foránea no lleva `onDelete = CASCADE` (esquema congelado; pendiente para la futura `MIGRATION_3_4` de «Pausar curso»): el borrado en cascada se garantiza con `@Transaction` en `ProgressDao.deleteEnrollmentWithMastered`. La clave foránea es el principio de la clave primaria, así que su índice la cubre | Entidad de persistencia |
 | `InstantConverter` | `Instant` ↔ `Long` en nanosegundos desde 1970: exacto y conserva el orden (`MIN` = la más antigua). Rango: 1677-09-21T00:12:43.145224192Z a 2262-04-11T23:47:16.854775807Z; fuera, `IllegalArgumentException` | *Adapter* (*TypeConverter*), funciones puras |
-| `ProgressDao` | Insertar y leer (7a); `insert…IfAbsent` (`INSERT OR IGNORE`) y los `Flow` `watchEnrolled` / `watchMasteredIds` (7b); para sincronizar (7c), `pendingRows` y `settle`, dos métodos `@Transaction` con cuerpo que usan seis consultas (`enrollmentsToUpload`, `pendingModules`, `unqueue…`, `keepOlder…Date`). Nunca `DELETE` | *DAO* (*Data Access Object*); *Unit of Work* (`@Transaction`) |
+| `ProgressDao` | Insertar y leer (7a); `insert…IfAbsent` (`INSERT OR IGNORE`) y los `Flow` `watchEnrolled` / `watchMasteredIds` (7b); sincronización (7c: `pendingRows` y `settle`, `@Transaction`, nunca `DELETE`); baja y marcado seguro (B4): `deleteMasteredModules`, `deleteEnrollment`, `deleteEnrollmentWithMastered` (`@Transaction`, borra `mastered_modules` antes que `enrollments`) y `markMasteredIfEnrolled` (`@Transaction`, comprueba e inserta sin carreras con una baja concurrente) | *DAO* (*Data Access Object*); *Unit of Work* (`@Transaction`) |
 | `ProgressRows(enrollments, modules)`, `ProgressSnapshot.toRows(userId)` y `ProgressRows.toSnapshot()` | Las filas de las dos tablas y su traducción a la forma del contrato. `toRows` pone el usuario y `pending = false`; `toSnapshot` mete cada módulo en la inscripción de su mismo usuario y curso (un módulo sin ella se queda fuera) | *Mapper*, funciones puras |
 | `RoomProgressStore(dao, sessions, clock)` | Implementa **los tres puertos** (`ProgressStore`, `EnrollmentStore` y `ProgressSyncStore`) con Room, igual que `InMemoryProgressStore` | *Adapter* de los puertos; *Interface Segregation*; inyección de dependencias (`ProgressDao`, `SessionStore`, `Clock`) |
-| `ProgressModule(database, sessions, gateway)` | Crea **un** `RoomProgressStore` y lo expone como `progressStore`, `enrollmentStore` y `syncStore`: los tres son el mismo objeto. `sync` es `ProgressSync(store, gateway)` con **ese mismo** objeto (C8a) y `sessionSync` es `SessionProgressSync(sessions, sync)` (13b-1): lo fusionado se ve por los otros puertos y el 401 borra la sesión. Recibe la base ya creada (y no el `Context`) para probarlo con una base en memoria | *Facade*; inyección de dependencias |
+| `ProgressModule(database, sessions, gateway)` | Crea **un** `RoomProgressStore` y lo expone como `progressStore`, `enrollmentStore` y `syncStore`: los tres son el mismo objeto. Sobre ese **mismo** objeto construye `sync` (`ProgressSync`), `sessionSync` (`SessionProgressSync`) y `unenroll` (`UnenrollFromCourse`, B4). Recibe la base ya creada (y no el `Context`) para probarlo con una base en memoria | *Facade*; inyección de dependencias |
 | `ProgressSyncRequester` | `fun interface` con `requestSync()` (no `suspend`): pedir sincronizar sin esperar al resultado. Es lo que reciben los ViewModels (8b); en sus tests basta una lambda | *Command* |
 | `ProgressSyncWorker` (`CoroutineWorker`) (13b-1) | Ejecuta `sessionSync.run()` y traduce `backgroundSyncDecision(result, runAttemptCount)` a `Result` (`Done` → `success`, `Retry` → `retry`, `GiveUp` → `failure`). Constructor público de 2 argumentos usa `AppContainer.sessionProgressSync`; constructor `internal` + `ProgressSyncWorker.factory(sessionSync)` permiten probarlo sin `AppContainer`. No captura excepciones (errores de almacén pasan a `FAILED` en WorkManager; cancelación se propaga) | *Worker*; *Factory method* (`factory`) |
 | `WorkSyncRequester(workManager)` (13b-1) | Implementa `ProgressSyncRequester` encolando trabajo único `"progress-sync"` (`ExistingWorkPolicy.REPLACE`, `NetworkType.CONNECTED`, `BackoffPolicy.EXPONENTIAL` de 30 s) | *Command*; *Adapter* sobre WorkManager |
-| `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 2 (`enrollments`, `mastered_modules` y `course_copies`), **esquema congelado** (tarea 14, C-4): `exportSchema = true` (`app/schemas/es.ulpgc.pamn.dominio.data.progress.ProgressDatabase/2.json`) y sin borrado destructivo (futuros cambios exigen `Migration`). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
+| `ProgressDatabase` y `create(context, name = DATABASE_NAME)` | Versión 3 (`enrollments`, `mastered_modules`, `course_copies` y `course_drafts`), **esquema congelado** (`exportSchema = true`, `app/schemas/es.ulpgc.pamn.dominio.data.progress.ProgressDatabase/3.json`, `MIGRATION_2_3`) y sin borrado destructivo (futuros cambios exigen `Migration`; la baja en B4 no sube versión). El fichero es `gradus-progress.db`; los tests pasan otro nombre | *Factory method* |
 
 Paquete `app/.../data/course/` (copias locales de cursos en Room; solo Android, desde 12b-1):
 
@@ -138,23 +141,31 @@ Cómo está hecho `InMemoryProgressStore`:
   `CourseProgress.enrollmentPending` y `CourseProgress.pendingModules` (ids, siempre ⊆
   `mastered.keys`). `enroll` y `markMastered` lo marcan; lo que llega del servidor entra sin marcar.
   En Room son una columna `pending` en la tabla de inscripciones y otra en la de dominados.
+- **`unenroll(userId, courseId)`** aplica `withoutCourse(courseId)` con `update` atómico (limpia la
+  entrada del mapa si el usuario queda sin cursos). Recibe `userId` explícito y no lee `SessionStore`.
 - **`settle`** es `update { … settled(sent, remote) }`: una sola transformación pura, atómica.
   Como cambia el mismo `StateFlow`, quien escucha `mastered` o `enrolled` se entera de lo fusionado.
 - `progressOf(userId)` es `internal` y de solo lectura: existe para que los tests vean todo el estado
   con sus fechas (los puertos no las exponen, y `pending` solo enseña lo pendiente). Se mantiene.
 
-Cómo está hecho `RoomProgressStore` (7b y 7c):
+Cómo está hecho `RoomProgressStore` (7b, 7c y B4):
 
 - **Estado:** las tablas `enrollments` y `mastered_modules`; cada consulta filtra por
-  `user_id = session.account.id`.
-- **Escribir:** se lee la sesión (sin sesión, `IllegalStateException` como en memoria) y después se
-  inserta con `INSERT OR IGNORE` y `pending = true`. Si la fila ya existía no se toca: se conservan la
-  primera fecha y su `pending`.
-- **`markMastered`** comprueba la inscripción (`dao.enrollment`) **antes** de insertar y lanza la
-  `IllegalStateException` del puerto (con el `courseId`, nunca el token). La clave foránea es la segunda
-  capa: `OR IGNORE` no ignora las violaciones de clave foránea, así que nunca queda un dominado suelto.
-- **Sin transacción:** no hay baja (decisión 7), así que la inscripción comprobada sigue ahí al
-  insertar; dos `INSERT OR IGNORE` de la misma fila a la vez dejan una sola.
+  `user_id = session.account.id` (salvo `pending`, `settle` y `unenroll`, que reciben `userId`
+  explícito).
+- **Escribir (`enroll`):** se lee la sesión (sin sesión, `IllegalStateException` como en memoria) y
+  después se inserta con `INSERT OR IGNORE` y `pending = true`. Si la fila ya existía no se toca: se
+  conservan la primera fecha y su `pending`.
+- **`markMastered`** llama a `dao.markMasteredIfEnrolled(module)` (`@Transaction`), que comprueba la
+  inscripción (`enrollment`) e inserta con `INSERT OR IGNORE` en la **misma transacción**; si devuelve
+  `false`, `RoomProgressStore` lanza la `IllegalStateException` del puerto (con el `courseId`, nunca
+  el token). La clave foránea queda como segunda capa. Como Room serializa los `@Transaction`, no
+  puede entrelazarse con una baja concurrente (decisión B-5).
+- **`unenroll(userId, courseId)`** (no lee la sesión: decisión B-2) llama a
+  `dao.deleteEnrollmentWithMastered(userId, courseId)` (`@Transaction`), que borra primero
+  `mastered_modules` y después `enrollments` para respetar la clave foránea sin `CASCADE` en v3. Es
+  idempotente, no toca otros cursos, otros usuarios ni `course_copies`, y los `Flow` de Room emiten
+  `false` y `emptySet()` al confirmarse la transacción.
 - **Leer:** un `flow { … }` que lee la sesión **al empezar a escuchar** y luego emite el `Flow` de Room
   con ese `userId`. Sin sesión emite el vacío y termina sin abrir la consulta. Room vuelve a consultar
   con cualquier cambio en la tabla (otro curso, otro usuario): `distinctUntilChanged` no deja pasar el
@@ -179,9 +190,10 @@ Cómo está hecho `RoomProgressStore` (7b y 7c):
   `RoomMasteryTest`, `RoomMasteryRequiresEnrollmentTest`, `RoomNoSessionTest`, `RoomProgressPerUserTest`,
   `RoomProgressFlowTest` y `ProgressDaoInsertIfAbsentTest` (7b); `RoomPendingTest`, `RoomSettleQueueTest`,
   `RoomSettleMergeTest`, `RoomSettleFlowTest`, `RoomSettleAtomicityTest` y `RoomProgressSyncTest`
-  (`ProgressSync` con Room y `FakeProgressGateway`) (7c); soporte en `RoomProgressTestSupport.kt`
-  (`RoomProgressRule`, `TestClock`, `listenTo`) y `RoomSyncTestSupport.kt` (`snapshot`, `enrollment`,
-  `assertSameSnapshot`, `allRows`). En la JVM, `ProgressRowsTest` (`app/src/test`). El todo o nada se
+  (`ProgressSync` con Room y `FakeProgressGateway`) (7c); `RoomUnenrollTest`, `RoomUnenrollFlowTest` y
+  `ProgressModuleTest` (baja local, `@Transaction` y cableado, B4); soporte en
+  `RoomProgressTestSupport.kt` (`RoomProgressRule`, `TestClock`, `listenTo`) y `RoomSyncTestSupport.kt`
+  (`snapshot`, `enrollment`, `assertSameSnapshot`, `allRows`). En la JVM, `ProgressRowsTest` (`app/src/test`). El todo o nada se
   prueba con una fecha remota de 2300 en el último módulo: `InstantConverter` lanza al guardarla, a mitad
   de `settle` (quitando el `@Transaction`, esos tests fallan). Los `Flow` se esperan con un `Channel` (`receive()`), sin
   `delay`; «no avisa» se prueba cambiando otra cosa, esperando a un segundo oyente de esa otra cosa
@@ -196,7 +208,7 @@ Cómo está hecho `ProgressSync`:
 
 ## Flujo
 
-Inscribirse → estudiar → dominar → sincronizar.
+Inscribirse → estudiar → dominar → sincronizar → (opcional) darse de baja en línea.
 
 1. **Inscribirse:** `EnrollmentStore.enroll(courseId)`. Sin error si ya estaba inscrito (se queda la
    primera fecha). Sin sesión lanza `IllegalStateException`.
@@ -222,6 +234,16 @@ Inscribirse → estudiar → dominar → sincronizar.
       almacén no cambia y todo sigue pendiente.
    5. `sync` devuelve el desenlace del gateway tal cual; qué hacer con él lo decide quien llama (ver
       «Cómo extenderlo»).
+5. **Darse de baja en línea:** `UnenrollFromCourse(sessions, gateway, enrollments).unenroll(courseId)`.
+   1. Lee la sesión guardada; si no hay sesión, devuelve `UnenrollResult.NoSession` sin tocar ni red
+      ni almacén.
+   2. Llama una sola vez a `gateway.unenroll(session, courseId)` (`DELETE /api/progress/enrollments/{courseId}`).
+   3. Solo si responde `204` (`Unenrolled`) llama a `enrollments.unenroll(session.account.id, courseId)`,
+      borrando inscripción, módulos dominados y pendientes de ese usuario en ese curso (sin tocar
+      otros cursos, otros usuarios, `course_copies` ni notas).
+   4. Si responde `401` (`SessionExpired`), llama a `sessions.clearIfCurrent(session)` y **no** borra
+      progreso local. Con `Unreachable` o `ServerFailure` no toca ni la sesión ni el almacén.
+   5. Devuelve `UnenrollResult.Finished(outcome)`.
 
 ## Invariantes
 
@@ -233,12 +255,21 @@ Reglas que nunca se rompen (p. ej. no hay módulo dominado sin inscripción).
 - **No existe un módulo dominado sin inscripción.** Lo impone la estructura (`CourseProgress`
   contiene lo dominado) y `UserProgress.masteredIn`, que lanza `IllegalStateException` si el curso
   no está inscrito. El mensaje lleva el `courseId`, nunca el token.
-- **Un fallo no deja nada escrito:** la comprobación va dentro de la lambda de `update`.
+- **Un fallo no deja nada escrito:** en memoria la comprobación va dentro de la lambda de `update`;
+  en Room va dentro de `ProgressDao.markMasteredIfEnrolled` (`@Transaction`).
 - **El progreso es por usuario** (clave: `account.id`). Cambiar de sesión no mezcla ni pierde datos.
-- **Sin sesión:** leer da vacío/`false` y el `Flow` termina; escribir lanza `IllegalStateException`
-  (fallo de programación, no un caso de usuario).
-- **La primera fecha se conserva:** inscribirse o dominar otra vez no cambia ninguna fecha.
-- **No hay baja** (decisión 7): por eso comprobar la inscripción y escribir después es seguro.
+- **Sin sesión:** leer da vacío/`false` y el `Flow` termina; escribir (`enroll`, `markMastered`) lanza
+  `IllegalStateException` (fallo de programación, no un caso de usuario). `unenroll(userId, courseId)`
+  recibe el usuario explícito y funciona incluso sin sesión activa.
+- **La primera fecha se conserva:** inscribirse o dominar otra vez no cambia ninguna fecha. Reinscribirse
+  tras darse de baja sí arranca limpio con la nueva fecha y `pending = true`.
+- **Baja en línea (servidor primero) y protección contra carreras:** la baja borra primero en el
+  servidor (`DELETE`) y solo borra en local tras un `204`. Con `401` cierra sesión con
+  `clearIfCurrent(session)` sin borrar progreso local. En Room v3 (sin `onDelete = CASCADE` en la FK;
+  reservado para la futura `MIGRATION_3_4` de «Pausar curso»), `deleteEnrollmentWithMastered` borra
+  `mastered_modules` antes que `enrollments` en `@Transaction`, y `markMasteredIfEnrolled` también va
+  en `@Transaction`, por lo que Room serializa ambas operaciones y no pueden entrelazarse. La baja no
+  borra `course_copies`, notas ni entregas con foto.
 - **Un módulo pendiente está dominado:** `pendingModules ⊆ mastered.keys` (los tests lo comprueban
   donde se marca y donde se fusiona).
 - **La cola se vacía por clave, nunca por fecha** (el servidor redondea a microsegundos). Lo que
@@ -323,9 +354,17 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   ya hecho: `ContentNegotiation` no lo serializa otra vez. El tipo va sin `charset` y Ktor lo codifica
   en UTF-8 sin BOM, que es lo que pide el contrato (lo comprueban los tests con los bytes reales).
 - **El token nunca sale de la cabecera:** no está en ningún `toString` (`Session` lo oculta), ni en
-  `SyncOutcome` (no guarda la sesión), ni en lo que recuerda el Fake (`SyncCall` guarda solo el `userId`).
+  `SyncOutcome`/`UnenrollOutcome` (no guardan la sesión), ni en lo que recuerda el Fake (`SyncCall` y
+  `UnenrollCall` guardan solo el `userId`).
 - Un 401 (`SessionExpired`) no se reintenta con la misma sesión; `Unreachable` y `ServerFailure` dejan
   todo pendiente (decisión de `ProgressSync`, tarea 6).
+
+**Baja en línea** (`DELETE {baseUrl}/api/progress/enrollments/{courseId}`):
+- `courseId` se codifica como segmento único (`encodeSlash = true`), cabecera `Authorization: Bearer <token>`,
+  sin cuerpo de petición, y nunca se lee el cuerpo de la respuesta.
+- `204` → `UnenrollOutcome.Unenrolled`; `401` → `UnenrollOutcome.SessionExpired`; cualquier otro código
+  (`400`, `404`, `5xx`, `200`…) → `UnenrollOutcome.ServerFailure`; `IOException` → `Unreachable`; otra
+  excepción → `ServerFailure`; `CancellationException` se relanza.
 
 ## Cómo extenderlo
 
@@ -399,9 +438,9 @@ estado y los desenlaces son del gateway (`HttpProgressGateway`, mismo paquete).
   ficheros de Gradle: al resolver conflictos, conserva las líneas de los dos lados.
 - **Arranque y salida según la sesión (11c-3 y merge con `dev/joel`):** `GradusNavHost` recibe `start: StartState` y ya no empieza siempre en `Route.Welcome`; `MainActivity` crea el `StartViewModel` (con `AppContainer.sessionUpdates`) y aplica el modo oscuro reactivo de `settingsStore`. Conservar en `GradusNavHost`: el `Box` de `Loading` con su `return`, la ruta inicial con `remember(start == StartState.Loading)`, el único `LaunchedEffect(exit)` (`MainExit.ToWelcome` → `leaveToWelcome()`, `MainExit.ToLogin` → `leaveMain()`) antes del `NavHost` y la condición `&& start == StartState.SignedIn` en Login. Las pantallas dentro de `Main` (`SettingsRoute`, `EditProfile`, `ChangePassword`) **no** navegan fuera de `Main`: solo borran la sesión (con `sessionSignOut` si es salida voluntaria o `sessionStore.clear()` ante un 401). Lo prueban `SessionMonitorTest`, `StartViewModelTest`, `StartNavigationTest` y `GradusNavHostStartTest`.
 - **Gradle con DataStore (11b) y WorkManager (13b-1):** `datastore = "1.3.0"` (`androidx-datastore`), `work = "2.12.0"` (`androidx-work-runtime` y `androidx-work-testing`) en `gradle/libs.versions.toml`, e `implementation(libs.androidx.datastore)`, `implementation(libs.androidx.work.runtime)` y `androidTestImplementation(libs.androidx.work.testing)` en `app/build.gradle.kts`.
-- **`app/.../data/AppContainer.kt`, progreso, copias y notas (desde 7d; WorkManager 13b; copias 12b; merge `dev/joel`):**
+- **`app/.../data/AppContainer.kt`, progreso, copias y notas (desde 7d; WorkManager 13b; copias 12b; merge `dev/joel`; baja B4):**
   `private var appContext: Context?`, `private fun requireContext()` y `fun init(context)` (solo cuenta la
-  primera llamada, desde `GradusApplication.onCreate`). Hay dos bases Room separadas: `progressDatabase` (`ProgressDatabase` v2 congelada en `gradus-progress.db`, compartida entre `progress` y `courseGateway` con `OfflineCourseGateway` + `RoomCourseCopyStore`) y `database` (`GradusDatabase` en `gradus.db` para `notesStore`). Encima de `progress`: `val progressStore: ProgressStore`, `val enrollmentStore: EnrollmentStore` y `val sessionProgressSync: SessionProgressSync` (tienen que salir del **mismo** `ProgressModule`; lo comprueba `AppContainerTest`). `val progressSync: ProgressSyncRequester` usa `WorkSyncRequester`, y `val courseCopy: CourseCopyRequester` usa `CourseCopyLauncher(courseGateway, appScope)`. La sesión usa una **única** instancia de `DataStoreSessionStore` (`persistentSessions`) envuelta en `sessionMonitor: SessionMonitor`, expuesto como `sessionStore: SessionStore`, `sessionSignOut: SessionSignOut` y `sessionUpdates: Flow<SessionUpdate>`. Todo lo que usa `Context` pasa por `requireContext()` (lo comprueban `AppContainerInitTest` y `AppContainerTest`).
+  primera llamada, desde `GradusApplication.onCreate`). Hay dos bases Room separadas: `progressDatabase` (`ProgressDatabase` v3 congelada en `gradus-progress.db`, compartida entre `progress`, `courseGateway` con `OfflineCourseGateway` + `RoomCourseCopyStore` y `courseDraftStore`) y `database` (`GradusDatabase` en `gradus.db` para `notesStore`). Encima de `progress`: `val progressStore: ProgressStore`, `val enrollmentStore: EnrollmentStore`, `val sessionProgressSync: SessionProgressSync` y `val unenrollFromCourse: UnenrollFromCourse` (tienen que salir del **mismo** `ProgressModule`; lo comprueba `AppContainerTest`). `val progressSync: ProgressSyncRequester` usa `WorkSyncRequester`, y `val courseCopy: CourseCopyRequester` usa `CourseCopyLauncher(courseGateway, appScope)`. La sesión usa una **única** instancia de `DataStoreSessionStore` (`persistentSessions`) envuelta en `sessionMonitor: SessionMonitor`, expuesto como `sessionStore: SessionStore`, `sessionSignOut: SessionSignOut` y `sessionUpdates: Flow<SessionUpdate>`. Todo lo que usa `Context` pasa por `requireContext()` (lo comprueban `AppContainerInitTest` y `AppContainerTest`).
 - **`GradusApplication` y el manifiesto (7d):** `GradusApplication : Application` llama a
   `AppContainer.init(this)` en `onCreate`, y `AndroidManifest.xml` lleva `android:name=".GradusApplication"`
   (junto a `android:localeConfig="@xml/locales_config"` y el permiso `CAMERA`). Sin `GradusApplication`,

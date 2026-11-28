@@ -13,6 +13,7 @@ import es.ulpgc.pamn.dominio.course.progress.EnrollmentStore
 import es.ulpgc.pamn.dominio.course.progress.ProgressGateways
 import es.ulpgc.pamn.dominio.course.progress.ProgressStore
 import es.ulpgc.pamn.dominio.course.progress.SessionProgressSync
+import es.ulpgc.pamn.dominio.course.progress.UnenrollFromCourse
 import es.ulpgc.pamn.dominio.course.publication.CourseDraftStore
 import es.ulpgc.pamn.dominio.course.publication.CoursePublicationGateway
 import es.ulpgc.pamn.dominio.course.publication.CoursePublicationGateways
@@ -98,6 +99,7 @@ object AppContainer {
     val progressStore: ProgressStore get() = progress.progressStore
     val enrollmentStore: EnrollmentStore get() = progress.enrollmentStore
     val sessionProgressSync: SessionProgressSync get() = progress.sessionSync
+    val unenrollFromCourse: UnenrollFromCourse get() = progress.unenroll
 
     // Pide sincronizar el progreso con WorkManager (los ViewModels lo reciben como ProgressSyncRequester).
     val progressSync: ProgressSyncRequester by lazy {
