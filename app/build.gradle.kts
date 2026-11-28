@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -38,9 +39,27 @@ android {
     }
 }
 
+ksp {
+    // Esquema de Room congelado (tarea 14, C-4): exporta cada versión en JSON para futuras migraciones.
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 dependencies {
     // Lógica en Kotlin puro (validaciones, formularios, modelo): compartible con iOS.
     implementation(project(":sharedLogic"))
+
+    // Base de datos del móvil (Room): progreso por cuenta, copias locales y notas con cámara.
+    // room-compiler no va en la app: KSP lo usa al compilar para generar el código.
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
+
+    // Cámara (notas-camara.md, decisión T): core (la API), camera2 (la implementación en Android),
+    // lifecycle (se enciende y apaga con la pantalla) y view (la vista previa y el controlador).
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
 
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
@@ -53,11 +72,18 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
+    // DataStore tipado: la sesión guardada, cifrada.
+    implementation(libs.androidx.datastore)
+    // WorkManager: sincronización del progreso en segundo plano.
+    implementation(libs.androidx.work.runtime)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.work.testing)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

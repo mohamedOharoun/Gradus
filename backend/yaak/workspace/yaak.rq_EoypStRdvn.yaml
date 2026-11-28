@@ -1,0 +1,75 @@
+type: http_request
+model: http_request
+id: rq_EoypStRdvn
+createdAt: 2026-11-20T07:29:56.654269064
+updatedAt: 2026-11-20T07:29:56.654269515
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_pUw2uUvgMh
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "formatVersion": 1,
+      "title": "Curso de prueba compacto",
+      "description": "Un módulo mínimo para probar la publicación desde Yaak.",
+      "language": "es",
+      "tags": ["prueba", "yaak"],
+      "defaults": { "mastery": { "questions": 1, "minCorrect": 1 } },
+      "modules": [
+        {
+          "id": "intro",
+          "title": "Introducción",
+          "requires": [],
+          "steps": [
+            { "type": "lesson", "id": "intro-l1", "text": "Un **grafo** tiene vértices y aristas." },
+            {
+              "type": "singleChoice", "id": "intro-f1", "prompt": "¿Qué une dos vértices?",
+              "options": [ { "id": "a", "text": "Una arista" }, { "id": "b", "text": "Un grado" } ],
+              "answer": "a", "explanation": "Las aristas conectan vértices."
+            }
+          ],
+          "review": [
+            {
+              "type": "singleChoice", "id": "intro-r1", "prompt": "¿De qué está formado un grafo?",
+              "options": [ { "id": "a", "text": "Vértices y aristas" }, { "id": "b", "text": "Filas y columnas" } ],
+              "answer": "a", "explanation": "G = (V, E): vértices y aristas."
+            }
+          ]
+        }
+      ]
+    }
+bodyType: application/json
+description: valid = true, sin errores; con avisos de la prueba de dominio de 1 pregunta. No guarda nada.
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_BidRTgEuwC', path='$.token') ]}
+  id: null
+method: POST
+name: Validar curso válido (200)
+sortPriority: 6.0
+url: ${[ baseUrl ]}/api/courses/validate
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

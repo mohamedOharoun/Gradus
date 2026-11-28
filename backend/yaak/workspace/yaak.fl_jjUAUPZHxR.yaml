@@ -1,0 +1,34 @@
+type: folder
+model: folder
+id: fl_jjUAUPZHxR
+createdAt: 2026-11-20T07:36:29.621959112
+updatedAt: 2026-11-20T07:36:29.621959553
+workspaceId: wk_kGqZSBRAjF
+folderId: null
+authentication: {}
+authenticationType: null
+description: 'GET /api/courses, /api/courses/{id} y /api/courses/{id}/versions/{version} (§4.3, §4.5). Son públicas: no llevan token, salvo «Publicar el ejemplo completo (201)», que usa el de «Inicio de sesión de la autora» de «Cursos · Publicación». Envía primero esa petición: las de ver una versión usan su id. Para comprobar que el SHA-256 del content devuelto coincide con el publicado, ver backend/docs/tareas/publicacion-cursos.md.'
+headers: []
+name: Cursos · Consulta
+sortPriority: 5.0
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingRequestMessageSize:
+  enabled: false
+  value: 67108864
+settingHttpVersion:
+  enabled: false
+  value: auto

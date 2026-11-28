@@ -1,0 +1,7 @@
+{
+  "description": "En repr-f1, la tercera opción dice lo mismo que la primera, solo cambian las mayúsculas.",
+  "expected": { "code": "DUPLICATE_OPTION_TEXT", "path": "/modules/0/steps/2/options/2" },
+  "patch": [
+    { "op": "replace", "path": "/modules/0/steps/2/options/2/text", "value": "matriz de adyacencia" }
+  ]
+}

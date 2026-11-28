@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -32,6 +33,26 @@ class UserTest {
         User user = new User(ID, NAME, EMAIL, HASH, CREATED_AT, TERMS);
 
         assertFalse(user.toString().contains(HASH.value()));
+    }
+
+    // Cambiar el nombre (Ajustes, fase 2) da un usuario nuevo: el resto no cambia y el original tampoco.
+    @Test
+    void renamingChangesOnlyTheName() {
+        User ana = new User(ID, NAME, EMAIL, HASH, CREATED_AT, TERMS);
+
+        User renamed = ana.withName(new UserName("Ana Ruiz"));
+
+        assertEquals(new User(ID, new UserName("Ana Ruiz"), EMAIL, HASH, CREATED_AT, TERMS), renamed);
+        assertEquals(NAME, ana.name());
+    }
+
+    @Test
+    void changingThePasswordChangesOnlyItsHash() {
+        User ana = new User(ID, NAME, EMAIL, HASH, CREATED_AT, TERMS);
+        PasswordHash newHash = new PasswordHash("pbkdf2_sha256$1$c2Fs$bnVldm8=");
+
+        assertEquals(new User(ID, NAME, EMAIL, newHash, CREATED_AT, TERMS), ana.withPasswordHash(newHash));
+        assertEquals(HASH, ana.passwordHash());
     }
 
     @Test

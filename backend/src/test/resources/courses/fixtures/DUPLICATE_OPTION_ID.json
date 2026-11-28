@@ -1,0 +1,7 @@
+{
+  "description": "En repr-f1, la tercera opción repite el id «a» de la primera.",
+  "expected": { "code": "DUPLICATE_OPTION_ID", "path": "/modules/0/steps/2/options/2" },
+  "patch": [
+    { "op": "replace", "path": "/modules/0/steps/2/options/2/id", "value": "a" }
+  ]
+}

@@ -8,7 +8,7 @@ funcionalidad grande tiene su documento en `docs/tareas/`. Si algo cambia, se ac
 ## 1. Qué es Gradus
 
 Una app Android para aprender por dominio. Los instructores publican cursos estructurados como
-grafos de conceptos; los estudiantes los descargan y los estudian sin conexión. Un concepto se
+grafos de módulos; los estudiantes los descargan y los estudian sin conexión. Un módulo se
 desbloquea cuando se dominan sus prerrequisitos, y los repasos espaciados evitan olvidar lo dominado.
 
 ## 2. Usuarios
@@ -19,27 +19,36 @@ desbloquea cuando se dominan sus prerrequisitos, y los repasos espaciados evitan
 
 ## 3. Glosario
 
-- **Curso:** conjunto de conceptos y preguntas, guardado como JSON.
-- **Concepto:** unidad de aprendizaje; es un nodo del grafo.
+- **Curso:** conjunto de módulos, guardado como JSON (formato en §6).
+- **Módulo:** unidad de aprendizaje; es un nodo del grafo. Tiene una parte formativa (lecciones y
+  ejercicios intercalados) y una reserva de ejercicios de repaso.
 - **Prerrequisito:** una arista A → B significa «hay que dominar A antes de B».
-- **Estados de un concepto:**
+- **Prueba de dominio:** ejercicios sorteados de la reserva de un módulo; superarla lo da por dominado.
+- **Estados de un módulo:**
   - **dominado:** el estudiante ya lo sabe.
   - **frontera:** desbloqueado pero sin dominar; es lo que toca estudiar.
   - **bloqueado:** le faltan prerrequisitos.
-- **Repaso:** pregunta sobre un concepto ya dominado, programada para no olvidarlo.
+- **Repaso:** ejercicio de la reserva de un módulo ya dominado, programado para no olvidarlo.
 - **Etiqueta:** palabra clave de un curso (por ejemplo, `#grafos`) para buscar y filtrar.
 
 ## 4. Reglas del motor de aprendizaje
 
 1. El grafo de un curso no puede tener ciclos. Un curso con ciclos no se importa.
-2. Un concepto se desbloquea cuando **todos** sus prerrequisitos están dominados.
-3. Un concepto está dominado si se han acertado **4 de las 5 últimas** respuestas. El modelo va
-   detrás de una interfaz para poder cambiarlo más adelante (por ejemplo, por BKT).
-4. Cada respuesta se guarda como una fila nueva (pregunta, acierto, fecha) y nunca se modifica.
-   El estado de dominio se calcula a partir de ese registro.
-5. Si se falla el repaso de un concepto dominado, se marca como «necesita repaso», pero **no** se
-   vuelven a bloquear los conceptos que dependen de él. *(Decisión provisional.)*
-6. Las tarjetas autoevaluadas cuentan para los repasos, pero no para desbloquear conceptos.
+2. Un módulo se desbloquea cuando **todos** sus prerrequisitos están dominados.
+3. Un módulo está dominado cuando se supera su **prueba de dominio**: se sortean `questions`
+   ejercicios de su reserva y hay que acertar al menos `minCorrect`. Los valores los fija el curso
+   (con un valor por defecto y, si hace falta, uno propio por módulo); ver §2.6 y §5 de
+   `backend/docs/especificacion-cursos-v1.md`. El modelo va detrás de una interfaz para poder
+   cambiarlo más adelante (por ejemplo, por BKT).
+4. Hoy se guardan por cuenta en Room (`ProgressDatabase` v2) las inscripciones y el **hecho**
+   «módulo dominado en la fecha Y» (no se recalcula si el autor cambia `minCorrect`), sincronizados
+   con el servidor mediante `POST /api/progress/sync` y WorkManager en segundo plano. Más adelante
+   se añadirá el registro inmutable de cada respuesta individual (pregunta, acierto, fecha) para
+   programar los repasos SM-2 (ver `tareas/seguimiento-progreso.md`).
+5. Si se falla el repaso de un módulo dominado, se marca como «necesita repaso», pero **no** se
+   vuelven a bloquear los módulos que dependen de él. *(Decisión provisional.)*
+6. Las tarjetas autoevaluadas (cuando existan, ver §7) cuentan para los repasos, pero no para
+   desbloquear módulos.
 7. Los repasos se programan con SM-2.
 
 ## 5. Pantallas
@@ -63,9 +72,11 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
 
 - **Inicio:** saludo, repasos de hoy, curso en progreso y cursos inscritos con su porcentaje.
 - **Buscar:**
-  - Búsqueda por nombre.
-  - Filtros en una hoja inferior: etiquetas (varias), creador, fecha de publicación (cualquiera,
-    último mes, último año) y orden (relevancia, mejor valorados, más recientes).
+  - Búsqueda por título o descripción mientras se escribe, con el número de resultados.
+  - Filtros en una hoja inferior: etiquetas (varias), creador y fecha de publicación
+    (cualquiera, último mes, último año).
+  - Orden fijo: los más recientes primero. «Mejor valorados» llegará cuando haya valoraciones;
+    no hay orden por relevancia.
   - Los filtros activos se ven como chips que se pueden quitar.
 - **Mis cursos:**
   - Cursos **creados** por el usuario, cada uno con su estado: publicado, con avisos o borrador.
@@ -76,29 +87,105 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
   - Etiquetas preferidas: ordenan antes los cursos con esas etiquetas.
   - Cerrar sesión y eliminar cuenta.
 
-**Pendientes de diseñar:** detalle del curso con el grafo, práctica de preguntas, repasos y notas
-con cámara.
+**Dentro de un curso** (sin barra inferior; diseñadas en Compose, el Figma no las tiene; ver
+`tareas/camino-curso-y-ejercicios.md` y `tareas/cursos-backend-app.md`):
+
+- **Camino del curso:**
+  - Para empezar a estudiar hace falta inscribirse explícitamente en el curso. Hoy, desde Buscar se
+    entra primero en una página de relleno del curso con «Inscribirse» e «Ir al camino» y, sin
+    inscripción, el camino solo sirve de vista previa (tocar un módulo avisa y no abre la práctica).
+    *(Decisión provisional a reconsiderar cuando se diseñe la página definitiva del curso o se valore
+    permitir inscribirse desde el propio camino; ver `tareas/progreso-app.md`, C-6.)*
+  - El curso se descarga del servidor al abrirlo (y en segundo plano al inscribirse) y se guarda una
+    copia local en Room; con red siempre prevalece el servidor, y sin conexión se abre desde la copia.
+    Mientras carga, una rueda; si falla y no hay copia, el motivo (no existe, sin conexión, formato
+    más nuevo que la app o fallo del servidor) y, si sirve, «Reintentar».
+  - Los módulos, de arriba abajo, unidos por líneas a sus prerrequisitos. Si una fila solo
+    tiene un módulo, el camino hace zigzag; como mucho caben 3 por fila.
+  - Cada módulo tiene color e icono según su estado: dominado (morado, ✓), frontera (naranja, ▶)
+    y bloqueado (gris, 🔒). Las líneas hacia un módulo desbloqueado son llenas y moradas; hacia
+    uno bloqueado, discontinuas y grises.
+  - Cabecera con el título y el progreso («3 de 10 dominados»).
+  - Tocar un módulo bloqueado dice qué falta para desbloquearlo. Tocar uno de la frontera o
+    dominado abre su **hoja**: su título, su estado, «Estudiar» (o «Repasar» si ya está dominado) y
+    «Mis notas · N». Al dominar un módulo o guardar una nota, el camino se actualiza solo.
+- **Estudiar un módulo:**
+  - **Parte formativa:** sus pasos en orden, con una barra de progreso («Paso 2 de 5»).
+    - Lección: texto en Markdown básico (negrita, cursiva, código, párrafos y listas) y «Continuar».
+    - Ejercicio: «Comprobar»; después, el resultado (con la solución si se falla), la
+      **explicación** del autor y «Continuar». Fallar aquí no impide seguir.
+    - Tarea con foto: se resuelve en papel y se entrega una foto (ver «Ejercicio con foto» abajo).
+  - **Prueba de dominio:** una pantalla dice cuántas preguntas hay y cuántas hay que acertar
+    («Empezar la prueba» o «Ahora no»). Las preguntas se sortean de la reserva y se responden igual
+    que los ejercicios.
+  - **Resultado:** «¡Módulo dominado!» (y se desbloquea lo que dependía de él) o «Te faltó 1 para
+    aprobar», con «Repetir la prueba» (otro sorteo, sin repetir las lecciones) y «Volver al camino».
+  - Un módulo sin reserva termina tras sus pasos, sin prueba.
+  - Tipos de ejercicio: opción única, selección múltiple, emparejar y, solo en la parte formativa,
+    la tarea con foto (§7).
+
+- **Notas con cámara** (`tareas/notas-camara.md`): fotos de los apuntes de papel, guardadas junto al
+  módulo al que pertenecen.
+  - «Mis notas» de un módulo: las fotos en cuadrícula, la más reciente primero, con su fecha
+    («24 nov»). «Hacer foto» y «De la galería» (el selector de fotos de Android, sin permisos).
+  - Hacer foto: la cámara dentro de la app (CameraX). El permiso se pide al pulsar; si se deniega,
+    se explica para qué hace falta y, si ya no se puede volver a pedir, se ofrece abrir los ajustes.
+    Después se revisa la foto: «Repetir» o «Guardar», con un pie opcional de hasta 100 caracteres.
+  - Ver una nota: a pantalla completa, con zoom (pellizcar o doble toque), su fecha y su pie.
+    «Eliminar» pide confirmación; no hay papelera.
+  - Las fotos se quedan en el móvil (no se suben al servidor) y son del móvil, no de la cuenta.
+    TalkBack lee cada foto con su fecha y su pie.
+
+- **Ejercicio con foto** (`tareas/ejercicio-foto.md`; contrato en `backend/docs/api-entregas.md`): un
+  paso del módulo que se resuelve en papel; el alumno le hace una foto y la **entrega** al servidor,
+  donde queda **pendiente de revisión** (la revisión por el autor del curso es la fase 2).
+  - «Hacer foto» (la cámara de la app, sin pie: «Repetir» o «Usar foto») o «De la galería». La foto se
+    endereza, se reduce a 2000 px de lado y se envía en JPEG; antes de entregarla se puede cambiar o quitar.
+  - «Entregar»: al entregarla se ve «Entregada · pendiente de revisión» y la **solución** del autor, y
+    se sigue sin esperar a la revisión. «Entregar otra vez» hace una entrega nueva (cuenta la última).
+  - Sin conexión: aviso y «Reintentar» con la misma foto. Si la sesión ha caducado, se pide volver a
+    iniciar sesión. Una foto que el servidor no acepta pide otra.
+  - «Entregar más tarde»: no bloquea el módulo (sin sesión, sin cámara o en un curso que no está en el
+    servidor). La prueba de dominio no depende de la foto: nunca incluye tareas con foto.
+  - Las fotos son temporales en el móvil: se borran al entregarlas o al salir del paso. En el servidor
+    solo las puede ver quien las subió y se borran con su cuenta.
+
+**Pendiente de diseñar:** repasos.
 
 ## 6. Formato de los cursos
 
-- JSON con un campo `formatVersion` desde la primera versión.
-- Contiene conceptos (id, título, explicación), prerrequisitos (`requires`) y preguntas. Los textos
-  admiten Markdown.
+- La definición completa está en `backend/docs/especificacion-cursos-v1.md` (semántica) y en
+  `backend/src/main/resources/schemas/course-v1.schema.json` (estructura).
+- JSON con un campo `formatVersion` desde la primera versión (hoy, `1`).
+- Contiene módulos (id, título, prerrequisitos `requires` y prueba de dominio opcional). Cada módulo
+  tiene una parte formativa (`steps`: lecciones y ejercicios) y una reserva (`review`: solo
+  ejercicios). Los textos largos admiten Markdown.
 - El **validador** es la única fuente de verdad del formato. Comprueba, en este orden:
-  1. Que sea JSON válido.
-  2. Que tenga los campos obligatorios y los tipos correctos.
-  3. Que las referencias sean correctas: ids únicos y prerrequisitos que existen.
-  4. Que el grafo no tenga ciclos.
-  5. Que haya preguntas suficientes por concepto.
-- **Errores** (bloquean la importación): por ejemplo, un ciclo o un prerrequisito inexistente.
-- **Avisos** (se importa igualmente): por ejemplo, un concepto con una sola pregunta o aristas
-  redundantes.
+  1. Sintaxis: UTF-8 y JSON válidos, sin claves repetidas.
+  2. Versión del formato y estructura (el schema).
+  3. Identidad y referencias: ids únicos, prerrequisitos y opciones que existen.
+  4. Grafo: sin ciclos.
+  5. Dominio y pedagogía: pruebas de dominio realizables y difíciles de aprobar adivinando.
+- **Errores** (bloquean la publicación): por ejemplo, un ciclo o un prerrequisito inexistente.
+- **Avisos** (se publica igualmente): por ejemplo, aristas redundantes o una reserva demasiado
+  pequeña para reintentar la prueba sin repetir preguntas.
 - Los mensajes del validador deben ser claros, para poder pegarlos en un LLM y que corrija el curso.
 - Una guía en Markdown, con un curso de ejemplo, explica el formato a los instructores y a sus LLM.
 
 ## 7. Tipos de pregunta (primera versión)
 
-- **Opción única** y **selección múltiple**.
+Formato v1:
+
+- **Opción única** (`singleChoice`), **selección múltiple** (`multipleChoice`) y **unir parejas**
+  (`matching`). En la app, unir parejas se hace tocando uno de cada lado (aparece una flecha entre
+  los dos), sin arrastrar; solo es correcta si están bien todas las parejas. Ver
+  `tareas/camino-curso-y-ejercicios.md`.
+- **Tarea con foto** (`photo`): no se corrige en la app; se entrega como foto pendiente de revisión.
+  Solo en la parte formativa (`steps`): en la reserva el validador la rechaza (`PHOTO_IN_REVIEW`). Ver
+  `tareas/ejercicio-foto.md`.
+
+Previstos para versiones posteriores del formato:
+
 - **Respuesta corta:** se normaliza quitando espacios, ignorando mayúsculas y unificando Unicode,
   y se compara con una lista de respuestas aceptadas.
 - **Numérica:** con tolerancia; acepta tanto «0,5» como «0.5».
@@ -110,9 +197,9 @@ con cámara.
 | Requisito | Cómo lo cumple Gradus |
 |---|---|
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
-| API del dispositivo | Cámara para fotografiar apuntes y asociarlos a conceptos |
-| SQLite | Room: cursos descargados, registro de respuestas y notas (fotos como ficheros, solo su ruta en la base de datos) |
-| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga y valoraciones |
+| API del dispositivo | Cámara (CameraX, dentro de la app) para fotografiar apuntes y asociarlos a módulos, y para entregar los ejercicios con foto |
+| SQLite | Room: `ProgressDatabase` v2 (`gradus-progress.db`) para inscripciones, módulos dominados por cuenta y copias locales de cursos sin conexión, y `GradusDatabase` (`gradus.db`) para las notas con cámara (fotos como ficheros; en la base de datos, su ruta, curso, módulo, fecha y pie). Pendiente: registro de respuestas. Además, la sesión se guarda cifrada con DataStore y Android Keystore |
+| Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga, entregas con foto, sincronización del progreso (`POST /api/progress/sync`) y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` y sincroniza en segundo plano con WorkManager |
 
 ## 9. Plan por anillos
 
@@ -130,8 +217,14 @@ con cámara.
 
 - ¿Los cursos llevan imágenes (paquete `.zip`) o solo JSON?
 - ¿El fallo en un repaso se queda en «necesita repaso» o vuelve a bloquear lo que depende de él?
-- ¿Cuentas reales con nuestro servidor Ktor o con Firebase Authentication?
-- ¿Las etiquetas son una lista cerrada o libres, normalizadas a minúsculas?
+- ~~¿Cuentas reales con nuestro servidor o con Firebase Authentication?~~ Resuelto: con nuestro
+  servidor Javalin (ver `backend/docs/tareas/registro-usuario.md` e `inicio-sesion.md`).
+- ~~¿Las etiquetas son una lista cerrada o libres, normalizadas a minúsculas?~~ Resuelto: **libres**.
+  Cada curso lleva de 1 a 10, de 1 a 32 caracteres, y se guardan y se muestran tal como las escribió
+  el autor. Solo para comparar (repetidas y búsqueda) se normalizan: Unicode NFC, espacios recortados
+  y agrupados, y minúsculas. Dos etiquetas que coinciden así dan el aviso `DUPLICATE_TAG`, y filtrar
+  por «Grafos» encuentra los cursos con «grafos» (ver `backend/docs/especificacion-cursos-v1.md`
+  §2.2 y §3.4).
 
 ## 11. Fuera de alcance
 

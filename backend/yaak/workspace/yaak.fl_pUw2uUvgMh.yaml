@@ -1,0 +1,34 @@
+type: folder
+model: folder
+id: fl_pUw2uUvgMh
+createdAt: 2026-11-20T07:29:31.097764098
+updatedAt: 2026-11-20T07:29:31.097764339
+workspaceId: wk_kGqZSBRAjF
+folderId: null
+authentication: {}
+authenticationType: null
+description: 'POST /api/courses/validate, /api/courses y /api/courses/{id}/versions (§4.3). Envía primero los dos registros (201 o 409, da igual) y los dos inicios de sesión. «Publicar curso (201)» crea un curso nuevo cada vez; las peticiones de versiones usan su id, así que envíalas después y en orden. El 413 no está aquí (un cuerpo de más de 2 MiB no cabe en el workspace): ver backend/docs/tareas/publicacion-cursos.md.'
+headers: []
+name: Cursos · Publicación
+sortPriority: 4.0
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingRequestMessageSize:
+  enabled: false
+  value: 67108864
+settingHttpVersion:
+  enabled: false
+  value: auto

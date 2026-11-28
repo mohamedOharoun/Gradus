@@ -1,0 +1,36 @@
+type: http_request
+model: http_request
+id: rq_7gPzhjdfL9
+createdAt: 2026-11-20T07:36:29.703699571
+updatedAt: 2026-11-20T07:36:29.703700062
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_jjUAUPZHxR
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: page empieza en 0; total cuenta los resultados de todas las páginas.
+headers: []
+method: GET
+name: Buscar la segunda página de 2 (200)
+sortPriority: 7.0
+url: ${[ baseUrl ]}/api/courses?page=1&size=2
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

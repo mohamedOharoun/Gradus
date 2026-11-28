@@ -1,0 +1,36 @@
+type: http_request
+model: http_request
+id: rq_fgX7wxbM7t
+createdAt: 2026-11-20T07:36:29.750429982
+updatedAt: 2026-11-20T07:36:29.750430633
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_jjUAUPZHxR
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: Una versión concreta, con su content.
+headers: []
+method: GET
+name: Ver la versión 1 (200)
+sortPriority: 11.0
+url: ${[ baseUrl ]}/api/courses/${[ response.body.path(request='rq_PDrVt9Qchj', path='$.course.id') ]}/versions/1
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

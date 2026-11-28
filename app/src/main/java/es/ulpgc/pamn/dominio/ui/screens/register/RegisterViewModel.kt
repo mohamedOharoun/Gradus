@@ -4,12 +4,26 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
+import es.ulpgc.pamn.dominio.account.AccountGateway
+import es.ulpgc.pamn.dominio.account.applying
+import es.ulpgc.pamn.dominio.account.toNewAccount
 import es.ulpgc.pamn.dominio.model.RegisterForm
 import es.ulpgc.pamn.dominio.model.RegisterStep
+import kotlinx.coroutines.launch
 
 // Guarda el registro en memoria mientras dura la pantalla (sobrevive al giro del móvil).
-// Todavía no se guarda en ningún sitio: crear la cuenta de verdad queda fuera de alcance.
-class RegisterViewModel : ViewModel() {
+// Recibe el AccountGateway por constructor: no sabe si es HTTP, gRPC o uno falso.
+class RegisterViewModel(private val accountGateway: AccountGateway) : ViewModel() {
+
+    companion object {
+        // Android crea los ViewModel por su cuenta: la factory le dice cómo pasarle el gateway.
+        fun factory(accountGateway: AccountGateway) = viewModelFactory {
+            initializer { RegisterViewModel(accountGateway) }
+        }
+    }
 
     var form by mutableStateOf(RegisterForm())
         private set
@@ -36,6 +50,17 @@ class RegisterViewModel : ViewModel() {
 
     fun onNext() {
         form = form.next()
+    }
+
+    // Envía el registro. La respuesta vuelve al formulario como un estado más (Succeeded, Failed…):
+    // la pantalla lo pinta y GradusNavHost navega al ver Succeeded. Sirve también para reintentar.
+    fun onRegister() {
+        val account = form.toNewAccount() ?: return // formulario a medias o envío en curso
+        form = form.sending()
+        viewModelScope.launch {
+            val outcome = accountGateway.register(account)
+            form = form.applying(outcome)
+        }
     }
 
     fun onEdit(step: RegisterStep) {

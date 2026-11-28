@@ -104,6 +104,9 @@ docs/                   Especificación y documentos de tareas
   `./gradlew :sharedLogic:testAndroidHostTest`.
 - **Backend:** tests en `backend/src/test/` con JUnit Jupiter; se ejecutan con `mvn test`.
 - **Interfaz:** preview y prueba en el emulador. Indica siempre qué pasos seguir para comprobarlo.
+- **Los tests también documentan.** La lista de tests del criterio de una tarea es la mínima, no
+  la única: cada comportamiento que aparezca en el código, en un comentario o en el progreso
+  (desempates, casos límite, respuestas que llegan tarde…) tiene su propio test, aunque ya funcione.
 
 ## 8. Fuentes de verdad
 

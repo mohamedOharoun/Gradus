@@ -1,0 +1,7 @@
+{
+  "description": "La respuesta de repr-f1 es «d», pero sus opciones son a, b y c.",
+  "expected": { "code": "UNKNOWN_OPTION", "path": "/modules/0/steps/2/answer" },
+  "patch": [
+    { "op": "replace", "path": "/modules/0/steps/2/answer", "value": "d" }
+  ]
+}

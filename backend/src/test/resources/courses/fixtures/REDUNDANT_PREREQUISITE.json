@@ -1,0 +1,21 @@
+{
+  "description": "Un tercer módulo, copia de bfs con ids nuevos, requiere representacion y bfs; representacion ya se alcanza a través de bfs.",
+  "expected": { "code": "REDUNDANT_PREREQUISITE", "path": "/modules/2/requires/0" },
+  "patch": [
+    { "op": "copy", "from": "/modules/1", "path": "/modules/-" },
+    { "op": "replace", "path": "/modules/2/id", "value": "dijkstra" },
+    { "op": "replace", "path": "/modules/2/requires", "value": ["representacion", "bfs"] },
+    { "op": "replace", "path": "/modules/2/steps/0/id", "value": "dijkstra-l1" },
+    { "op": "replace", "path": "/modules/2/steps/1/id", "value": "dijkstra-f1" },
+    { "op": "replace", "path": "/modules/2/steps/2/id", "value": "dijkstra-l2" },
+    { "op": "replace", "path": "/modules/2/steps/3/id", "value": "dijkstra-f2" },
+    { "op": "replace", "path": "/modules/2/review/0/id", "value": "dijkstra-r1" },
+    { "op": "replace", "path": "/modules/2/review/1/id", "value": "dijkstra-r2" },
+    { "op": "replace", "path": "/modules/2/review/2/id", "value": "dijkstra-r3" },
+    { "op": "replace", "path": "/modules/2/review/3/id", "value": "dijkstra-r4" },
+    { "op": "replace", "path": "/modules/2/review/4/id", "value": "dijkstra-r5" },
+    { "op": "replace", "path": "/modules/2/review/5/id", "value": "dijkstra-r6" },
+    { "op": "replace", "path": "/modules/2/review/6/id", "value": "dijkstra-r7" },
+    { "op": "replace", "path": "/modules/2/review/7/id", "value": "dijkstra-r8" }
+  ]
+}

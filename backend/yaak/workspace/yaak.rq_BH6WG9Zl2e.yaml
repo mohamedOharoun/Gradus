@@ -1,0 +1,49 @@
+type: http_request
+model: http_request
+id: rq_BH6WG9Zl2e
+createdAt: 2026-11-25T17:00:00.000000000
+updatedAt: 2026-11-25T17:00:00.000000000
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_ei3GYikdgC
+authentication: {}
+authenticationType: null
+body:
+  form:
+  - enabled: true
+    name: version
+    value: "1"
+    file: ''
+  - enabled: true
+    name: photo
+    file: "${[ fixturesDir ]}/foto-entrega.jpg"
+    contentType: image/jpeg
+bodyType: multipart/form-data
+description: "«intro-l1» existe, pero no es un ejercicio photo. Código EXERCISE_NOT_FOUND."
+headers:
+- enabled: true
+  name: Authorization
+  value: "Bearer ${[ response.body.path(request='rq_ta4QvZtty8', path='$.token') ]}"
+  id: null
+method: POST
+name: "Entregar en una lección (404)"
+sortPriority: 5.0
+url: "${[ baseUrl ]}/api/courses/${[ response.body.path(request='rq_0lfUT0fN3s', path='$.course.id') ]}/exercises/intro-l1/submissions"
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

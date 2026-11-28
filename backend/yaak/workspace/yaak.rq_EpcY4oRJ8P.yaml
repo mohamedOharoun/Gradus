@@ -1,0 +1,41 @@
+type: http_request
+model: http_request
+id: rq_EpcY4oRJ8P
+createdAt: 2026-11-20T07:29:56.592871653
+updatedAt: 2026-11-20T07:29:56.592874659
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_pUw2uUvgMh
+authentication: {}
+authenticationType: null
+body:
+  text: '{"name": "Autora Cursos", "email": "autora.cursos@example.com", "password": "Cursos#2026", "acceptedTerms": true}'
+bodyType: application/json
+description: Crea la cuenta de la autora. Si ya existe, da 409 y no importa.
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Registro de la autora (201 o 409)
+sortPriority: 1.0
+url: ${[ baseUrl ]}/api/users
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

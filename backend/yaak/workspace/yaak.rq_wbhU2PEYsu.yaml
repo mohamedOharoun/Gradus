@@ -1,0 +1,40 @@
+type: http_request
+model: http_request
+id: rq_wbhU2PEYsu
+createdAt: 2026-11-17T08:45:36.387019809
+updatedAt: 2026-11-17T08:45:36.387020310
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_asqV36HdJ9
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: UNAUTHENTICATED, la misma respuesta que sin token o con un token caducado.
+headers:
+- enabled: true
+  name: Authorization
+  value: Bearer token-inventado
+  id: null
+method: GET
+name: Token inventado (401)
+sortPriority: 2.0
+url: ${[ baseUrl ]}/api/users/me
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

@@ -1,0 +1,45 @@
+type: http_request
+model: http_request
+id: rq_yhhR4EjtYi
+createdAt: 2026-11-17T08:28:37.002545245
+updatedAt: 2026-11-17T08:28:37.002545716
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_tPJCbrSZJ3
+authentication: {}
+authenticationType: null
+body:
+  text: |-
+    {
+      "email": "nadie-${[ uuid.v4() ]}@ulpgc.es",
+      "password": "Gradus2026!"
+    }
+bodyType: application/json
+description: INVALID_CREDENTIALS, igual que «Contraseña incorrecta (401)». Tarda lo mismo porque se compara con un hash señuelo.
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Correo inexistente (401)
+sortPriority: 2.0
+url: ${[ baseUrl ]}/api/sessions
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

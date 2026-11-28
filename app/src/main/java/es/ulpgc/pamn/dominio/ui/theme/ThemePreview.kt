@@ -26,7 +26,7 @@ private fun ThemeSample(modifier: Modifier = Modifier) {
         ) {
             Text("Aprende paso a paso", style = MaterialTheme.typography.headlineLarge)
             Text(
-                "Cada concepto se desbloquea cuando dominas los anteriores.",
+                "Cada módulo se desbloquea cuando dominas los anteriores.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -34,7 +34,7 @@ private fun ThemeSample(modifier: Modifier = Modifier) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Kotlin desde cero", style = MaterialTheme.typography.titleLarge)
                     Text(
-                        "12 de 20 conceptos dominados",
+                        "12 de 20 módulos dominados",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

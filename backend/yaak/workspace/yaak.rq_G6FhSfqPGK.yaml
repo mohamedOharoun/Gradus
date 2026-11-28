@@ -1,0 +1,41 @@
+type: http_request
+model: http_request
+id: rq_G6FhSfqPGK
+createdAt: 2026-11-17T08:28:37.028002242
+updatedAt: 2026-11-17T08:28:37.028002732
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_tPJCbrSZJ3
+authentication: {}
+authenticationType: null
+body:
+  text: '{}'
+bodyType: application/json
+description: REQUIRED en email y en password, los dos a la vez.
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+method: POST
+name: Campos ausentes (400)
+sortPriority: 3.0
+url: ${[ baseUrl ]}/api/sessions
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

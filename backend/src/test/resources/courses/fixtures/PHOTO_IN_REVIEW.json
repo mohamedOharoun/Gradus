@@ -1,0 +1,16 @@
+{
+  "description": "bfs-r3, en la reserva de bfs, pasa a ser un ejercicio con foto: lo revisa el profesor, no puede ir en la prueba de dominio.",
+  "expected": { "code": "PHOTO_IN_REVIEW", "path": "/modules/1/review/2" },
+  "patch": [
+    {
+      "op": "replace",
+      "path": "/modules/1/review/2",
+      "value": {
+        "type": "photo",
+        "id": "bfs-r3",
+        "prompt": "Recorre en anchura el grafo empezando por **A** y escribe el orden de visita.",
+        "explanation": "Orden: A, B, C, D, E."
+      }
+    }
+  ]
+}

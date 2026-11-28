@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Los idiomas de la app (docs/tareas/ajustes.md, fase 3, decisiones O y S). Lo lee Android 13+ para
+     ofrecerlos también en Ajustes del sistema → Idioma de las apps. El primero, el de values/. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="es" />
+    <locale android:name="en" />
+</locale-config>

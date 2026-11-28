@@ -1,0 +1,45 @@
+type: http_request
+model: http_request
+id: rq_SXWHXv6nC2
+createdAt: 2026-11-20T07:29:56.688597613
+updatedAt: 2026-11-20T07:29:56.688597933
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_pUw2uUvgMh
+authentication: {}
+authenticationType: null
+body:
+  text: '{"title": "sin cerrar"'
+bodyType: application/json
+description: 'Capa 1: INVALID_JSON con línea y columna.'
+headers:
+- enabled: true
+  name: Content-Type
+  value: application/json
+  id: null
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_BidRTgEuwC', path='$.token') ]}
+  id: null
+method: POST
+name: Publicar JSON roto (400)
+sortPriority: 9.0
+url: ${[ baseUrl ]}/api/courses
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

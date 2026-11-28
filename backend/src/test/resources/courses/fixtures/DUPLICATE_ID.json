@@ -1,0 +1,7 @@
+{
+  "description": "La primera lección de bfs reutiliza el id de la primera lección de representacion.",
+  "expected": { "code": "DUPLICATE_ID", "path": "/modules/1/steps/0" },
+  "patch": [
+    { "op": "replace", "path": "/modules/1/steps/0/id", "value": "repr-l1" }
+  ]
+}

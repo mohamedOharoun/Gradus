@@ -1,0 +1,88 @@
+package es.ulpgc.pamn.dominio.ui.screens.detail
+
+import es.ulpgc.pamn.dominio.R
+import es.ulpgc.pamn.dominio.course.Author
+import es.ulpgc.pamn.dominio.course.Course
+import es.ulpgc.pamn.dominio.course.Module
+import es.ulpgc.pamn.dominio.course.Publication
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.longMonth
+import es.ulpgc.pamn.dominio.ui.text.shortMonth
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+
+// Los textos de la ficha de un curso (funciones puras, sin Compose).
+class CourseDetailTextsTest {
+
+    private val published = Publication(Author("u1", "Ana Ruiz"), version = 2, publishedAt = "2026-11-18T08:35:00Z")
+
+    private fun course(modules: Int = 2, publication: Publication? = published) =
+        Course("c", "Grafos", (1..modules).map { Module("m$it", "Módulo $it") }, publication = publication)
+
+    // --- Autor ---
+
+    @Test
+    fun `the author line says who published it`() {
+        // El nombre lo escribe la persona: va como dato, sin traducir.
+        assertEquals(UiText.of(R.string.detail_by_author, "Ana Ruiz"), course().authorText())
+    }
+
+    @Test
+    fun `a course without publication has no author line`() {
+        assertNull(course(publication = null).authorText())
+    }
+
+    // --- Módulos y fecha (traducidos desde ajustes.md, paso 9a; los mismos textos que la tarjeta) ---
+
+    private fun modules(count: Int) = UiText.plural(R.plurals.course_modules, count)
+    private val nov2026 = UiText.of(R.string.month_year_short, shortMonth(11), 2026)
+
+    @Test
+    fun `the meta line has the modules and the month, like the card in Search`() {
+        assertEquals(UiText.of(R.string.course_meta, modules(2), nov2026), course().metaText())
+    }
+
+    @Test
+    fun `one module is singular`() {
+        assertEquals(UiText.of(R.string.course_meta, modules(1), nov2026), course(modules = 1).metaText())
+    }
+
+    @Test
+    fun `without publication the meta line has only the modules`() {
+        assertEquals(modules(2), course(publication = null).metaText())
+    }
+
+    @Test
+    fun `a date that cannot be read leaves only the modules`() {
+        assertEquals(modules(2), course(publication = published.copy(publishedAt = "ayer")).metaText())
+    }
+
+    // «nov 2026» se lee mal en voz alta: TalkBack oye el mes entero.
+    @Test
+    fun `TalkBack hears the whole month`() {
+        val publishedNov2026 = UiText.of(R.string.course_published, UiText.of(R.string.month_year_long, longMonth(11), 2026))
+        assertEquals(UiText.of(R.string.list_comma, modules(2), publishedNov2026), course().spokenMetaText())
+        assertEquals(modules(2), course(publication = null).spokenMetaText())
+    }
+
+    // --- Progreso y botón ---
+
+    @Test
+    fun `with nothing mastered the button starts the course and there is no progress line`() {
+        assertEquals(UiText.of(R.string.detail_start), startButtonText(masteredCount = 0))
+        assertNull(progressText(masteredCount = 0, total = 2))
+    }
+
+    @Test
+    fun `with something mastered the button continues and the progress is shown`() {
+        assertEquals(UiText.of(R.string.detail_continue), startButtonText(masteredCount = 1))
+        assertEquals(UiText.of(R.string.course_progress, 1, 2), progressText(masteredCount = 1, total = 2))
+    }
+
+    @Test
+    fun `with everything mastered the course can be reviewed`() {
+        assertEquals(UiText.of(R.string.detail_review), startButtonText(masteredCount = 2, total = 2))
+        assertEquals(UiText.of(R.string.course_progress, 2, 2), progressText(masteredCount = 2, total = 2))
+    }
+}

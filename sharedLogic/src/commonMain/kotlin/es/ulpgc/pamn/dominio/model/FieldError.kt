@@ -8,4 +8,9 @@ enum class FieldError {
     INVALID_EMAIL,
     WEAK_PASSWORD,
     PASSWORDS_DONT_MATCH,
+
+    // Solo los detecta el servidor (account/RegisterProblem.kt).
+    EMAIL_TAKEN,
+    TERMS_NOT_ACCEPTED,
+    INVALID_CREDENTIALS,
 }

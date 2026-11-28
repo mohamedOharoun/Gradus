@@ -1,0 +1,36 @@
+type: http_request
+model: http_request
+id: rq_Cxkgea4uch
+createdAt: 2026-11-23T10:56:16.718318442
+updatedAt: 2026-11-23T10:56:16.718318733
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_jjUAUPZHxR
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: Tres errores INVALID_PARAMETER, en el orden page, size, published.
+headers: []
+method: GET
+name: Buscar con page, size y published no válidos (400)
+sortPriority: 20.0
+url: ${[ baseUrl ]}/api/courses?page=-1&size=abc&published=week
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto

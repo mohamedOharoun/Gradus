@@ -62,7 +62,7 @@ Patrones que usamos (y que hay que nombrar al explicarlo):
   HTTP multiplataforma, para que sirva también en iOS.
 - Estados de envío en el registro: enviando, error de red con reintento, error del servidor.
 - Errores del servidor colocados en su paso (p. ej. `EMAIL_TAKEN` vuelve al paso del correo).
-- Permiso de internet y tráfico HTTP sin cifrar **solo** hacia el emulador (`10.0.2.2`).
+- Permiso de internet y tráfico HTTP sin cifrar **solo** hacia `localhost` en debug (ver paso 9).
 
 ## Fuera de alcance
 
@@ -71,72 +71,73 @@ Patrones que usamos (y que hay que nombrar al explicarlo):
 - HTTPS y servidor desplegado: de momento, backend local en el ordenador.
 - Deslizador «Desliza para registrarte» (T11 de `registro-login.md`): usamos el botón provisional.
 
-## Decisiones pendientes (antes del paso 4)
+## Decisiones (aprobadas el 2026-11-17)
 
 1. **Dependencias** (hay que aprobarlas; van en `gradle/libs.versions.toml`). Propuesta:
    Ktor Client (`core`, `content-negotiation`, `serialization-kotlinx-json`, motor `okhttp` en
    Android y `darwin` en iOS), `kotlinx-coroutines-core`, `kotlinx-serialization-json`; en tests,
-   `ktor-client-mock` y `kotlinx-coroutines-test`. Las versiones exactas se comprueban al hacer el
-   paso (no las inventamos). Alternativa solo Android: Retrofit/OkHttp en `app`; descartada porque
+   `ktor-client-mock` y `kotlinx-coroutines-test`. **Aprobado.** Versiones comprobadas en Maven
+   Central: Ktor 3.6.1, coroutines 1.11.0 y serialization 1.11.0 (las que usa Ktor 3.6.1). Alternativa solo Android: Retrofit/OkHttp en `app`; descartada porque
    no sirve para iOS.
 2. **Dónde va la URL base**: constante en `AppContainer` (sin tocar Gradle) o `BuildConfig`
-   (hay que activar `buildConfig` en `app/build.gradle.kts`). Propuesta: constante, por ahora.
-3. **Paquete nuevo** `account/` junto a `model/` en `sharedLogic`. Propuesta: sí, porque el
-   adaptador HTTP no es «modelo».
+   (hay que activar `buildConfig` en `app/build.gradle.kts`). **Aprobado: constante**, por ahora.
+3. **Paquete nuevo** `account/` junto a `model/` en `sharedLogic`. **Aprobado** (2026-11-17).
 
 ## Tareas
 
 Cada paso es pequeño, se puede encargar a un agente por separado (ver «Trabajar con agentes») y
 termina con los tests en verde.
 
-- [ ] **1. Contrato de cuentas (Kotlin puro, test primero).** `NewAccount(name, email, password,
+- [x] **1. Contrato de cuentas (Kotlin puro, test primero).** `NewAccount(name, email, password,
   acceptedTerms)`, `Account(id, name, email, createdAt)`, `RegistrationOutcome`
   (`Registered`, `Rejected(errors)`, `EmailTaken`, `Unreachable`, `ServerFailure`) y la interfaz
   `AccountGateway`. Más `RegisterForm.toNewAccount()` (recorta nombre y correo; la contraseña no).
   *Ficheros:* `sharedLogic/.../account/*.kt`, `RegisterForm.kt`, tests.
   *Acepta si:* `toNewAccount()` tiene tests y no hay ninguna dependencia nueva.
-- [ ] **2. Traducción de códigos (Kotlin puro, test primero).** `ApiErrorCode` (espejo de
+- [x] **2. Traducción de códigos (Kotlin puro, test primero).** `ApiErrorCode` (espejo de
   `ErrorCode.java`, con `UNKNOWN` para códigos futuros) y `ServerFieldError(field, code)`. Función
   que dice a qué `RegisterStep` y a qué `FieldError` corresponde cada error. Se añade
   `FieldError.EMAIL_TAKEN` (y su texto en `FieldErrorMessages.kt`).
   *Acepta si:* hay un test por cada fila de la tabla «Códigos de error»; un código desconocido no
   rompe nada.
-- [ ] **3. Estado del envío en el formulario (Kotlin puro, test primero).** `RegisterForm` gana
+- [x] **3. Estado del envío en el formulario (Kotlin puro, test primero).** `RegisterForm` gana
   `submission` (`Idle`, `Sending`, `Failed(reason)`) y `serverError`; métodos `sending()` y
   `applying(outcome)`. Con `Rejected`/`EmailTaken` vuelve al primer paso con error y lo muestra;
   editar ese campo borra el error del servidor. `canRegister` es `false` mientras se envía.
   *Acepta si:* tests de cada desenlace; `RegisterFormTest` sigue en verde.
-- [ ] **4. Dependencias.** Tras decidir el punto 1 de «Decisiones pendientes»: `libs.versions.toml`
+- [x] **4. Dependencias.** Tras decidir el punto 1 de «Decisiones pendientes»: `libs.versions.toml`
   y `sharedLogic/build.gradle.kts` (plugin de serialización y dependencias por `sourceSet`).
   *Acepta si:* `./gradlew :sharedLogic:testAndroidHostTest` y `./gradlew :app:assembleDebug`
   compilan sin avisos nuevos.
-- [ ] **5. Adaptador HTTP (test primero con `MockEngine`).** DTO `@Serializable`
+- [x] **5. Adaptador HTTP (test primero con `MockEngine`).** DTO `@Serializable`
   (`RegisterUserRequestDto`, `UserResponseDto`, `ErrorResponseDto`), mapper y
   `HttpAccountGateway`: 201 → `Registered`, 400 → `Rejected`, 409 → `EmailTaken`,
   sin conexión/tiempo agotado → `Unreachable`, 5xx o cuerpo raro → `ServerFailure`.
   *Acepta si:* un test por cada caso; el JSON enviado coincide con `RegisterUserRequest.java`;
   nada fuera de `account/http/` importa Ktor.
-- [ ] **6. Composición.** `AccountGateways.http(baseUrl)` (factory) y
-  `app/.../data/AppContainer.kt` con la URL `http://10.0.2.2:7070`. `RegisterViewModel` recibe el
+- [x] **6. Composición.** `AccountGateways.http(baseUrl)` (factory) y
+  `app/.../data/AppContainer.kt` con la URL del backend (hoy `http://localhost:7070`, ver paso 9). `RegisterViewModel` recibe el
   `AccountGateway` por constructor (factory de ViewModel en `GradusNavHost`).
   *Acepta si:* las previews no necesitan red (usan un `FakeAccountGateway`).
-- [ ] **7. Android: red.** Permiso `INTERNET` en `AndroidManifest.xml` y
-  `network_security_config.xml` que permite HTTP sin cifrar solo a `10.0.2.2`.
+- [x] **7. Android: red.** Permiso `INTERNET` en `AndroidManifest.xml` y
+  `network_security_config.xml` que permite HTTP sin cifrar solo al backend local (ver paso 9).
   *Acepta si:* el resto del tráfico sin cifrar sigue bloqueado.
-- [ ] **8. ViewModel y pantalla.** `onRegister()` lanza la llamada en `viewModelScope`; al
-  registrarse navega a Inicio; botón «Creando cuenta…» desactivado mientras se envía; aviso
+- [x] **8. ViewModel y pantalla.** `onRegister()` lanza la llamada en `viewModelScope`; al
+  registrarse navega a Inicio de sesión (decisión del 2026-11-17); botón «Creando cuenta…» desactivado mientras se envía; aviso
   «Sin conexión» con «Reintentar». Previews en claro y oscuro de cada estado.
   *Acepta si:* ver «Cómo comprobarlo».
-- [ ] **9. Prueba completa y documentos.** Probar en el emulador; marcar la tarea 4 de
+- [x] **9. Prueba completa y documentos.** Probar en el emulador; marcar la tarea 4 de
   `registro-cuentas-reales.md`; anotar en `especificacion.md` que el cliente usa Ktor.
 
 ## Cómo comprobarlo (al final)
 
-1. `cd backend && docker compose up -d && mvn compile exec:java`.
-2. Arrancar la app en el emulador y registrarse con datos válidos → llega a Inicio y la cuenta
+1. Abrir el emulador y, desde `backend/`, `./gradus.sh` (o `.\gradus.ps1`): base de datos,
+   migraciones, `adb reverse tcp:7070 tcp:7070` y servidor.
+2. Arrancar la app en el emulador y registrarse con datos válidos → llega a Inicio de sesión y la cuenta
    aparece en `SELECT name, email FROM users;`.
 3. Repetir con el mismo correo → vuelve al paso del correo con «Ya existe una cuenta…».
-4. Parar el backend y registrarse → aviso de sin conexión; arrancarlo y pulsar «Reintentar» → funciona.
+4. Parar el backend (o `adb reverse --remove tcp:7070`) y registrarse → aviso de sin conexión;
+   arrancarlo y pulsar «Reintentar» → funciona.
 
 ## Cómo pasar a gRPC (cuando toque)
 
@@ -171,7 +172,68 @@ Reglas para repartir:
 ## Progreso
 
 - 2026-11-14: documento creado y plan propuesto. Pendiente de aprobar el plan y las decisiones.
+- 2026-11-17: plan aprobado. Paso 1 hecho (87 tests en verde, 6 nuevos en `NewAccountTest`; sin
+  dependencias ni avisos nuevos). `toNewAccount()` es una función de extensión en
+  `account/NewAccount.kt` (no dentro de `RegisterForm.kt`), así `model/` no depende de `account/`;
+  devuelve `null` si `canRegister` es falso. `Rejected` lleva `ServerFieldError(field, code)` con
+  el código como texto; el paso 2 lo traduce a `ApiErrorCode`. `createdAt` es `String` (ISO‑8601).
+- 2026-11-17: paso 2 hecho (104 tests en verde, 17 nuevos en `RegisterProblemTest`; la app compila).
+  `ApiErrorCode.fromName` (UNKNOWN si no lo conoce), `ServerFieldError.apiCode`, `RegisterProblem(step,
+  error)` con una tabla (campo, código) → problema en `account/RegisterProblem.kt` y
+  `firstRegisterProblem()` (el del paso más temprano). Además de `FieldError.EMAIL_TAKEN` se añade
+  `FieldError.TERMS_NOT_ACCEPTED`, con sus textos en `FieldErrorMessages.kt`.
+- 2026-11-17: paso 3 hecho (121 tests en verde, 17 nuevos en `RegisterFormSubmissionTest` y
+  `ApplyingOutcomeTest`; `RegisterFormTest` sin cambios y en verde). `Submission` sellado con
+  `Idle`, `Sending`, `Succeeded` (añadido: impide crear la cuenta dos veces mientras se navega) y
+  `Failed(FailureReason)`. `RegisterForm` gana `serverProblem`, `serverError`, `sending()`,
+  `succeeded()`, `failed()` y `rejected()`; un error del servidor bloquea su paso hasta editar ese
+  dato. `applying(outcome)` es una extensión en `account/ApplyingOutcome.kt` y la clase
+  `RegisterProblem` pasa a `model/`, para que `model/` no dependa de `account/`. Un 400 sin error de
+  campo conocido se trata como `SERVER_FAILURE`.
+- 2026-11-17: paso 4 hecho. `libs.versions.toml` (versiones `ktor`, `kotlinx-coroutines`,
+  `kotlinx-serialization` y 9 librerías) y `sharedLogic/build.gradle.kts` (plugin de serialización;
+  `commonMain`, `androidMain` con `okhttp`, `iosMain` con `darwin`, `commonTest` con `mock` y
+  `coroutines-test`). `testAndroidHostTest` (121 tests) y `:app:assembleDebug` en verde, sin avisos
+  nuevos. En `app`, `kotlinx-coroutines-core` sube de 1.9.0 a 1.11.0 por arrastre.
+- 2026-11-17: paso 5 hecho (132 tests en verde, 11 nuevos en `HttpAccountGatewayTest`). En
+  `account/http/`: `AccountDtos.kt` (3 DTO + `FieldErrorDto`), `AccountDtoMappers.kt`,
+  `GradusHttpClient.kt` (factory del cliente: `expectSuccess = false`, `ignoreUnknownKeys`, tiempo
+  de conexión 5 s y de petición 10 s) y `HttpAccountGateway.kt`. Todo es `internal`: fuera del
+  módulo solo se verá la factory del paso 6. Solo esos dos ficheros importan Ktor. Falta probarlo
+  contra el backend real (paso 9).
+- 2026-11-17: paso 6 hecho (136 tests en verde, 4 nuevos en `AccountGatewaysTest`; `:app:assembleDebug`
+  sin avisos). `AccountGateways.http(baseUrl)` (factory pública) y `FakeAccountGateway` en
+  `sharedLogic/.../account/` (puede responder un desenlace fijo y recuerda lo recibido).
+  `app/.../data/AppContainer.kt` es un `object` con la URL y el gateway `by lazy`.
+  `RegisterViewModel(accountGateway)` con `factory(...)` (`viewModelFactory`); `GradusNavHost`
+  recibe el gateway por parámetro y `MainActivity` le pasa `AppContainer.accountGateway`. Las
+  previews no cambian: las pantallas no tienen estado y nunca crean el ViewModel. `app` no importa Ktor.
+- 2026-11-17: paso 7 hecho (aprobado tocar el manifiesto). Permiso `INTERNET` y
+  `android:networkSecurityConfig` en `AndroidManifest.xml`. Dos versiones de
+  `network_security_config.xml`: `src/main/res/xml/` (release: nada sin cifrar) y
+  `src/debug/res/xml/` (debug: HTTP sin cifrar solo hacia `10.0.2.2`). Comprobado en los recursos
+  empaquetados de cada variante. `:app:assembleDebug` y `:app:processReleaseResources` en verde.
+
+- 2026-11-17: paso 8 hecho. Decisión: tras registrarse, la app va a **Inicio de sesión** (no inicia
+  sesión sola). `RegisterViewModel.onRegister()` (`toNewAccount()` → `sending()` → gateway en
+  `viewModelScope` → `applying(outcome)`); `GradusNavHost` navega a Login al ver `Succeeded`
+  (cambia Registro por Login: atrás vuelve a Bienvenida). Botón «Crear cuenta» / «Creando cuenta…»
+  / «Reintentar»; aviso de fallo encima del botón; `serverError` del paso de la contraseña debajo
+  de los términos. Componente nuevo `ErrorText` (con `liveRegion` para TalkBack) y
+  `FailureReason.toMessage()`. Previews nuevas: enviando, sin conexión y error del servidor.
+- 2026-11-17: paso 9. **Problema encontrado:** desde Android 17 (`targetSdk` 37) una app necesita el
+  permiso `ACCESS_LOCAL_NETWORK` para conectar con IPs de la red local, y `10.0.2.2` lo es: la
+  conexión se quedaba sin respuesta (`ConnectTimeoutException`) aunque `nc` desde el shell sí
+  conectaba. **Decisión:** `adb reverse tcp:7070 tcp:7070` + `http://localhost:7070` (sin permisos,
+  sirve también en un móvil por USB). Cambian `AppContainer`, el `network_security_config.xml` de
+  debug (`localhost` y `127.0.0.1`) y `gradus.sh`/`gradus.ps1`, que hacen el `adb reverse` si hay
+  `adb` y dispositivo (si no, solo avisan). Probado en el emulador (API 37) contra el backend real:
+  cuenta nueva → Inicio de sesión y fila en `users`; atrás desde Login → Bienvenida; correo
+  repetido → paso del correo con «Ya existe una cuenta…»; sin `adb reverse` → aviso y
+  «Reintentar»; al restaurarlo, «Reintentar» crea la cuenta. 136 tests de `sharedLogic` en verde;
+  `:app:assembleDebug` y `:app:assembleRelease` sin avisos nuevos. **Tarea completada.**
 
 ## Siguiente paso
 
-Aprobar el plan y las decisiones; después, paso 1.
+Tarea 5 de `registro-cuentas-reales.md`: inicio de sesión real (`AccountGateway.logIn`). Pendiente
+de revisar las previews nuevas en claro en Android Studio.

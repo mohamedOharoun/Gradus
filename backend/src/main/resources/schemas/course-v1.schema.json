@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:gradus:schema:course:1",
+  "title": "Curso de Gradus (formato v1)",
+  "description": "Estructura de un curso tal como lo escribe su autor. Las reglas que el schema no puede expresar (ids únicos, referencias, ciclos, pruebas de dominio) las comprueba el validador del backend; ver especificacion-cursos-v1.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["formatVersion", "title", "description", "language", "tags", "defaults", "modules"],
+  "properties": {
+    "formatVersion": {
+      "description": "Versión del formato del fichero (no del curso). En esta versión, siempre 1.",
+      "const": 1
+    },
+    "title": {
+      "description": "Título del curso.",
+      "$ref": "#/$defs/plainText",
+      "maxLength": 120
+    },
+    "description": {
+      "description": "Resumen corto para los resultados de búsqueda.",
+      "$ref": "#/$defs/plainText",
+      "maxLength": 500
+    },
+    "language": {
+      "description": "Idioma del contenido: código ISO 639-1, opcionalmente con región (es, en, es-ES).",
+      "type": "string",
+      "pattern": "^[a-z]{2}(-[A-Z]{2})?(?![\\s\\S])"
+    },
+    "tags": {
+      "description": "Etiquetas para la búsqueda.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/plainText", "maxLength": 32 }
+    },
+    "defaults": {
+      "description": "Valores por defecto para todos los módulos.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mastery"],
+      "properties": {
+        "mastery": { "$ref": "#/$defs/mastery" }
+      }
+    },
+    "modules": {
+      "description": "Módulos del curso. Sus prerrequisitos forman un grafo sin ciclos.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": { "$ref": "#/$defs/module" }
+    }
+  },
+  "$defs": {
+    "id": {
+      "description": "Identificador estable entre versiones del curso: minúsculas ASCII, dígitos y guiones.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*(?![\\s\\S])"
+    },
+    "plainText": {
+      "description": "Texto plano de una línea, sin espacios al principio ni al final.",
+      "$comment": "(?![\\s\\S]) ancla al final real de la cadena. No se usa $ porque en Java y Python también acepta un salto de línea final.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(?:[^\\r\\n]*\\S)?(?![\\s\\S])"
+    },
+    "markdown": {
+      "description": "Texto en Markdown (CommonMark). Debe contener algún carácter que no sea espacio. El HTML embebido no se renderiza.",
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S"
+    },
+    "mastery": {
+      "description": "Prueba de dominio: cuántos ejercicios de la reserva se sortean y cuántos aciertos hacen falta.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["questions", "minCorrect"],
+      "properties": {
+        "questions": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "minCorrect": { "type": "integer", "minimum": 1, "maximum": 20 }
+      }
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "requires", "steps", "review"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "$ref": "#/$defs/plainText", "maxLength": 120 },
+        "requires": {
+          "description": "Ids de los módulos prerrequisito.",
+          "type": "array",
+          "maxItems": 20,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "mastery": {
+          "description": "Opcional: sustituye a defaults.mastery en este módulo.",
+          "$ref": "#/$defs/mastery"
+        },
+        "steps": {
+          "description": "Parte formativa: lecciones y ejercicios intercalados, en orden de presentación.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 50,
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "review": {
+          "description": "Reserva de ejercicios: prueba de dominio y repasos posteriores.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/exercise" }
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["lesson", "singleChoice", "multipleChoice", "matching", "photo"] }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "lesson" } } },
+          "then": { "$ref": "#/$defs/lesson" }
+        },
+        {
+          "if": { "required": ["type"], "properties": { "type": { "enum": ["singleChoice", "multipleChoice", "matching", "photo"] } } },
+          "then": { "$ref": "#/$defs/exercise" }
+        }
+      ]
+    },
+    "exercise": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["singleChoice", "multipleChoice", "matching", "photo"] }
+      },
+      "allOf": [
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "singleChoice" } } },
+          "then": { "$ref": "#/$defs/singleChoice" }
+        },
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "multipleChoice" } } },
+          "then": { "$ref": "#/$defs/multipleChoice" }
+        },
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "matching" } } },
+          "then": { "$ref": "#/$defs/matching" }
+        },
+        {
+          "if": { "required": ["type"], "properties": { "type": { "const": "photo" } } },
+          "then": { "$ref": "#/$defs/photo" }
+        }
+      ]
+    },
+    "lesson": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "text"],
+      "properties": {
+        "type": { "const": "lesson" },
+        "id": { "$ref": "#/$defs/id" },
+        "text": { "$ref": "#/$defs/markdown", "maxLength": 10000 }
+      }
+    },
+    "option": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "text": { "$ref": "#/$defs/markdown", "maxLength": 300 }
+      }
+    },
+    "singleChoice": {
+      "description": "Respuesta única: exactamente una opción correcta, la indicada en answer.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "prompt", "options", "answer", "explanation"],
+      "properties": {
+        "type": { "const": "singleChoice" },
+        "id": { "$ref": "#/$defs/id" },
+        "prompt": { "$ref": "#/$defs/markdown", "maxLength": 2000 },
+        "options": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/option" }
+        },
+        "answer": {
+          "description": "Id de la opción correcta.",
+          "$ref": "#/$defs/id"
+        },
+        "explanation": { "$ref": "#/$defs/markdown", "maxLength": 3000 }
+      }
+    },
+    "multipleChoice": {
+      "description": "Selección múltiple: el conjunto elegido debe coincidir exactamente con correct.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "prompt", "options", "correct", "explanation"],
+      "properties": {
+        "type": { "const": "multipleChoice" },
+        "id": { "$ref": "#/$defs/id" },
+        "prompt": { "$ref": "#/$defs/markdown", "maxLength": 2000 },
+        "options": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/option" }
+        },
+        "correct": {
+          "description": "Ids de las opciones correctas. Al menos una opción debe quedar fuera.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/id" }
+        },
+        "explanation": { "$ref": "#/$defs/markdown", "maxLength": 3000 }
+      }
+    },
+    "matching": {
+      "description": "Unir con flechas: la lista de pares define una biyección entre los dos lados.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "prompt", "pairs", "explanation"],
+      "properties": {
+        "type": { "const": "matching" },
+        "id": { "$ref": "#/$defs/id" },
+        "prompt": { "$ref": "#/$defs/markdown", "maxLength": 2000 },
+        "pairs": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/pair" }
+        },
+        "explanation": { "$ref": "#/$defs/markdown", "maxLength": 3000 }
+      }
+    },
+    "photo": {
+      "description": "Ejercicio con foto: se resuelve en papel y se entrega una foto, que revisa el profesor. explanation es la solución que se enseña al entregar.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "id", "prompt", "explanation"],
+      "properties": {
+        "type": { "const": "photo" },
+        "id": { "$ref": "#/$defs/id" },
+        "prompt": { "$ref": "#/$defs/markdown", "maxLength": 2000 },
+        "explanation": { "$ref": "#/$defs/markdown", "maxLength": 3000 }
+      }
+    },
+    "pair": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["left", "right"],
+      "properties": {
+        "left": { "$ref": "#/$defs/markdown", "maxLength": 200 },
+        "right": { "$ref": "#/$defs/markdown", "maxLength": 200 }
+      }
+    }
+  }
+}

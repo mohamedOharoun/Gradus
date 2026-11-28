@@ -27,3 +27,4 @@ local.properties
 **/xcshareddata/WorkspaceSettings.xcsettings
 node_modules/
 .env
+docs/resumen-proyecto.md

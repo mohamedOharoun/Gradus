@@ -15,30 +15,36 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
+import es.ulpgc.pamn.dominio.model.FailureReason
+import es.ulpgc.pamn.dominio.model.FieldError
 import es.ulpgc.pamn.dominio.model.LoginForm
+import es.ulpgc.pamn.dominio.model.LoginProblem
+import es.ulpgc.pamn.dominio.model.Submission
+import es.ulpgc.pamn.dominio.ui.components.ErrorText
 import es.ulpgc.pamn.dominio.ui.components.FormField
 import es.ulpgc.pamn.dominio.ui.components.FormTopBar
 import es.ulpgc.pamn.dominio.ui.components.LightDarkPreviews
 import es.ulpgc.pamn.dominio.ui.components.PasswordField
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.components.PromptLink
+import es.ulpgc.pamn.dominio.ui.components.buttonText
 import es.ulpgc.pamn.dominio.ui.components.toMessage
+import es.ulpgc.pamn.dominio.ui.screens.login.LoginActions
+import es.ulpgc.pamn.dominio.ui.text.UiText
+import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
 // Inicio de sesión (no está en Figma: sigue el estilo del registro).
-// Sin estado: pinta el LoginForm que recibe y avisa de cada cosa con una lambda.
+// Sin estado: pinta el LoginForm que recibe y avisa de cada cosa con `actions`.
 @Composable
 fun ScreenLogin(
     form: LoginForm,
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-    onSubmit: () -> Unit,
-    onBack: () -> Unit,
-    onCreateAccount: () -> Unit,
+    actions: LoginActions,
     modifier: Modifier = Modifier,
 ) {
     Surface(modifier = modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -47,7 +53,7 @@ fun ScreenLogin(
                 .safeDrawingPadding()
                 .padding(horizontal = 24.dp, vertical = 16.dp),
         ) {
-            FormTopBar(title = "Iniciar sesión", onBack = onBack)
+            FormTopBar(title = stringResource(R.string.action_log_in), onBack = actions.onBack)
             // La parte central se desplaza si el teclado no deja sitio; el botón se queda abajo.
             Column(
                 modifier = Modifier
@@ -57,11 +63,15 @@ fun ScreenLogin(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
             ) {
                 LoginHeader()
-                LoginFields(form, onEmailChange, onPasswordChange)
+                LoginFields(form, actions)
             }
             Spacer(Modifier.height(16.dp))
-            PrimaryButton(text = "Entrar", onClick = onSubmit, trailingIcon = R.drawable.ic_arrow_forward)
-            PromptLink(prompt = "¿No tienes cuenta?", action = "Crear cuenta", onClick = onCreateAccount)
+            LoginMainButton(form, actions.onSubmit)
+            PromptLink(
+                prompt = stringResource(R.string.login_no_account),
+                action = stringResource(R.string.action_create_account),
+                onClick = actions.onCreateAccount,
+            )
         }
     }
 }
@@ -69,9 +79,9 @@ fun ScreenLogin(
 @Composable
 private fun LoginHeader() {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("Hola de nuevo", style = MaterialTheme.typography.headlineMedium)
+        Text(stringResource(R.string.login_title), style = MaterialTheme.typography.headlineMedium)
         Text(
-            "Entra con tu correo y tu contraseña para seguir donde lo dejaste.",
+            stringResource(R.string.login_body),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -79,38 +89,65 @@ private fun LoginHeader() {
 }
 
 @Composable
-private fun LoginFields(
-    form: LoginForm,
-    onEmailChange: (String) -> Unit,
-    onPasswordChange: (String) -> Unit,
-) {
+private fun LoginFields(form: LoginForm, actions: LoginActions) {
     FormField(
-        label = "Correo electrónico",
+        label = stringResource(R.string.field_email),
         value = form.email,
-        onValueChange = onEmailChange,
-        error = form.emailError?.toMessage(),
+        onValueChange = actions.onEmailChange,
+        error = form.emailError?.toMessage()?.asString(),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Next),
     )
     PasswordField(
-        label = "Contraseña",
+        label = stringResource(R.string.field_password),
         value = form.password,
-        onValueChange = onPasswordChange,
-        error = form.passwordError?.toMessage(),
+        onValueChange = actions.onPasswordChange,
+        error = form.passwordError?.toMessage()?.asString(),
     )
 }
 
-@LightDarkPreviews
+// El aviso va encima del botón y no bajo un campo: «Correo o contraseña incorrectos» no debe
+// señalar cuál de los dos falla. El mismo botón sirve para reintentar si falla la red.
+// Mientras se envía, el botón se desactiva; con datos no válidos sigue activo para mostrar los errores.
 @Composable
-private fun ScreenLoginEmptyPreview() {
-    GradusTheme {
-        ScreenLogin(LoginForm(), {}, {}, {}, {}, {})
-    }
+private fun LoginMainButton(form: LoginForm, onSubmit: () -> Unit) {
+    form.message?.let { ErrorText(it.asString(), Modifier.padding(bottom = 8.dp)) }
+    val isIdle = form.submission == Submission.Idle
+    PrimaryButton(
+        text = form.submission.buttonText(UiText.of(R.string.action_enter), UiText.of(R.string.action_entering)).asString(),
+        onClick = onSubmit,
+        enabled = form.submission != Submission.Sending,
+        trailingIcon = if (isIdle) R.drawable.ic_arrow_forward else null,
+    )
 }
+
+// El error de todo el formulario o, si no hay, el motivo por el que falló el envío.
+private val LoginForm.message: UiText?
+    get() = generalError?.toMessage() ?: (submission as? Submission.Failed)?.reason?.toMessage()
+
+@Composable
+private fun LoginPreview(form: LoginForm) {
+    GradusTheme { ScreenLogin(form, LoginActions()) }
+}
+
+private val filled = LoginForm(email = "ana@ulpgc.es", password = "Gradus2026!")
 
 @LightDarkPreviews
 @Composable
-private fun ScreenLoginErrorsPreview() {
-    GradusTheme {
-        ScreenLogin(LoginForm(email = "ana@correo", isSubmitted = true), {}, {}, {}, {}, {})
-    }
-}
+private fun ScreenLoginEmptyPreview() = LoginPreview(LoginForm())
+
+@LightDarkPreviews
+@Composable
+private fun ScreenLoginErrorsPreview() = LoginPreview(LoginForm(email = "ana@correo", isSubmitted = true))
+
+@LightDarkPreviews
+@Composable
+private fun ScreenLoginSendingPreview() = LoginPreview(filled.sending())
+
+@LightDarkPreviews
+@Composable
+private fun ScreenLoginInvalidCredentialsPreview() =
+    LoginPreview(filled.rejected(LoginProblem(field = null, error = FieldError.INVALID_CREDENTIALS)))
+
+@LightDarkPreviews
+@Composable
+private fun ScreenLoginUnreachablePreview() = LoginPreview(filled.sending().failed(FailureReason.UNREACHABLE))

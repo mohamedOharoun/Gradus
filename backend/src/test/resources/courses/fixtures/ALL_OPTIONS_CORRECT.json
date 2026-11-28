@@ -1,0 +1,7 @@
+{
+  "description": "En bfs-f2 (selección múltiple con 3 opciones) se marcan las tres como correctas.",
+  "expected": { "code": "ALL_OPTIONS_CORRECT", "path": "/modules/1/steps/3/correct" },
+  "patch": [
+    { "op": "replace", "path": "/modules/1/steps/3/correct", "value": ["a", "b", "c"] }
+  ]
+}

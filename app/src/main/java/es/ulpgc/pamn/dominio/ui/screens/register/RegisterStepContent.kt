@@ -1,5 +1,6 @@
 package es.ulpgc.pamn.dominio.ui.screens.register
 
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,11 +11,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import es.ulpgc.pamn.dominio.R
 import es.ulpgc.pamn.dominio.model.RegisterForm
 import es.ulpgc.pamn.dominio.model.RegisterStep
 import es.ulpgc.pamn.dominio.ui.components.AddedDataChip
@@ -22,29 +25,35 @@ import es.ulpgc.pamn.dominio.ui.components.AddedDataSection
 import es.ulpgc.pamn.dominio.ui.components.FormField
 import es.ulpgc.pamn.dominio.ui.components.UnlockGraphIllustration
 import es.ulpgc.pamn.dominio.ui.components.toMessage
+import es.ulpgc.pamn.dominio.ui.text.asString
 
-// Textos de cada paso del registro (Figma 1a, 1b y 1c). label = nombre en el indicador;
-// caption = texto bajo la ilustración.
-internal data class StepTexts(val label: String, val title: String, val help: String, val caption: String?)
+// Textos de cada paso del registro (Figma 1a, 1b y 1c), como ids de strings.xml (fase 3, decisión U).
+// label = nombre en el indicador; caption = texto bajo la ilustración.
+internal data class StepTexts(
+    @StringRes val label: Int,
+    @StringRes val title: Int,
+    @StringRes val help: Int,
+    @StringRes val caption: Int?,
+)
 
 internal val RegisterStep.texts: StepTexts
     get() = when (this) {
         RegisterStep.NAME -> StepTexts(
-            label = "Nombre",
-            title = "¿Cómo te llamas?",
-            help = "Así te verán los instructores y el resto de estudiantes.",
-            caption = "Así funciona Gradus: cada concepto se desbloquea cuando dominas los anteriores.",
+            label = R.string.register_step_name,
+            title = R.string.register_name_title,
+            help = R.string.register_name_help,
+            caption = R.string.register_name_caption,
         )
         RegisterStep.EMAIL -> StepTexts(
-            label = "Correo",
-            title = "¿Cuál es tu correo?",
-            help = "Lo usarás para iniciar sesión. No lo compartimos con nadie.",
-            caption = "¡Un paso dominado! Ya solo te queda el último.",
+            label = R.string.register_step_email,
+            title = R.string.register_email_title,
+            help = R.string.register_email_help,
+            caption = R.string.register_email_caption,
         )
         RegisterStep.PASSWORD -> StepTexts(
-            label = "Contraseña",
-            title = "Crea una contraseña",
-            help = "Escríbela dos veces para evitar errores.",
+            label = R.string.register_step_password,
+            title = R.string.register_password_title,
+            help = R.string.register_password_help,
             caption = null,
         )
     }
@@ -64,8 +73,8 @@ internal fun RegisterAddedData(form: RegisterForm, onEdit: (RegisterStep) -> Uni
 @Composable
 internal fun RegisterStepHeader(texts: StepTexts) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(texts.title, style = MaterialTheme.typography.headlineLarge)
-        Text(texts.help, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(stringResource(texts.title), style = MaterialTheme.typography.headlineLarge)
+        Text(stringResource(texts.help), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
@@ -74,17 +83,17 @@ internal fun RegisterStepHeader(texts: StepTexts) {
 internal fun RegisterStepField(form: RegisterForm, actions: RegisterActions) {
     when (form.step) {
         RegisterStep.NAME -> FormField(
-            label = "Nombre",
+            label = stringResource(R.string.field_name),
             value = form.name,
             onValueChange = actions.onNameChange,
-            error = form.nameError?.toMessage(),
+            error = form.nameError?.toMessage()?.asString(),
             keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
         )
         RegisterStep.EMAIL -> FormField(
-            label = "Correo electrónico",
+            label = stringResource(R.string.field_email),
             value = form.email,
             onValueChange = actions.onEmailChange,
-            error = form.emailError?.toMessage(),
+            error = form.emailError?.toMessage()?.asString(),
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
         )
         RegisterStep.PASSWORD -> RegisterPasswordFields(form, actions)

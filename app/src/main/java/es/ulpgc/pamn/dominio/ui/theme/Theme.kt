@@ -10,6 +10,8 @@ import androidx.compose.runtime.Composable
 private val EsquemaClaro = lightColorScheme(
     primary = MarcaMorado, onPrimary = TextoSobreOscuro,
     primaryContainer = MarcaMoradoContenedor, onPrimaryContainer = MarcaMoradoTexto,
+    // Azul «extra» del Figma (las iniciales de los cursos en Inicio; inicio.md, decisión G).
+    secondaryContainer = ExtraAzulContenedor, onSecondaryContainer = ExtraAzulTexto,
     tertiary = EstadoFrontera, onTertiary = EstadoFronteraTexto,
     tertiaryContainer = EstadoFronteraContenedor, onTertiaryContainer = EstadoFronteraTexto,
     background = FondoBase, onBackground = TextoPrincipal,
@@ -26,6 +28,8 @@ private val EsquemaClaro = lightColorScheme(
 private val EsquemaOscuro = darkColorScheme(
     primary = MarcaLila, onPrimary = MarcaMoradoTexto,
     primaryContainer = MarcaMoradoTexto, onPrimaryContainer = MarcaMoradoContenedor,
+    // En oscuro, al revés que en claro (como tertiaryContainer): fondo oscuro y letra clara.
+    secondaryContainer = ExtraAzulTexto, onSecondaryContainer = ExtraAzulContenedor,
     tertiary = EstadoFrontera, onTertiary = EstadoFronteraTexto,
     tertiaryContainer = EstadoFronteraTexto, onTertiaryContainer = EstadoFronteraContenedor,
     background = FondoNoche, onBackground = TextoSobreOscuro,

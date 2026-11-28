@@ -18,7 +18,7 @@ import es.ulpgc.pamn.dominio.ui.theme.EstadoDominado
 import es.ulpgc.pamn.dominio.ui.theme.EstadoFrontera
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
-// Logotipo: un mini grafo (dos conceptos dominados que llevan a uno frontera) y el nombre.
+// Logotipo: un mini grafo (dos módulos dominados que llevan a uno frontera) y el nombre.
 @Composable
 fun BrandLogo(modifier: Modifier = Modifier) {
     Row(

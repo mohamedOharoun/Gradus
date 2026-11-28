@@ -1,0 +1,11 @@
+{
+  "description": "repr-f2 pasa de 2 a 7 parejas: más de 6 son incómodas en un móvil.",
+  "expected": { "code": "MATCHING_TOO_MANY_PAIRS", "path": "/modules/0/steps/3/pairs" },
+  "patch": [
+    { "op": "add", "path": "/modules/0/steps/3/pairs/-", "value": { "left": "Lista de aristas", "right": "O(E)" } },
+    { "op": "add", "path": "/modules/0/steps/3/pairs/-", "value": { "left": "Grafo denso", "right": "Muchas aristas" } },
+    { "op": "add", "path": "/modules/0/steps/3/pairs/-", "value": { "left": "Grafo disperso", "right": "Pocas aristas" } },
+    { "op": "add", "path": "/modules/0/steps/3/pairs/-", "value": { "left": "Grado", "right": "Aristas incidentes" } },
+    { "op": "add", "path": "/modules/0/steps/3/pairs/-", "value": { "left": "Bucle", "right": "Arista de un vértice a sí mismo" } }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "description": "La etiqueta «Grafos» solo se diferencia de «grafos» en la mayúscula. Para el schema son distintas; para la búsqueda, no.",
+  "expected": { "code": "DUPLICATE_TAG", "path": "/tags/3" },
+  "patch": [
+    { "op": "add", "path": "/tags/-", "value": "Grafos" }
+  ]
+}

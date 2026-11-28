@@ -1,0 +1,7 @@
+{
+  "description": "representacion pasa a requerir bfs, que ya requiere representacion: ciclo de dos módulos.",
+  "expected": { "code": "CYCLE", "path": "/modules/0" },
+  "patch": [
+    { "op": "add", "path": "/modules/0/requires/-", "value": "bfs" }
+  ]
+}
