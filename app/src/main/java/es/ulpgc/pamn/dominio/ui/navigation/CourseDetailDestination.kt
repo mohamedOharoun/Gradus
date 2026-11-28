@@ -20,7 +20,15 @@ internal fun NavGraphBuilder.courseDetailDestination(navController: NavControlle
     composable<Route.CourseDetail> { entry ->
         val route = entry.toRoute<Route.CourseDetail>()
         val detailViewModel: CourseDetailViewModel = viewModel(
-            factory = CourseDetailViewModel.factory(route.courseId, AppContainer.courseGateway, AppContainer.progressStore),
+            factory = CourseDetailViewModel.factory(
+                courseId = route.courseId,
+                gateway = AppContainer.courseGateway,
+                enrollment = AppContainer.enrollmentStore,
+                progress = AppContainer.progressStore,
+                progressSync = AppContainer.progressSync,
+                courseCopy = AppContainer.courseCopy,
+                unenroll = AppContainer.unenrollFromCourse,
+            ),
         )
         ScreenCourseDetail(
             state = detailViewModel.state,
