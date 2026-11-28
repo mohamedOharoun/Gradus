@@ -39,18 +39,46 @@ class CourseInEnglishTest {
 
     @Test
     fun the_course_page_is_in_english_but_the_course_keeps_its_language() {
-        composeRule.setContentInEnglish { GradusTheme { ScreenCourseDetail(CourseDetailState.Ready(course, mastered = setOf("repr")), CourseDetailActions()) } }
+        composeRule.setContentInEnglish {
+            GradusTheme {
+                ScreenCourseDetail(
+                    CourseDetailState.Ready(course, mastered = setOf("repr"), enrolled = true),
+                    CourseDetailActions(),
+                )
+            }
+        }
 
         // De la app: en inglés.
         composeRule.onNodeWithText("by Ana Ruiz").assertIsDisplayed()
+        composeRule.onNodeWithText("Published in Nov 2026").assertIsDisplayed()
+        composeRule.onNodeWithText("Your progress").assertIsDisplayed()
+        composeRule.onNodeWithText("50%").assertIsDisplayed()
+        composeRule.onNodeWithText("1 of 2 modules mastered").assertIsDisplayed()
         composeRule.onNodeWithText("What you'll learn").assertExists()
-        composeRule.onNodeWithText("1 of 2 mastered").assertExists()
-        composeRule.onNodeWithText("Continue the course").assertExists()
+        composeRule.onNodeWithText("Go to course").assertIsDisplayed()
         // Del autor: tal cual, en español.
         composeRule.onNodeWithText("Introducción a los grafos").assertIsDisplayed()
         composeRule.onNodeWithText("Cómo se guarda un grafo en memoria.").assertExists()
         // En el orden del camino: «Representar un grafo» es requisito de BFS, así que va primero.
         composeRule.onNodeWithContentDescription("2, Recorrido en anchura (BFS)").assertExists()
+    }
+
+    @Test
+    fun the_unenrolled_course_page_is_in_english() {
+        composeRule.setContentInEnglish {
+            GradusTheme {
+                ScreenCourseDetail(
+                    CourseDetailState.Ready(course, enrolled = false),
+                    CourseDetailActions(),
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Enroll in course").assertIsDisplayed()
+        composeRule.onNodeWithText("modules", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("published", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("2 modules").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("published in November 2026").assertIsDisplayed()
     }
 
     @Test

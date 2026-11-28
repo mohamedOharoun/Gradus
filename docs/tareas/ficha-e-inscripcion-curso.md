@@ -9,7 +9,7 @@ Este documento es el **índice común**: objetivo, decisiones aprobadas, reparto
 de aceptación y acuerdos de proceso. El detalle de cada parte vive en su propio documento para que
 cada orquestador cargue solo lo suyo.
 
-Estado: **Partes A (Backend) y B (`sharedLogic` y Room) cerradas — Parte C (Interfaz `ui/screens/detail/`) lista para iniciar** (2026-11-28).
+Estado: **Partes A (Backend), B (`sharedLogic` y Room) y C (Interfaz `ui/screens/detail/`) cerradas — Parte D (Integración y cierre) lista para iniciar** (2026-11-28).
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -27,9 +27,9 @@ Estado: **Partes A (Backend) y B (`sharedLogic` y Room) cerradas — Parte C (In
 
 Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumula.
 
-- **Dónde estamos (2026-11-28):** **Parte A (Backend) y Parte B (`sharedLogic` y Room) terminadas
-  y cerradas** (ver `backend/docs/tareas/baja-curso-backend.md` y
-  `docs/tareas/ficha-curso-logica.md`).
+- **Dónde estamos (2026-11-28):** **Partes A (Backend), B (`sharedLogic` y Room) y C (Interfaz
+  `ui/screens/detail/`) terminadas y cerradas** (ver `backend/docs/tareas/baja-curso-backend.md`,
+  `docs/tareas/ficha-curso-logica.md` y `docs/tareas/ficha-curso-ui.md`).
   - **Backend (Parte A):** `DELETE /api/progress/enrollments/{courseId}` implementado y congelado en
     `backend/docs/api-progreso.md` (`204` idempotente con `ON DELETE CASCADE` en PostgreSQL, `401
     UNAUTHENTICATED`, `404 COURSE_NOT_FOUND` si `{courseId}` no es UUID canónico; `POST
@@ -40,23 +40,26 @@ Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumul
     (`NoSession | Finished(outcome)`), `@Transaction` en `ProgressDao` (`deleteEnrollmentWithMastered`
     y `markMasteredIfEnrolled`), comentario para `MIGRATION_3_4` en `MasteredModuleEntity`,
     `ProgressModule.unenroll` y `AppContainer.unenrollFromCourse`. `ProgressDatabase` sigue
-    congelada en **v3** (`app/schemas/.../3.json` intacto). En verde: 1275 tests en
-    `:sharedLogic:testAndroidHostTest`, 630 en `:app:testDebugUnitTest`, 138 instrumentados en
-    `data.progress` y 16 en `AppContainerTest`. Referencia viva actualizada en
-    `docs/arquitectura-progreso.md`.
-  - **Interfaz todavía sin tocar:** `ScreenCourseDetail` sigue desconectada de Buscar y Buscar sigue
-    navegando a `Route.CourseOverview`.
-- **Siguiente:** abrir el chat orquestador/planificador de la **Parte C (Interfaz
-  `ui/screens/detail/`)** para crear `docs/tareas/ficha-curso-ui.md` e implementar
-  `CourseDetailViewModel` con inscripción y baja (usando `AppContainer.unenrollFromCourse`,
-  `enrollmentStore`, `progressStore`, `progressSync` y `courseCopy`), el rediseño de
-  `ScreenCourseDetail` según ambos mockups (sin valoraciones ni marcador), menú `⋮` («Pausar curso»
-  sin acción + «Darse de baja»), diálogo destructivo de confirmación, ES/EN, previews claro/oscuro
-  y tests.
+    congelada en **v3** (`app/schemas/.../3.json` intacto).
+  - **Interfaz (Parte C):** implementados `CourseDetailState` + `UnenrollDialogState`,
+    `CourseDetailViewModel` (combinando inscripción y progreso con `combine`, inscripción con
+    `progressSync` + `courseCopy`, baja en línea con `UnenrollFromCourse`), textos ES/EN y
+    `CourseDetailTexts`, rediseño de `ScreenCourseDetail` (`CourseDetailHeader` tintada
+    *edge-to-edge* con menú `⋮`, estadísticas y progreso; `CourseDetailBody` con descripción,
+    `LearnList` actual y `TagLabel` al final, sin «Incluye» por ahora; `UnenrollCourseDialog`
+    destructivo), 8 `@LightDarkPreviews`, cableado completo en `CourseDetailDestination.kt` y
+    tests (651 unitarios en `:app:testDebugUnitTest` y 23 instrumentados en `emulator-5554`).
+  - **Integración pendiente (Parte D):** Buscar (`MainNavGraph.kt`) sigue navegando a
+    `Route.CourseOverview` y `ScreenCourseOverview` sigue en el proyecto.
+- **Siguiente:** ejecutar la **Parte D (Integración y cierre)**: conectar Buscar a
+  `Route.CourseDetail`, retirar `ScreenCourseOverview` y `Route.CourseOverview` tras confirmación
+  expresa del usuario, probar el flujo completo en el emulador contra el servidor local
+  (`gradus.sh up`), correr la batería completa y actualizar `docs/especificacion.md` y
+  `docs/arquitectura-progreso.md`.
 - **Dependencias entre partes:**
   - ~~Parte B depende del contrato `DELETE` congelado por la Parte A.~~ (**cerrada**)
-  - ~~Parte C depende de `UnenrollFromCourse` y `EnrollmentStore.unenroll` de la Parte B.~~ (**desbloqueada**)
-  - Parte D depende de la Parte C probada en el emulador.
+  - ~~Parte C depende de `UnenrollFromCourse` y `EnrollmentStore.unenroll` de la Parte B.~~ (**cerrada**)
+  - ~~Parte D depende de la Parte C probada en el emulador.~~ (**desbloqueada**)
 - **Nota de deuda técnica deliberada (para «Pausar curso»):** `ProgressDatabase` se queda en **v3**
   en esta rama (borrando `mastered_modules` y `enrollments` en un `@Transaction` en `ProgressDao`).
   Cuando en el futuro se cree `MIGRATION_3_4` para implementar «Pausar curso», se aprovechará esa
@@ -122,7 +125,7 @@ La casilla ✅ la marca el revisor (el orquestador de la parte), no quien implem
 |---|---|---|---|
 | **A · Backend** ✅ | Endpoint `DELETE /api/progress/enrollments/{courseId}`, caso de uso `UnenrollCourse`, JDBC, contrato `api-progreso.md`, Yaak y tests JUnit | `backend/docs/tareas/baja-curso-backend.md` (cerrada) | Propio |
 | **B · `sharedLogic` y Room** ✅ | `ProgressGateway.unenroll` + HTTP + Fake, `EnrollmentStore.unenroll` (`InMemory` y `Room`), caso de uso `UnenrollFromCourse`, `@Transaction` en `ProgressDao` y `markMastered` seguro, `ProgressModule` + `AppContainer`, tests `kotlin.test` + instrumentados Room | `docs/tareas/ficha-curso-logica.md` (cerrada) | Propio |
-| **C · Interfaz (`ui/screens/detail/`)** | `CourseDetailViewModel` con inscripción y baja, rediseño de `ScreenCourseDetail` según ambos mockups (sin valoraciones), menú `⋮` («Pausar curso» + «Darse de baja»), diálogo destructivo, ES/EN, previews claro/oscuro y tests | `docs/tareas/ficha-curso-ui.md` (lo crea el orquestador C) | Propio |
+| **C · Interfaz (`ui/screens/detail/`)** ✅ | `CourseDetailViewModel` con inscripción y baja, rediseño de `ScreenCourseDetail` según ambos mockups (sin valoraciones), menú `⋮` («Pausar curso» + «Darse de baja»), diálogo destructivo, ES/EN, previews claro/oscuro y tests | `docs/tareas/ficha-curso-ui.md` (cerrada) | Propio |
 | **D · Integración y cierre** | Conectar Buscar → `Route.CourseDetail`, retirar `ScreenCourseOverview` y `Route.CourseOverview` (con permiso), prueba manual en emulador, batería completa y actualización de `docs/especificacion.md` y `docs/arquitectura-progreso.md` | Este documento (o con el orquestador C) | El último que termine |
 
 ### Criterios mínimos por parte
@@ -207,3 +210,12 @@ La casilla ✅ la marca el revisor (el orquestador de la parte), no quien implem
   `AppContainer.unenrollFromCourse` y actualización de `docs/arquitectura-progreso.md`.
   `ProgressDatabase` v3 y `3.json` intactos. En verde: 1275 tests `sharedLogic`, 630 unitarios
   `app`, 138 instrumentados en `data.progress` y 16 en `AppContainerTest`. **Parte C desbloqueada.**
+- 2026-11-28: **Parte C (Interfaz `ui/screens/detail/`) cerrada (tareas C1–C5).** Implementados
+  `UnenrollDialogState` y `CourseDetailState.Ready` ampliado, `CourseDetailViewModel` (con
+  `combine`, inscripción + sync/copia y baja en línea), textos ES/EN y `CourseDetailTexts`,
+  `ic_more_vert.xml`, `CourseDetailHeader` (cabecera tintada *edge-to-edge*, menú `⋮`,
+  estadísticas y progreso), `CourseDetailBody` (descripción + `LearnList` actual + `TagLabel` al
+  final, sin «Incluye» por ahora), `UnenrollCourseDialog`, rediseño de `ScreenCourseDetail`, 8
+  `@LightDarkPreviews`, cableado completo en `CourseDetailDestination.kt` y tests (`651` unitarios
+  en `:app:testDebugUnitTest` y `23` instrumentados en `ScreenCourseDetailTest`,
+  `UnenrollCourseDialogTest` y `CourseInEnglishTest` en `emulator-5554`). **Parte D desbloqueada.**

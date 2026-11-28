@@ -58,17 +58,19 @@ los dos estados principales del estudiante:
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-28): C4 hecha y revisada.** Rediseño de `ScreenCourseDetail.kt` (cabecera
-  tintada *edge-to-edge*, barra inferior fija con CTA dinámico y `UnenrollCourseDialog`), 8
-  `@LightDarkPreviews` en `ScreenCourseDetailPreviews.kt`, cableado completo en
-  `CourseDetailDestination.kt` y limpieza de helpers/claves obsoletos (`CourseDetailTexts.kt` y
-  `strings.xml`). En verde: `:app:assembleDebug`, `:app:compileDebugAndroidTestKotlin` y
-  `:app:testDebugUnitTest` (651 passed).
-- **Toca:** implementar y revisar **C5** (tests instrumentados de UI, accesibilidad/TalkBack e
-  inglés en `ScreenCourseDetailTest.kt`, `UnenrollCourseDialogTest.kt` y `CourseInEnglishTest.kt`)
-  para cerrar la Parte C.
-- **Pendiente después:** Parte D (conectar Buscar a `Route.CourseDetail`, retirar
-  `ScreenCourseOverview` con permiso y prueba manual en emulador).
+- **Estado (2026-11-28): parte C terminada y cerrada** (pasos C1–C5 revisados y en verde:
+  651 unitarios en `:app:testDebugUnitTest`, 23 instrumentados en `ScreenCourseDetailTest`,
+  `UnenrollCourseDialogTest` y `CourseInEnglishTest` en `emulator-5554`, y previews claro/oscuro
+  verificadas).
+- **Toca:** nada en la parte C. **Parte D (Integración y cierre) desbloqueada.**
+- **Para quien haga la parte D:**
+  - `courseDetailDestination(navController)` ya está cableada en `MainNavGraph.kt` con todas las
+    acciones (`onEnroll`, `onStart`, `onOpenUnenrollDialog`, `onConfirmUnenroll`,
+    `onDismissUnenrollDialog`, `onRetry`, `onBack`) y los puertos de `AppContainer`.
+  - Solo falta cambiar la navegación desde Buscar (`Route.CourseOverview` → `Route.CourseDetail`),
+    retirar `ScreenCourseOverview` / `Route.CourseOverview` (previo permiso expreso del usuario),
+    probar el flujo completo en emulador contra el servidor local (`gradus.sh up`), ejecutar la
+    batería completa y actualizar `docs/especificacion.md` y `docs/arquitectura-progreso.md`.
 
 ## Lo que ya hay y sirve de modelo
 
@@ -242,7 +244,7 @@ implementación y tests → revisión → mensaje de commit.
     problema. Revisadas visualmente en claro y oscuro.
   - `./gradlew :app:assembleDebug :app:testDebugUnitTest` en verde.
 
-### [ ] C5. Tests instrumentados de UI y accesibilidad (`ScreenCourseDetailTest`) y cierre de Parte C
+### [x] C5. Tests instrumentados de UI y accesibilidad (`ScreenCourseDetailTest`) y cierre de Parte C
 
 - **Modelo y esfuerzo mínimos:** Claude Sonnet 4.6 (esfuerzo **medio**) · Gemini 2.5 Pro (esfuerzo
   **bajo–medio**).
@@ -306,7 +308,17 @@ implementación y tests → revisión → mensaje de commit.
   `:app:assembleDebug`, `:app:compileDebugAndroidTestKotlin` y `:app:testDebugUnitTest` (651
   passed).
 
+- 2026-11-28: **C5 hecha y revisada; parte C terminada y cerrada.** Actualizados
+  `ScreenCourseDetailTest.kt` (12 tests ES cubriendo vistas no inscrito e inscrito, TalkBack con
+  mes completo, zonas táctiles ≥ 48 dp, menú `⋮`, carga y errores) y `CourseInEnglishTest.kt`
+  (adaptado a los nuevos textos y añadido test no inscrito en inglés), y creado
+  `UnenrollCourseDialogTest.kt` (6 tests cubriendo `Closed`, `Confirming`, `Sending`,
+  `UNREACHABLE` y `SERVER_FAILURE` montado desde `ScreenCourseDetail`). En verde en
+  `emulator-5554`: 23/23 tests instrumentados y `:app:testDebugUnitTest` (651 passed).
+
 ## Siguiente paso
 
-Lanzar el implementador para **C5** (tests instrumentados de UI, accesibilidad/TalkBack e inglés en
-`ScreenCourseDetailTest.kt`, `UnenrollCourseDialogTest.kt` y `CourseInEnglishTest.kt`).
+Parte C cerrada. Iniciar la **Parte D (Integración y cierre)**: conectar Buscar a
+`Route.CourseDetail`, retirar `ScreenCourseOverview` y `Route.CourseOverview` con permiso del
+usuario, probar el flujo completo en el emulador contra el servidor local y actualizar la
+documentación (`docs/especificacion.md` y `docs/arquitectura-progreso.md`).
