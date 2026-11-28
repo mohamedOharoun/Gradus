@@ -26,8 +26,6 @@ import es.ulpgc.pamn.dominio.ui.screens.course.CourseScreenState
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseViewModel
 import es.ulpgc.pamn.dominio.ui.screens.course.ModuleSheetActions
 import es.ulpgc.pamn.dominio.ui.screens.course.ScreenCourse
-import es.ulpgc.pamn.dominio.ui.screens.enrollment.EnrollmentViewModel
-import es.ulpgc.pamn.dominio.ui.screens.enrollment.ScreenCourseOverview
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseActions
 import es.ulpgc.pamn.dominio.ui.screens.exercise.ExerciseViewModel
 import es.ulpgc.pamn.dominio.ui.screens.exercise.PhotoStepUi
@@ -57,7 +55,7 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
             // cambiaría con cada tecla y la lista y las tarjetas se volverían a dibujar.
             val lifecycleOwner = LocalLifecycleOwner.current
             val openCourse = remember(lifecycleOwner, navController) {
-                lifecycleOwner.onlyWhenResumed { id: String -> navController.navigate(Route.CourseOverview(id)) }
+                lifecycleOwner.onlyWhenResumed { id: String -> navController.navigate(Route.CourseDetail(id)) }
             }
             ScreenSearch(
                 text = searchViewModel.text,
@@ -69,21 +67,6 @@ fun NavGraphBuilder.mainGraph(navController: NavController) {
         }
         tab<Route.MyCourses>(TopLevelDestination.MY_COURSES, navController) { MyCoursesRoute(navController, it) }
         tab<Route.Settings>(TopLevelDestination.SETTINGS, navController) { SettingsRoute(navController, it) }
-        // Página de relleno del curso. El EnrollmentViewModel vive con esta entrada.
-        composable<Route.CourseOverview> { entry ->
-            val route = entry.toRoute<Route.CourseOverview>()
-            val enrollmentViewModel: EnrollmentViewModel = viewModel(
-                factory = EnrollmentViewModel.factory(
-                    route.courseId, AppContainer.enrollmentStore, AppContainer.progressSync, AppContainer.courseCopy,
-                ),
-            )
-            ScreenCourseOverview(
-                enrollment = enrollmentViewModel.state,
-                onEnroll = enrollmentViewModel::onEnroll,
-                onGoToPath = dropUnlessResumed { navController.navigate(Route.Course(route.courseId)) },
-                onBack = dropUnlessResumed { navController.popBackStack() },
-            )
-        }
         // Sin barra: no es una pestaña, se entra desde una y «atrás» vuelve a ella.
         composable<Route.Course> { entry ->
             val route = entry.toRoute<Route.Course>()

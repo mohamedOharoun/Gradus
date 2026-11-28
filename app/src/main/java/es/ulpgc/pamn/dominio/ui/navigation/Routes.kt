@@ -34,10 +34,6 @@ sealed interface Route {
 
     // ── Dentro del grafo Main, pero sin barra (docs/tareas/camino-curso-y-ejercicios.md) ──
 
-    // Página de relleno de un curso (inscribirse e ir al camino). Solo lleva el id: Buscar no tiene el título.
-    @Serializable
-    data class CourseOverview(val courseId: String) : Route
-
     // Editar el nombre, desde Ajustes (docs/tareas/ajustes.md, fase 2).
     @Serializable
     data object EditProfile : Route

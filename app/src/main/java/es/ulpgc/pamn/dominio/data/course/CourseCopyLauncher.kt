@@ -7,7 +7,7 @@ import kotlinx.coroutines.launch
 
 // Patrón Command: implementa CourseCopyRequester lanzando gateway.course(courseId) en un ámbito
 // de aplicación (appScope), así la descarga y el guardado en Room no se cancelan al salir de
-// ScreenCourseOverview.
+// ScreenCourseDetail.
 // Precarga oportunista (best effort): el gateway devuelve los fallos de red/servidor como
 // CourseOutcome sin lanzar y se descartan; una Exception del almacén (p. ej. Room/disco) se
 // captura para no cerrar la app tras inscribirse bien. CancellationException se relanza siempre.

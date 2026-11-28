@@ -140,12 +140,7 @@
     <string name="course_locked">«%1$s» está bloqueado.</string>
     <string name="course_locked_missing">Para desbloquear «%1$s», domina antes %2$s.</string>
     <string name="course_not_enrolled">Inscríbete para empezar a estudiar</string>
-    <string name="enroll_action">Inscribirme</string>
     <string name="enroll_enrolling">Inscribiendo…</string>
-    <string name="enroll_enrolled">Inscrito</string>
-    <string name="course_overview_title">Curso</string>
-    <string name="course_overview_body">Inscríbete para guardar tu progreso y estudiar sus módulos. El camino se puede ver sin inscribirte.</string>
-    <string name="course_overview_go_to_path">Ir al camino</string>
     <string name="course_loading">Descargando el curso</string>
     <string name="course_not_found_title">Este curso no existe</string>
     <string name="course_not_found_body">Puede que su autor lo haya retirado.</string>

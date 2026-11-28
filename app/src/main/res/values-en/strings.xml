@@ -136,12 +136,7 @@
     <string name="course_locked">“%1$s” is locked.</string>
     <string name="course_locked_missing">To unlock “%1$s”, first master %2$s.</string>
     <string name="course_not_enrolled">Enroll to start studying</string>
-    <string name="enroll_action">Enroll</string>
     <string name="enroll_enrolling">Enrolling…</string>
-    <string name="enroll_enrolled">Enrolled</string>
-    <string name="course_overview_title">Course</string>
-    <string name="course_overview_body">Enroll to save your progress and study its modules. You can view the path without enrolling.</string>
-    <string name="course_overview_go_to_path">Go to path</string>
     <string name="course_loading">Downloading the course</string>
     <string name="course_not_found_title">This course doesn\'t exist</string>
     <string name="course_not_found_body">Its author may have removed it.</string>
