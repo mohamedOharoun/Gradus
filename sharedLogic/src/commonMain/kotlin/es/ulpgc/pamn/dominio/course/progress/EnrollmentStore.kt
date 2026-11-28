@@ -17,4 +17,13 @@ interface EnrollmentStore {
     // - Sin sesión lanza IllegalStateException (es un fallo de programación: la interfaz no debe
     //   ofrecer inscribirse sin haber iniciado sesión).
     suspend fun enroll(courseId: String)
+
+    // Da de baja localmente al usuario indicado del curso.
+    // - Recibe userId explícito y no lee SessionStore: así, si la sesión cambia o se cierra
+    //   mientras la petición viaja por la red, borra solo el progreso del usuario original y no
+    //   lanza por falta de sesión.
+    // - Es idempotente: si el usuario o la inscripción no existen, no hace nada ni da error.
+    // - Borra inscripción, módulos dominados y marcas pendientes de (userId, courseId) sin tocar
+    //   otros cursos ni otros usuarios, y avisa a los Flow activos.
+    suspend fun unenroll(userId: String, courseId: String)
 }

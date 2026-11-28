@@ -42,6 +42,11 @@ internal data class UserProgress(val courses: Map<String, CourseProgress> = empt
         return UserProgress(courses + (courseId to updated))
     }
 
+    // Quita el curso completo (inscripción, módulos dominados y marcas pendientes) sin mutar este valor.
+    // Si no estaba inscrito, devuelve this.
+    fun withoutCourse(courseId: String): UserProgress =
+        if (courseId !in courses) this else UserProgress(courses - courseId)
+
     fun isEnrolledIn(courseId: String): Boolean = courseId in courses
 
     fun masteredIds(courseId: String): Set<String> = courses[courseId]?.mastered?.keys.orEmpty()

@@ -32,6 +32,20 @@ class InMemoryProgressStore(
         change { user, now -> user.enrolledIn(courseId, now) }
     }
 
+    // withoutCourse es pura: una sola update aplica la baja de forma atómica sin tocar el mapa si
+    // el usuario o el curso no existen.
+    override suspend fun unenroll(userId: String, courseId: String) {
+        progress.update { all ->
+            val current = all[userId] ?: return@update all
+            val updated = current.withoutCourse(courseId)
+            when {
+                updated === current -> all
+                updated.courses.isEmpty() -> all - userId
+                else -> all + (userId to updated)
+            }
+        }
+    }
+
     override suspend fun markMastered(courseId: String, moduleId: String) {
         change { user, now -> user.masteredIn(courseId, moduleId, now) }
     }

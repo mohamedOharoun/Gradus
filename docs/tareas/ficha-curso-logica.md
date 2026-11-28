@@ -38,12 +38,12 @@ y mantener `ProgressDatabase` congelada en **v3** protegiendo las operaciones co
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-28):** **B1 hecho y revisado** (`ProgressGateway.unenroll`, `UnenrollOutcome`,
-  `HttpProgressGateway`, `FakeProgressGateway`, 23 tests nuevos en `sharedLogic` y 5 llamadas con
-  lambda final ajustadas a `answer =` en `app/src/androidTest/`; 1242 tests en `sharedLogic` y 630
-  unitarios en `app` en verde, `compileDebugAndroidTestKotlin` OK).
-- **Toca:** paso **B2** (`EnrollmentStore.unenroll`, `UserProgress.withoutCourse` e
-  `InMemoryProgressStore`, con tests TDD en `sharedLogic`).
+- **Estado (2026-11-28):** **B1 y B2 hechos y revisados** (`ProgressGateway.unenroll` + HTTP/Fake,
+  `EnrollmentStore.unenroll` + `UserProgress.withoutCourse` + `InMemoryProgressStore`; 1257 tests en
+  `:sharedLogic:testAndroidHostTest`, todos en verde). `app/` no compila temporalmente hasta **B4**
+  (esperado: falta `unenroll` en `RoomProgressStore` y posibles fakes en `app/`).
+- **Toca:** paso **B3** (caso de uso `UnenrollFromCourse` y `UnenrollResult`, con tests TDD en
+  `sharedLogic`).
 - **Riesgos y notas técnicas:**
   - En **B2**, añadir `unenroll(userId, courseId)` a `EnrollmentStore` hará que `app/`
     (`RoomProgressStore` y posibles fakes de tests) no compile hasta **B4**; `:sharedLogic` compila
@@ -130,7 +130,7 @@ tests primero (rojo → verde → refactor en lógica pura) → revisión → me
   - `./gradlew :sharedLogic:compileAndroidHostTest --rerun :sharedLogic:testAndroidHostTest --rerun`
     en verde.
 
-### [ ] B2. `EnrollmentStore.unenroll` e `InMemoryProgressStore`
+### [x] B2. `EnrollmentStore.unenroll` e `InMemoryProgressStore`
 
 - **Modelo y esfuerzo mínimos:** Claude Sonnet 4.5 / 4.6 (esfuerzo **bajo–medio**) · Gemini 2.5
   Flash (esfuerzo **medio**) o 2.5 Pro (esfuerzo **bajo**).
@@ -221,8 +221,11 @@ tests primero (rojo → verde → refactor en lógica pura) → revisión → me
   (`unenrollAnswer`, `UnenrollCall` sin token), con 16 tests en `HttpProgressGatewayUnenrollTest` y
   7 en `FakeProgressGatewayUnenrollTest`; ajustadas 5 llamadas con lambda final en
   `app/src/androidTest/` (`ProgressModuleTest`, `ProgressSyncWorkerTest`, `WorkSyncRequesterTest`).
+- 2026-11-28: **B2 hecho y revisado.** Añadido `EnrollmentStore.unenroll(userId, courseId)`,
+  `UserProgress.withoutCourse(courseId)` e `InMemoryProgressStore.unenroll` (atómico, limpia
+  entradas vacías con `all - userId`), con 15 tests nuevos en `UnenrollStoreTest` (1257 passed en
+  `sharedLogic`).
 
 ## Siguiente paso
 
-Ejecutar el paso **B2** con su implementador (`EnrollmentStore.unenroll`,
-`UserProgress.withoutCourse` e `InMemoryProgressStore`).
+Ejecutar el paso **B3** con su implementador (`UnenrollFromCourse` y `UnenrollResult`).
