@@ -58,13 +58,13 @@ los dos estados principales del estudiante:
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-28): C1 hecha y revisada.** `CourseDetailState`, `UnenrollDialogState`,
-  `CourseDetailActions`, `CourseDetailViewModel`, `CourseDetailDestination` (`factory`) y 26 tests
-  unitarios (`CourseDetailViewModelTest` + `CourseDetailUnenrollViewModelTest`) en verde
-  (`:app:testDebugUnitTest` 650 passed, `:app:compileDebugAndroidTestKotlin` en verde).
-- **Toca:** implementar y revisar **C2** (recursos ES/EN y funciones puras de `CourseDetailTexts` +
-  `CourseDetailTextsTest`).
-- **Pendiente después:** C3 (subcomponentes y diálogo) → C4 (`ScreenCourseDetail` y previews) → C5
+- **Estado (2026-11-28): C2 hecha y revisada.** Textos ES/EN en `values/strings.xml` y
+  `values-en/strings.xml`, funciones puras en `CourseDetailTexts.kt` y 9 tests nuevos en
+  `CourseDetailTextsTest.kt` en verde (`:app:testDebugUnitTest` 659 passed,
+  `:app:compileDebugKotlin` y `:app:compileDebugAndroidTestKotlin` en verde).
+- **Toca:** implementar y revisar **C3** (`CourseDetailHeader.kt`, `CourseDetailContent.kt`,
+  `UnenrollCourseDialog.kt` e `ic_more_vert.xml`).
+- **Pendiente después:** C4 (`ScreenCourseDetail`, previews y `CourseDetailDestination`) → C5
   (tests instrumentados).
 
 ## Lo que ya hay y sirve de modelo
@@ -169,7 +169,7 @@ implementación y tests → revisión → mensaje de commit.
       `Sending` o `Failed`) actualiza `mastered` **sin cerrar** el diálogo.
   - `./gradlew :app:testDebugUnitTest` en verde y `:app:compileDebugKotlin` sin avisos nuevos.
 
-### [ ] C2. Recursos ES/EN y funciones puras de textos (`CourseDetailTexts`)
+### [x] C2. Recursos ES/EN y funciones puras de textos (`CourseDetailTexts`)
 
 - **Modelo y esfuerzo mínimos:** Claude Sonnet 4.6 (esfuerzo **bajo**) · Gemini 2.5 Flash (esfuerzo
   **medio**).
@@ -277,7 +277,15 @@ implementación y tests → revisión → mensaje de commit.
   `CourseDetailUnenrollViewModelTest`). Compilan `:app:compileDebugKotlin`,
   `:app:compileDebugAndroidTestKotlin` y `:app:testDebugUnitTest` (650 passed).
 
+- 2026-11-28: **C2 hecha y revisada.** Añadidas claves ES/EN (`detail_modules_label`,
+  `detail_stat_published`, `detail_published_in`, `detail_progress_title`, `detail_progress_percent`,
+  `detail_progress_modules`, `detail_enroll`, `detail_go_to_course`, `detail_more_options`,
+  `detail_pause_course`, `detail_unenroll`, `detail_unenrolling`, `detail_unenroll_title`,
+  `detail_unenroll_body`), funciones puras en `CourseDetailTexts.kt` (manteniendo compatibilidad
+  hasta C4) y 9 tests nuevos en `CourseDetailTextsTest.kt`. En verde: `:app:compileDebugKotlin`,
+  `:app:compileDebugAndroidTestKotlin` y `:app:testDebugUnitTest` (659 passed).
+
 ## Siguiente paso
 
-Lanzar el implementador para **C2** (recursos ES/EN en `strings.xml` y funciones puras de
-`CourseDetailTexts.kt` + `CourseDetailTextsTest.kt`).
+Lanzar el implementador para **C3** (`CourseDetailHeader.kt`, actualización de
+`CourseDetailContent.kt`, `UnenrollCourseDialog.kt` e icono vectorial `ic_more_vert.xml`).

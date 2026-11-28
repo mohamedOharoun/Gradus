@@ -173,6 +173,26 @@
     <string name="detail_continue">Continue the course</string>
     <string name="detail_review">Review the course</string>
     <string name="detail_learn_title">What you\'ll learn</string>
+    <plurals name="detail_modules_label">
+        <item quantity="one">module</item>
+        <item quantity="other">modules</item>
+    </plurals>
+    <string name="detail_stat_published">published</string>
+    <string name="detail_published_in">Published in %1$s</string>
+    <string name="detail_progress_title">Your progress</string>
+    <string name="detail_progress_percent">%1$d%%</string>
+    <plurals name="detail_progress_modules">
+        <item quantity="one">%1$d of %2$d module mastered</item>
+        <item quantity="other">%1$d of %2$d modules mastered</item>
+    </plurals>
+    <string name="detail_enroll">Enroll in course</string>
+    <string name="detail_go_to_course">Go to course</string>
+    <string name="detail_more_options">More options</string>
+    <string name="detail_pause_course">Pause course</string>
+    <string name="detail_unenroll">Unenroll</string>
+    <string name="detail_unenrolling">Unenrolling…</string>
+    <string name="detail_unenroll_title">Unenroll from course?</string>
+    <string name="detail_unenroll_body">You\'ll lose all your progress in this course. This can\'t be undone.</string>
 
     <!-- Studying a module (step 8b). Questions, options, explanations and titles are the author's: they are
          data and are never translated (decision R). -->

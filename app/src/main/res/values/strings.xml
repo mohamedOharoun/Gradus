@@ -180,6 +180,26 @@
     <string name="detail_continue">Continuar el curso</string>
     <string name="detail_review">Repasar el curso</string>
     <string name="detail_learn_title">Qué vas a aprender</string>
+    <plurals name="detail_modules_label">
+        <item quantity="one">módulo</item>
+        <item quantity="other">módulos</item>
+    </plurals>
+    <string name="detail_stat_published">publicado</string>
+    <string name="detail_published_in">Publicado en %1$s</string>
+    <string name="detail_progress_title">Tu progreso</string>
+    <string name="detail_progress_percent">%1$d %%</string>
+    <plurals name="detail_progress_modules">
+        <item quantity="one">%1$d de %2$d módulo dominado</item>
+        <item quantity="other">%1$d de %2$d módulos dominados</item>
+    </plurals>
+    <string name="detail_enroll">Inscribirse al curso</string>
+    <string name="detail_go_to_course">Ir al curso</string>
+    <string name="detail_more_options">Más opciones</string>
+    <string name="detail_pause_course">Pausar curso</string>
+    <string name="detail_unenroll">Darse de baja</string>
+    <string name="detail_unenrolling">Dando de baja…</string>
+    <string name="detail_unenroll_title">¿Darse de baja del curso?</string>
+    <string name="detail_unenroll_body">Se perderá todo tu progreso en este curso. No se puede deshacer.</string>
 
     <!-- Estudiar un módulo (paso 8b). Preguntas, opciones, explicaciones y títulos son del autor: van como
          datos y no se traducen (decisión R). -->
