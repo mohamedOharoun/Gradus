@@ -31,11 +31,13 @@ sesión; no se acumula.
     añadir `ErrorCode` nuevos.
   - Sin migración SQL: `006_create_enrollments.sql` ya tiene `ON DELETE CASCADE` desde `enrollments`
     hacia `mastered_modules` y clave primaria `(user_id, course_id)`.
-- **Siguiente:** pedir permiso explícito a los usuarios para la comprobación real contra PostgreSQL
-  en **A3** y lanzar al implementador de **A3** (nueva petición en `backend/yaak/workspace/` + batería
-  `curl` + verificación de los usuarios en Yaak).
-- **Permisos pendientes:** confirmación de los usuarios para ejecutar las pruebas reales de **A3**
-  contra PostgreSQL local (qué cuentas de prueba usar vía API, sin `UPDATE`/`DELETE` manual en SQL).
+- **Siguiente:** lanzar al implementador de **A3** (nueva petición en `backend/yaak/workspace/` +
+  batería `curl` contra PostgreSQL + verificación de los usuarios en Yaak).
+- **Permiso aprobado para A3 (2026-11-28):** arrancar PostgreSQL local (`./gradus.sh db`) y el
+  servidor en `localhost:7070` (parándolo al terminar), crear dos cuentas de prueba vía API
+  (`unenroll-a@example.test` y `unenroll-b@example.test`) sobre cursos ya publicados, comprobar los
+  escenarios con `curl` y `SELECT` de solo lectura (sin `UPDATE`/`DELETE` SQL manuales), y al
+  terminar borrar ambas cuentas vía `DELETE /api/users/me` para dejar la base de desarrollo limpia.
 
 ## Objetivo
 

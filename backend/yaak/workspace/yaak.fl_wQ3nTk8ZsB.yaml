@@ -2,12 +2,12 @@ type: folder
 model: folder
 id: fl_wQ3nTk8ZsB
 createdAt: 2026-11-24T21:30:00.000000000
-updatedAt: 2026-11-24T21:30:00.000000000
+updatedAt: 2026-11-28T10:30:00.000000000
 workspaceId: wk_kGqZSBRAjF
 folderId: null
 authentication: {}
 authenticationType: null
-description: 'POST /api/progress/sync (backend/docs/api-progreso.md). Envía antes, en la carpeta «Cursos · Publicación», el inicio de sesión de la autora y «Publicar curso (201)»: la petición usa su token y el id de ese curso. Mandar lo mismo varias veces deja el mismo estado (fusión = unión, gana la fecha más antigua). Para probar el 400 rompe el cuerpo (por ejemplo, quita «enrollments»); para el 401, quita la cabecera Authorization. El 413 no está aquí (un cuerpo de más de 2 MiB no cabe en el workspace).'
+description: 'POST /api/progress/sync y DELETE /api/progress/enrollments/{courseId} (backend/docs/api-progreso.md). Envía antes, en la carpeta «Cursos · Publicación», el inicio de sesión de la autora y «Publicar curso (201)»: las peticiones usan su token y el id de ese curso. En sync, mandar lo mismo varias veces deja el mismo estado (fusión = unión, gana la fecha más antigua); para probar el 400 rompe el cuerpo (por ejemplo, quita «enrollments»). En la baja, se borran la inscripción y los módulos dominados del curso (idempotente, 204); para probar el 404 cambia el id de la URL a algo que no sea UUID (por ejemplo «not-a-uuid»). En ambas, para el 401, quita la cabecera Authorization. El 413 no está aquí (un cuerpo de más de 2 MiB no cabe en el workspace).'
 headers: []
 name: Progreso · Sincronización
 sortPriority: 6.0

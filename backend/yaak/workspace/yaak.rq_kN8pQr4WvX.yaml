@@ -1,0 +1,40 @@
+type: http_request
+model: http_request
+id: rq_kN8pQr4WvX
+createdAt: 2026-11-28T10:30:00.000000000
+updatedAt: 2026-11-28T10:30:00.000000000
+workspaceId: wk_kGqZSBRAjF
+folderId: fl_wQ3nTk8ZsB
+authentication: {}
+authenticationType: null
+body: {}
+bodyType: null
+description: 'Borra la inscripción y todos los módulos dominados de autora.cursos@example.com en el curso de «Publicar curso (201)». Es idempotente: repetirla devuelve igualmente 204 sin cuerpo.'
+headers:
+- enabled: true
+  name: Authorization
+  value: Bearer ${[ response.body.path(request='rq_BidRTgEuwC', path='$.token') ]}
+  id: null
+method: DELETE
+name: Darse de baja de un curso (204)
+sortPriority: 1.0
+url: ${[ baseUrl ]}/api/progress/enrollments/${[ response.body.path(request='rq_jAYMWnPgxc', path='$.course.id') ]}
+urlParameters: []
+settingSendCookies:
+  enabled: false
+  value: true
+settingStoreCookies:
+  enabled: false
+  value: true
+settingValidateCertificates:
+  enabled: false
+  value: true
+settingFollowRedirects:
+  enabled: false
+  value: true
+settingRequestTimeout:
+  enabled: false
+  value: 0
+settingHttpVersion:
+  enabled: false
+  value: auto
