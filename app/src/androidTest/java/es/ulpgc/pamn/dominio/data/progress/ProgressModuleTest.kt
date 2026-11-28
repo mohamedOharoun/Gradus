@@ -88,7 +88,7 @@ class ProgressModuleTest {
     @Test
     fun the_sync_of_the_module_merges_into_the_same_room_store() = runTest {
         val remote = synced(snapshot(enrollment(TREES, START, "root" to START)))
-        val module = moduleWith(FakeProgressGateway { _, _ -> remote })
+        val module = moduleWith(FakeProgressGateway(answer = { _, _ -> remote }))
         progress.logInAs(ANA)
         module.enrollmentStore.enroll(GRAPHS)
         module.progressStore.markMastered(GRAPHS, "bfs")

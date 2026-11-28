@@ -121,10 +121,12 @@ class ProgressSyncWorkerTest {
         val sessions = InMemorySessionStore()
         sessions.save(ANA_SESSION)
         val store = InMemoryProgressStore(sessions)
-        val gateway = FakeProgressGateway { _, _ ->
-            sessions.save(BETO_SESSION)
-            SyncOutcome.SessionExpired
-        }
+        val gateway = FakeProgressGateway(
+            answer = { _, _ ->
+                sessions.save(BETO_SESSION)
+                SyncOutcome.SessionExpired
+            },
+        )
         val worker = buildWorker(SessionProgressSync(sessions, ProgressSync(store, gateway)))
 
         val result = worker.doWork()
@@ -136,7 +138,7 @@ class ProgressSyncWorkerTest {
     @Test
     fun store_exception_propagates_out_of_do_work() = runTest {
         val sessions = InMemorySessionStore().apply { save(ANA_SESSION) }
-        val gateway = FakeProgressGateway { _, _ -> emptySynced() }
+        val gateway = FakeProgressGateway(answer = { _, _ -> emptySynced() })
         val worker = buildWorker(SessionProgressSync(sessions, ProgressSync(FailingSyncStore, gateway)))
 
         val failure = runCatching { worker.doWork() }.exceptionOrNull()
@@ -147,7 +149,7 @@ class ProgressSyncWorkerTest {
 
     @Test
     fun session_read_exception_propagates_out_of_do_work() = runTest {
-        val gateway = FakeProgressGateway { _, _ -> emptySynced() }
+        val gateway = FakeProgressGateway(answer = { _, _ -> emptySynced() })
         val store = InMemoryProgressStore(InMemorySessionStore())
         val worker = buildWorker(SessionProgressSync(FailingSessionStore, ProgressSync(store, gateway)))
 

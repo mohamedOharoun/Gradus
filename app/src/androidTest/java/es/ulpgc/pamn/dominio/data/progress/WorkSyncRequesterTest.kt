@@ -206,7 +206,7 @@ class WorkSyncRequesterTest {
     @Test
     fun store_exception_marks_work_as_failed_without_retrying() = runBlocking {
         val sessions = InMemorySessionStore().apply { save(ANA_SESSION) }
-        val gateway = FakeProgressGateway { _, _ -> emptySynced() }
+        val gateway = FakeProgressGateway(answer = { _, _ -> emptySynced() })
         val sessionSync = SessionProgressSync(sessions, ProgressSync(BrokenSyncStore, gateway))
         val requester = initWorkManager(sessionSync)
 
