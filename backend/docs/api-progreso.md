@@ -1,18 +1,22 @@
 # API de progreso — contrato entre el backend y la app
 
-Estado: **congelado** (2026-11-24, al cerrar la tarea 3 de la parte A). Comprobado contra PostgreSQL
-con 16 escenarios reales (tarea 3b de `tareas/progreso-backend.md`). Cualquier cambio sigue el
-protocolo del Relevo general de `docs/tareas/seguimiento-progreso.md`: se propone a los usuarios, se
-apunta allí («Contrato: cambio pendiente…») y los usuarios avisan al otro orquestador.
+Estado: **congelado** (2026-11-24 para `POST /api/progress/sync`, 16 escenarios reales en PostgreSQL;
+ampliado y congelado el **2026-11-28** con `DELETE /api/progress/enrollments/{courseId}`, 7 escenarios
+reales en PostgreSQL en la Parte A de `docs/tareas/ficha-e-inscripcion-curso.md`). Cualquier cambio
+posterior se propone primero a los usuarios y se avisa en el Relevo general del índice de tarea
+correspondiente antes de aplicarlo.
 
 Mismas convenciones que `api-cursos.md`: base `http://localhost:7070`, sesión con
 `Authorization: Bearer <token>`, errores con `{ "errors": [ { "field", "code", "message" } ] }`.
 
-## Ruta
+## Rutas
 
 | Método y ruta | Sesión | Respuestas |
 |---|---|---|
 | `POST /api/progress/sync` | sí | 200 estado completo · 400 `MALFORMED_BODY` · 401 `UNAUTHENTICATED` · 413 cuerpo > 2 MiB |
+| `DELETE /api/progress/enrollments/{courseId}` | sí | 204 baja confirmada (sin cuerpo) · 401 `UNAUTHENTICATED` · 404 `COURSE_NOT_FOUND` |
+
+### Sincronización (`POST /api/progress/sync`)
 
 Una sola ruta para subir y bajar: el móvil manda lo que tiene pendiente y recibe **todo** el progreso
 del usuario en el servidor. Mandar `{ "enrollments": [] }` sirve para solo leer.
@@ -99,6 +103,36 @@ del usuario en el servidor. Mandar `{ "enrollments": [] }` sirve para solo leer.
    fusionar. No hay regla para un `masteredAt` anterior a `enrolledAt`: se guardan tal cual.
 9. **Repetidos en la misma petición** (inscripción o módulo) se fusionan con la regla 3, sin error.
 
+## Baja de un curso (`DELETE /api/progress/enrollments/{courseId}`)
+
+Ruta independiente para darse de baja explícitamente de un curso; `POST /api/progress/sync` mantiene
+intacta su semántica de unión sin borrados.
+
+- **Petición:** cabecera obligatoria `Authorization: Bearer <token>`. Sin cuerpo (si se enviara
+  alguno, el servidor no lo lee). `{courseId}` debe ser un UUID en forma canónica
+  (`8-4-4-4-12` dígitos hexadecimales, mayúsculas o minúsculas; formas abreviadas como `1-2-3-4-5`
+  se rechazan).
+- **`204 No Content`** (cuerpo vacío): la inscripción del usuario autenticado en `{courseId}` y
+  todos sus módulos dominados (`mastered_modules`, borrados en cascada por PostgreSQL) han quedado
+  eliminados.
+- **`401 Unauthorized`:** mismo formato de errores que `sync` (`field: "authorization"`,
+  `code: "UNAUTHENTICATED"` y cabecera `WWW-Authenticate: Bearer`).
+- **`404 Not Found`:** `{ "errors": [ { "field": "courseId", "code": "COURSE_NOT_FOUND", "message": … } ] }`
+  cuando `{courseId}` **no es un UUID canónico**.
+- La app trata cualquier estado que no sea `204` ni `401` (`404`, `5xx`, …) como fallo del servidor.
+
+### Reglas de la baja
+
+1. **Idempotente:** si el usuario ya no estaba inscrito en `{courseId}` —o si el UUID válido no
+   corresponde a ningún curso existente— responde igualmente `204 No Content` y no modifica nada.
+2. **Aislamiento estricto por usuario y curso:** el usuario es siempre el de la sesión. Solo borra la
+   fila `(user_id, course_id)` de ese usuario y ese curso; nunca afecta a otros cursos del mismo
+   usuario ni a las inscripciones de otros usuarios en ese curso.
+3. **Alcance del borrado:** borra únicamente `enrollments` y, por `ON DELETE CASCADE`, sus
+   `mastered_modules`. No borra entregas con foto (`submissions`), cursos ni usuarios.
+4. **Reinscripción limpia:** tras la baja, volver a sincronizar ese curso con
+   `POST /api/progress/sync` empieza desde cero, sin módulos dominados ni fechas anteriores.
+
 ## Decisiones (antes «abierto»)
 
 - **Tarea 1 (2026-11-24):** UUID inválido y `moduleId` vacío (reglas 4, 6 y 7, y la forma de
@@ -111,3 +145,10 @@ del usuario en el servidor. Mandar `{ "enrollments": [] }` sirve para solo leer.
     ya existían.
   - Lectura estricta del cuerpo (regla 6): campos desconocidos ignorados, `mastered` obligatorio, año
     0001–9999, clave repetida y BOM rechazados.
+- **Parte A · Baja de curso (2026-11-28):**
+  - `POST /api/progress/sync` no cambia; la baja se añade como `DELETE /api/progress/enrollments/{courseId}`
+    en línea (ver `docs/tareas/ficha-e-inscripcion-curso.md`, decisiones 2, 3 y 5).
+  - `{courseId}` fuera del formato UUID canónico (`8-4-4-4-12` hex) responde `404` con
+    `field: "courseId"` y `code: "COURSE_NOT_FOUND"` (coherente con las rutas de cursos y sin
+    códigos de error nuevos).
+  - Un UUID canónico válido no inscrito o de un curso inexistente responde `204` (idempotente).

@@ -9,7 +9,7 @@ Este documento es el **índice común**: objetivo, decisiones aprobadas, reparto
 de aceptación y acuerdos de proceso. El detalle de cada parte vive en su propio documento para que
 cada orquestador cargue solo lo suyo.
 
-Estado: **planificación lista — Parte A (Backend) pendiente de iniciar** (2026-11-28).
+Estado: **Parte A (Backend) cerrada y contrato congelado — Parte B (`sharedLogic` y Room) lista para iniciar** (2026-11-28).
 
 ## Mapa de documentos (qué lee cada uno)
 
@@ -17,8 +17,8 @@ Estado: **planificación lista — Parte A (Backend) pendiente de iniciar** (202
 |---|---|---|
 | `AGENTS.md` | Reglas del proyecto | Todos |
 | Este documento: **Relevo general** y **Decisiones** | Lo común a todas las partes | Todos los orquestadores |
-| `backend/docs/api-progreso.md` | **Contrato** de progreso entre backend y app (se amplía con `DELETE` en la Parte A) | Orquestadores A y B |
-| `backend/docs/tareas/baja-curso-backend.md` | Parte A: endpoint de baja en el backend (**lo crea el orquestador A** al planificar) | Orquestador A y sus implementadores |
+| `backend/docs/api-progreso.md` | **Contrato congelado** de progreso entre backend y app (`POST /api/progress/sync` + `DELETE /api/progress/enrollments/{courseId}`) | Orquestadores A y B |
+| `backend/docs/tareas/baja-curso-backend.md` | Parte A: endpoint de baja en el backend (**cerrada**) | Orquestador A y sus implementadores |
 | `docs/arquitectura-progreso.md` | **Referencia viva** del progreso (piezas, invariantes, Room, sincronización) | Orquestadores B, C y D |
 | `docs/tareas/ficha-curso.md` | Contexto de `ScreenCourseDetail` ya implementado en `ui/screens/detail/` | Orquestadores C y D |
 | `assets/mockups/course-inscription.png` y `course-already-inscripted.png` | Diseño visual de referencia (adjuntar en el chat de la Parte C) | Orquestador C |
@@ -27,21 +27,27 @@ Estado: **planificación lista — Parte A (Backend) pendiente de iniciar** (202
 
 Se **reescribe** cuando cambia algo que afecta a más de una parte; no se acumula.
 
-- **Dónde estamos (2026-11-28):** análisis completo hecho y decisiones 1–8 aprobadas. Todavía no se
-  ha modificado código ni el contrato.
-  - Ya existe en `app/.../ui/screens/detail/` una primera ficha (`ScreenCourseDetail`,
-    `CourseDetailViewModel`, `Route.CourseDetail`), aún desconectada de Buscar.
-  - Hoy Buscar navega a la página de relleno `Route.CourseOverview` (`ScreenCourseOverview` +
-    `EnrollmentViewModel` + `EnrollButton`).
-  - Hoy el backend solo tiene `POST /api/progress/sync` (unión sin borrado), pero PostgreSQL
-    (`006_create_enrollments.sql`) ya define `ON DELETE CASCADE` de `enrollments` hacia
-    `mastered_modules`.
-  - En la app, `ProgressDatabase` está congelada en **v3** (`app/schemas/.../3.json`).
-- **Siguiente:** abrir el chat orquestador/planificador de la **Parte A (Backend)** para planificar
-  y ejecutar el endpoint de baja (`DELETE /api/progress/enrollments/{courseId}`), actualizar y
-  congelar la ampliación de `backend/docs/api-progreso.md` y pasar el relevo a la Parte B.
+- **Dónde estamos (2026-11-28):** **Parte A (Backend) terminada y cerrada** (ver
+  `backend/docs/tareas/baja-curso-backend.md`).
+  - `DELETE /api/progress/enrollments/{courseId}` está implementado, probado con 968 tests JUnit
+    (`mvn test`) y comprobado contra PostgreSQL real (7 escenarios incluyendo `ON DELETE CASCADE` en
+    `mastered_modules`, aislamiento por usuario/curso, idempotencia y reinscripción limpia), con
+    petición en `backend/yaak/workspace/yaak.rq_kN8pQr4WvX.yaml`.
+  - **Contrato congelado en `backend/docs/api-progreso.md`:** `DELETE /api/progress/enrollments/{courseId}`
+    requiere `Authorization: Bearer <token>` y devuelve `204 No Content` sin cuerpo (idempotente
+    incluso si el usuario no estaba inscrito o el UUID no corresponde a ningún curso), `401
+    UNAUTHENTICATED` (`WWW-Authenticate: Bearer`) si la sesión no es válida, y `404 COURSE_NOT_FOUND`
+    (`field: "courseId"`) si `{courseId}` no es un UUID canónico (`8-4-4-4-12` hex). `POST /api/progress/sync`
+    no ha cambiado. La app trata cualquier respuesta distinta de `204` y `401` como `ServerFailure`.
+  - En la app todavía no se ha tocado nada: `ProgressDatabase` sigue congelada en **v3**
+    (`app/schemas/.../3.json`), `ScreenCourseDetail` sigue desconectada de Buscar y Buscar sigue
+    navegando a `Route.CourseOverview`.
+- **Siguiente:** abrir el chat orquestador/planificador de la **Parte B (`sharedLogic` y Room)**
+  para crear `docs/tareas/ficha-curso-logica.md` e implementar `ProgressGateway.unenroll`
+  (`UnenrollOutcome`), `EnrollmentStore.unenroll` (`InMemory` y `Room`), `UnenrollFromCourse` y el
+  `@Transaction` de `ProgressDao` + `RoomProgressStore.markMastered`.
 - **Dependencias entre partes:**
-  - Parte B depende del contrato `DELETE` congelado por la Parte A.
+  - ~~Parte B depende del contrato `DELETE` congelado por la Parte A.~~ (**desbloqueada**)
   - Parte C depende de `UnenrollFromCourse` y `EnrollmentStore.unenroll` de la Parte B.
   - Parte D depende de la Parte C probada en el emulador.
 - **Nota de deuda técnica deliberada (para «Pausar curso»):** `ProgressDatabase` se queda en **v3**
@@ -107,7 +113,7 @@ La casilla ✅ la marca el revisor (el orquestador de la parte), no quien implem
 
 | Parte | Qué cubre | Documento | Orquestador |
 |---|---|---|---|
-| **A · Backend** | Endpoint `DELETE /api/progress/enrollments/{courseId}`, caso de uso `UnenrollCourse`, JDBC, contrato `api-progreso.md`, Yaak y tests JUnit | `backend/docs/tareas/baja-curso-backend.md` (lo crea el orquestador A) | Propio |
+| **A · Backend** ✅ | Endpoint `DELETE /api/progress/enrollments/{courseId}`, caso de uso `UnenrollCourse`, JDBC, contrato `api-progreso.md`, Yaak y tests JUnit | `backend/docs/tareas/baja-curso-backend.md` (cerrada) | Propio |
 | **B · `sharedLogic` y Room** | `ProgressGateway.unenroll` + HTTP + Fake, `EnrollmentStore.unenroll` (`InMemory` y `Room`), caso de uso `UnenrollFromCourse`, `@Transaction` en `ProgressDao` y `markMastered` seguro, tests `kotlin.test` + instrumentados Room | `docs/tareas/ficha-curso-logica.md` (lo crea el orquestador B) | Propio |
 | **C · Interfaz (`ui/screens/detail/`)** | `CourseDetailViewModel` con inscripción y baja, rediseño de `ScreenCourseDetail` según ambos mockups (sin valoraciones), menú `⋮` («Pausar curso» + «Darse de baja»), diálogo destructivo, ES/EN, previews claro/oscuro y tests | `docs/tareas/ficha-curso-ui.md` (lo crea el orquestador C) | Propio |
 | **D · Integración y cierre** | Conectar Buscar → `Route.CourseDetail`, retirar `ScreenCourseOverview` y `Route.CourseOverview` (con permiso), prueba manual en emulador, batería completa y actualización de `docs/especificacion.md` y `docs/arquitectura-progreso.md` | Este documento (o con el orquestador C) | El último que termine |
@@ -180,3 +186,9 @@ La casilla ✅ la marca el revisor (el orquestador de la parte), no quien implem
   Decisiones 1–8 aprobadas por el usuario (baja en línea Opción A, Room en v3 con nota para
   `MIGRATION_3_4` + `ON DELETE CASCADE`, sin valoraciones). Creado este documento índice para lanzar
   el chat orquestador/planificador de la Parte A (Backend).
+- 2026-11-28: **Parte A (Backend) cerrada (tareas A1–A4).** Implementado
+  `DELETE /api/progress/enrollments/{courseId}` (`UnenrollCourse`, `JdbcEnrollmentRepository.delete`,
+  `CanonicalUuid`, `ProgressController.unenroll` y `App.java`), 968 tests JUnit en verde, 7
+  escenarios comprobados contra PostgreSQL real, petición añadida en Yaak
+  (`yaak.rq_kN8pQr4WvX.yaml`) y ampliación congelada en `backend/docs/api-progreso.md`. **Parte B
+  desbloqueada.**

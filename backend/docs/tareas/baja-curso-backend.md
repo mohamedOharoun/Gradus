@@ -8,36 +8,34 @@ Proyecto: `backend/` (Maven, Java 25, Javalin, PostgreSQL en Docker). Tests con 
 dobles en memoria (`./gradus.sh test` / `mvn test`, sin base de datos). Commits (los hacen los
 usuarios): `… (course-detail task A<N>)`.
 
-Estado: **A2 hecha y revisada — pendiente permiso de BD para A3** (2026-11-28).
+Estado: **parte A terminada y cerrada (tareas A1–A4); contrato congelado** (2026-11-28).
 
 ## Relevo
 
 Lo que necesita quien coja la parte A (orquestador o revisor). **Se reescribe** al terminar cada
 sesión; no se acumula.
 
-- **Dónde estamos (2026-11-28):** **A1 y A2 terminadas y revisadas** (968 tests en verde en
-  `mvn test`, sin avisos ni dependencias nuevas). `CanonicalUuid` está compartido entre `web.course`
-  y `web.progress`, `ProgressController.unenroll` está implementado y la ruta
-  `DELETE /api/progress/enrollments/{courseId}` está registrada en `App.java` con `RequireSession`.
-  Faltan **A3** (Yaak + comprobación real contra PostgreSQL) y **A4** (congelar `api-progreso.md` y
-  pasar el relevo a Parte B).
-- **Decisiones aprobadas para la Parte A:**
-  - Ruta: `DELETE /api/progress/enrollments/{courseId}` con sesión (`RequireSession`).
-  - `POST /api/progress/sync` no cambia (Decisión 3).
-  - Respuestas: `204 No Content` (sin cuerpo, idempotente incluso si el usuario no estaba inscrito o
-    el UUID no corresponde a un curso existente), `401 Unauthorized` (`UNAUTHENTICATED`, vía
-    `RequireSession`) y **`404 Not Found`** (`field: "courseId"`, `code: "COURSE_NOT_FOUND"`) si
-    `{courseId}` no es un UUID canónico (`8-4-4-4-12` hex), coherente con `web/course/PathIds` y sin
-    añadir `ErrorCode` nuevos.
-  - Sin migración SQL: `006_create_enrollments.sql` ya tiene `ON DELETE CASCADE` desde `enrollments`
-    hacia `mastered_modules` y clave primaria `(user_id, course_id)`.
-- **Siguiente:** lanzar al implementador de **A3** (nueva petición en `backend/yaak/workspace/` +
-  batería `curl` contra PostgreSQL + verificación de los usuarios en Yaak).
-- **Permiso aprobado para A3 (2026-11-28):** arrancar PostgreSQL local (`./gradus.sh db`) y el
-  servidor en `localhost:7070` (parándolo al terminar), crear dos cuentas de prueba vía API
-  (`unenroll-a@example.test` y `unenroll-b@example.test`) sobre cursos ya publicados, comprobar los
-  escenarios con `curl` y `SELECT` de solo lectura (sin `UPDATE`/`DELETE` SQL manuales), y al
-  terminar borrar ambas cuentas vía `DELETE /api/users/me` para dejar la base de desarrollo limpia.
+- **Dónde estamos (2026-11-28):** **Parte A terminada y cerrada.** `DELETE /api/progress/enrollments/{courseId}`
+  está implementado y conectado en `App.java` con `RequireSession`: puerto
+  `EnrollmentRepository.delete`, caso de uso `UnenrollCourse`, borrado transaccional en
+  `JdbcEnrollmentRepository` (apoyado en el `ON DELETE CASCADE` existente en
+  `006_create_enrollments.sql`), helper compartido `CanonicalUuid` en `web/` y `ProgressController.unenroll`.
+  **968 tests en verde** en `mvn test` (36 nuevos: 10 en `UnenrollCourseTest`, 4 en
+  `JdbcEnrollmentRepositoryDeleteTest`, 12 en `CanonicalUuidTest` y 10 en `ProgressControllerTest`),
+  sin dependencias nuevas ni avisos.
+- **PostgreSQL y Yaak (2026-11-28):** los 7 escenarios reales con `curl` y `SELECT` de solo lectura
+  confirmaron `401`, `404 COURSE_NOT_FOUND`, `204` sin cuerpo, `ON DELETE CASCADE` en
+  `mastered_modules`, aislamiento por usuario/curso, idempotencia y reinscripción limpia. Las dos
+  cuentas temporales se eliminaron vía `DELETE /api/users/me` (0 filas residuales en la BD de
+  desarrollo) y el servidor se detuvo. Petición añadida en `backend/yaak/workspace/yaak.rq_kN8pQr4WvX.yaml`
+  (y carpeta `yaak.fl_wQ3nTk8ZsB.yaml` actualizada) y visible en Yaak tras refrescar el workspace.
+- **Contrato:** `backend/docs/api-progreso.md` actualizado y **congelado** con `DELETE`, y avisado en
+  el **Relevo general** de `docs/tareas/ficha-e-inscripcion-curso.md` para desbloquear la Parte B.
+- **Si alguien retoma la parte A:** solo para un cambio de contrato (avisando antes a los usuarios)
+  o un fallo que detecten las partes B, C o D.
+- **Mejora menor fuera de alcance (anotada):** `web/submission/SubmissionParams.java` también valida
+  UUID canónico; se dejó intacto por `AGENTS.md` §9 y puede delegar en `CanonicalUuid` cuando toque
+  tocar entregas.
 
 ## Objetivo
 
@@ -135,7 +133,7 @@ La casilla `[x]` la marca el orquestador/revisor tras verificar el resultado.
      - `mvn test` en verde sin avisos ni nuevas dependencias.
    - **Commit sugerido:** `add: DELETE /api/progress/enrollments/{courseId} route and controller (course-detail task A2)`.
 
-3. [ ] **A3 · Petición en Yaak y comprobación real contra PostgreSQL**
+3. [x] **A3 · Petición en Yaak y comprobación real contra PostgreSQL**
    - **Modelo y esfuerzo mínimos recomendados:** Claude Sonnet (esfuerzo bajo-medio) o Gemini Flash
      (razonamiento medio).
    - **Ficheros:** nueva petición en `backend/yaak/workspace/` (carpeta de Progreso).
@@ -155,7 +153,7 @@ La casilla `[x]` la marca el orquestador/revisor tras verificar el resultado.
      - Comprobado por los usuarios desde Yaak.
    - **Commit sugerido:** `add: Yaak request for course unenrollment (course-detail task A3)`.
 
-4. [ ] **A4 · Actualizar y congelar `backend/docs/api-progreso.md` y pasar relevo a Parte B**
+4. [x] **A4 · Actualizar y congelar `backend/docs/api-progreso.md` y pasar relevo a Parte B**
    - **Modelo y esfuerzo mínimos recomendados:** Orquestador A — Claude Sonnet (esfuerzo bajo) o Gemini
      Flash (razonamiento bajo).
    - **Ficheros:**
@@ -179,8 +177,17 @@ La casilla `[x]` la marca el orquestador/revisor tras verificar el resultado.
   añadido `ProgressController.unenroll` y registrada `DELETE /api/progress/enrollments/{courseId}` en
   `App.java` con `RequireSession`. 22 tests nuevos (`CanonicalUuidTest` y `ProgressControllerTest`),
   968 tests en verde en `mvn test`, sin dependencias nuevas ni avisos.
+- 2026-11-28: **A3 hecha y revisada.** Añadida la petición `yaak.rq_kN8pQr4WvX.yaml` («Darse de baja
+  de un curso (204)») y actualizada la carpeta `yaak.fl_wQ3nTk8ZsB.yaml`. Verificados los 7
+  escenarios reales contra PostgreSQL (incluyendo `ON DELETE CASCADE`, aislamiento, idempotencia y
+  reinscripción limpia) y limpieza total de cuentas temporales vía `DELETE /api/users/me` (0 filas
+  residuales). Petición visible en Yaak tras refrescar el workspace.
+- 2026-11-28: **A4 hecha.** Ampliación `DELETE` documentada y congelada en
+  `backend/docs/api-progreso.md`, Relevo general actualizado en
+  `docs/tareas/ficha-e-inscripcion-curso.md` y **Parte A cerrada**.
 
 ## Siguiente paso
 
-Confirmar permisos para PostgreSQL local y ejecutar **A3** (petición en `backend/yaak/workspace/` y
-comprobación real contra PostgreSQL).
+Ninguno en la Parte A. Lo siguiente es abrir el chat orquestador/planificador de la **Parte B**
+(`sharedLogic` y Room) leyendo `AGENTS.md`, `docs/tareas/ficha-e-inscripcion-curso.md`,
+`backend/docs/api-progreso.md` y `docs/arquitectura-progreso.md`.
