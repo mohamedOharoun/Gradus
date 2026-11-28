@@ -40,11 +40,12 @@ desbloquea cuando se dominan sus prerrequisitos, y los repasos espaciados evitan
    (con un valor por defecto y, si hace falta, uno propio por módulo); ver §2.6 y §5 de
    `backend/docs/especificacion-cursos-v1.md`. El modelo va detrás de una interfaz para poder
    cambiarlo más adelante (por ejemplo, por BKT).
-4. Hoy se guardan por cuenta en Room (`ProgressDatabase` v2) las inscripciones y el **hecho**
-   «módulo dominado en la fecha Y» (no se recalcula si el autor cambia `minCorrect`), sincronizados
-   con el servidor mediante `POST /api/progress/sync` y WorkManager en segundo plano. Más adelante
-   se añadirá el registro inmutable de cada respuesta individual (pregunta, acierto, fecha) para
-   programar los repasos SM-2 (ver `tareas/seguimiento-progreso.md`).
+4. Hoy se guardan por cuenta en Room (`ProgressDatabase` v3) las inscripciones, el **hecho**
+   «módulo dominado en la fecha Y» (no se recalcula si el autor cambia `minCorrect`) y los
+   borradores locales de cursos; el progreso se sincroniza con el servidor mediante
+   `POST /api/progress/sync` y WorkManager en segundo plano. Más adelante se añadirá el registro
+   inmutable de cada respuesta individual (pregunta, acierto, fecha) para programar los repasos SM-2
+   (ver `tareas/seguimiento-progreso.md`).
 5. Si se falla el repaso de un módulo dominado, se marca como «necesita repaso», pero **no** se
    vuelven a bloquear los módulos que dependen de él. *(Decisión provisional.)*
 6. Las tarjetas autoevaluadas (cuando existan, ver §7) cuentan para los repasos, pero no para
@@ -78,9 +79,23 @@ El diseño de referencia es el Figma «Dominio · Pantallas principales».
   - Orden fijo: los más recientes primero. «Mejor valorados» llegará cuando haya valoraciones;
     no hay orden por relevancia.
   - Los filtros activos se ven como chips que se pueden quitar.
-- **Mis cursos:**
-  - Cursos **creados** por el usuario, cada uno con su estado: publicado, con avisos o borrador.
-  - «Subir curso» es la acción principal; la guía para crear cursos con IA es un enlace secundario.
+- **Mis cursos** (`tareas/subida-cursos.md`):
+  - Cursos **creados** por el usuario (publicados y borradores locales) ordenados por última
+    actividad, con el más reciente arriba y una sola tarjeta por curso (si un curso publicado tiene
+    borrador de nueva versión, muestra su estado y «Publicada: versión N»).
+  - «Subir curso» es la acción principal y «Ver la guía para crear cursos con IA >» un enlace
+    secundario que abre una pantalla provisional sin barra inferior.
+  - Subida en dos pasos desde un fichero `.json` del móvil (selector del sistema, sin permisos,
+    hasta 2 MiB): primero valida contra el servidor y, si no hay errores, habilita «Publicar».
+    En una nueva versión, la validación muestra antes de publicar avisos como `REMOVED_IDS`
+    (módulos o ejercicios eliminados).
+  - Cuatro estados: **Publicado**, **Aceptado** (listo para publicar), **Pendiente** (en espera de
+    red para validarse o publicarse en segundo plano) y **Rechazado** (con errores de validación).
+  - Los borradores se guardan localmente por cuenta en Room (`ProgressDatabase` v3, con el JSON
+    como fichero privado), se completan en segundo plano con WorkManager al recuperar la conexión
+    (con aviso en pantalla si falta red o caduca la sesión) y se borran al eliminar la cuenta.
+  - Filtro desplegable por estado con contadores (conservado entre pestañas), papelera con
+    confirmación para descartar borradores y hoja inferior de motivos/avisos con «Copiar informe».
 - **Ajustes:**
   - Perfil (nombre y correo) y cambio de contraseña.
   - Modo oscuro e idioma.
@@ -198,7 +213,7 @@ Previstos para versiones posteriores del formato:
 |---|---|
 | Kotlin nativo | App en Kotlin con Jetpack Compose; la lógica, en Kotlin puro |
 | API del dispositivo | Cámara (CameraX, dentro de la app) para fotografiar apuntes y asociarlos a módulos, y para entregar los ejercicios con foto |
-| SQLite | Room: `ProgressDatabase` v2 (`gradus-progress.db`) para inscripciones, módulos dominados por cuenta y copias locales de cursos sin conexión, y `GradusDatabase` (`gradus.db`) para las notas con cámara (fotos como ficheros; en la base de datos, su ruta, curso, módulo, fecha y pie). Pendiente: registro de respuestas. Además, la sesión se guarda cifrada con DataStore y Android Keystore |
+| SQLite | Room: `ProgressDatabase` v3 (`gradus-progress.db`) para inscripciones, módulos dominados por cuenta, copias locales de cursos sin conexión y borradores locales de cursos (con el JSON como fichero privado), y `GradusDatabase` (`gradus.db`) para las notas con cámara (fotos como ficheros; en la base de datos, su ruta, curso, módulo, fecha y pie). Pendiente: registro de respuestas. Además, la sesión se guarda cifrada con DataStore y Android Keystore |
 | Backend | Anillo 2: servidor Javalin (Java) con PostgreSQL: cuentas, catálogo, subida validada, descarga, entregas con foto, sincronización del progreso (`POST /api/progress/sync`) y valoraciones. La app lo llama con Ktor Client desde `sharedLogic` y sincroniza en segundo plano con WorkManager |
 
 ## 9. Plan por anillos

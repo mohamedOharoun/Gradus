@@ -7,21 +7,19 @@ errores/avisos, publicarlo y gestionar borradores locales incluso sin conexión.
 Referencia visual: `assets/mockups/my-courses.png` (Figma «5 · Mis cursos»), con los ajustes
 acordados más abajo. Contrato de cursos del backend: `backend/docs/api-cursos.md`.
 
-Estado: **en progreso (2026-11-27)** — Parte A (Backend: 1a–1b), Parte B (`sharedLogic/`: 2a–2c), Parte C (`app/data/`: 3a–3b) y Parte D (`app/ui/`: 4a–4c) cerradas; siguiente: Parte E · Paso 5 (Cierre).
+Estado: **completada (2026-11-28)** — Partes A, B, C, D y E cerradas, con 3 442 tests en verde en los tres módulos y prueba E2E manual verificada en el emulador contra el backend local.
 
 ## Relevo
 
 Se **reescribe** al final de cada sesión; no se acumula.
 
-- **Dónde estamos (2026-11-27):** toda la implementación de la funcionalidad está cerrada y revisada:
-  - **Parte A (Backend):** `GET /api/users/me/courses` y `POST /api/courses/{id}/versions/validate` + contrato en `backend/docs/api-cursos.md` y colección Yaak (932 tests JUnit Jupiter, 0 avisos).
-  - **Parte B (`sharedLogic/`):** modelos de publicación/borrador/informe, `CoursePublicationGateway` (Ktor + `FakeCoursePublicationGateway` + invalidación de `CachingCourseGateway`), `CourseDraftStore` y `ProcessCourseDraft` (1219 tests en `:sharedLogic:testAndroidHostTest`, 100 % KMP puro, 0 avisos).
-  - **Parte C (`app/data/`):** `CourseDraftFiles` (límite 2 MiB + *path traversal*), `ProgressDatabase` v3 con `MIGRATION_2_3`, `RoomCourseDraftStore`, limpieza al eliminar cuenta (`DeleteAccountViewModel`), `CourseUploadWorker` + `WorkUploadRequester` y cableado en `AppContainer` (67/67 tests instrumentados en `emulator-5554`, 0 avisos).
-  - **Parte D (`app/ui/`):** tokens de tema claro/oscuro (`Color.kt`, `Theme.kt`), 6 iconos vectoriales, 62 claves ES/EN, estado/textos (`MyCoursesState.kt`, `MyCoursesTexts.kt` + 16 tests JVM), componentes y pantalla (`UploadHeroCard`, `CourseFilterHeader`, `AuthorCourseCard`, `CourseReportSheet`, `DiscardDraftDialog`, `ScreenMyCourses`, `ScreenMyCoursesPreviews`, `ScreenCourseGuide`), `CourseDraftCommands` + `MyCoursesViewModel` (+ 23 tests JVM) y navegación SAF (`Route.CourseGuide`, `MyCoursesDestination.kt`, 2 líneas en `MainNavGraph.kt`). Total en `app`: 630/630 tests JVM y 18/18 tests instrumentados de `ScreenMyCoursesTest` en ES/EN en `emulator-5554`, previews claro/oscuro verificadas, 0 avisos.
-- **Siguiente paso:** **Parte E · Paso 5 (Cierre):**
-  1. Batería completa de tests en los tres módulos (`mvn test` en `backend/`, `./gradlew :sharedLogic:testAndroidHostTest`, `./gradlew :app:testDebugUnitTest` y `:app:connectedDebugAndroidTest`).
-  2. Prueba manual de punta a punta en el emulador contra el backend local (`./gradus.sh`): JSON inválido → Rechazado → Ver motivos → Copiar informe → JSON válido → Aceptado → Publicar → Publicado → nueva versión con módulo eliminado (`REMOVED_IDS`) → modo avión (Pendiente) y recuperación de red → descartar borrador → filtro por estados → guía provisional y volver → claro, oscuro, inglés y TalkBack.
-  3. Actualizar `docs/especificacion.md` §5 («Mis cursos») y cerrar este documento (`Estado: completada` y `[x]` en Paso 5).
+- **Dónde estamos (2026-11-28):** funcionalidad **completada y cerrada** en todas sus capas:
+  - **Parte A (Backend):** `GET /api/users/me/courses` y `POST /api/courses/{id}/versions/validate` + contrato en `backend/docs/api-cursos.md` y colección Yaak (**932/932** tests JUnit Jupiter en `mvn clean test`, 0 avisos).
+  - **Parte B (`sharedLogic/`):** modelos de publicación/borrador/informe, `CoursePublicationGateway` (Ktor + `FakeCoursePublicationGateway` + invalidación de `CachingCourseGateway`), `CourseDraftStore` y `ProcessCourseDraft` (**1 219/1 219** tests en `:sharedLogic:testAndroidHostTest`, 100 % KMP puro, 0 avisos nuevos).
+  - **Parte C (`app/data/`):** `CourseDraftFiles` (límite 2 MiB + *path traversal*), `ProgressDatabase` v3 con `MIGRATION_2_3`, `RoomCourseDraftStore`, limpieza al eliminar cuenta (`DeleteAccountViewModel`), `CourseUploadWorker` + `WorkUploadRequester` y cableado en `AppContainer`.
+  - **Parte D (`app/ui/`):** tokens claro/oscuro (`Color.kt`, `Theme.kt`), 6 iconos vectoriales, 62 claves ES/EN, estado/textos, componentes, pantalla `ScreenMyCourses` + previews claro/oscuro, `ScreenCourseGuide`, `MyCoursesViewModel` y navegación SAF (`MyCoursesDestination.kt`, `Route.CourseGuide`).
+  - **Parte E (Cierre):** batería completa en limpio en verde (**932** backend, **1 219** `sharedLogic`, **630/630** `:app:testDebugUnitTest` y **661/661** `:app:connectedDebugAndroidTest` en `emulator-5554`, tras alinear 3 tests instrumentados con `ProgressDatabase` v3 y `MyCoursesRoute`); prueba manual E2E contra `./gradus.sh` verificada en los 8 escenarios (inválido + copiar informe, válido con/sin avisos + publicar, v2 con `REMOVED_IDS`, modo avión + recuperación automática con WorkManager, descartar con confirmación, filtro conservado entre pestañas, guía provisional y claro/oscuro/inglés/TalkBack); `docs/especificacion.md` §5 actualizada.
+- **Siguiente paso:** ninguno en esta tarea; funcionalidad cerrada. Quedan fuera de alcance para futuras tareas la redacción real de la «Guía para crear cursos con IA» y las métricas/valoraciones de cursos.
 - **Selección de modelos y esfuerzo:** ahora también podemos usar **Gemini Neon** en niveles
   **Low**, **Medium**, **High** y **Extra** (además de Sonnet/Opus si se prefieren). Criterio
   general (el mínimo que mantiene la calidad):
@@ -316,7 +314,7 @@ Se **reescribe** al final de cada sesión; no se acumula.
 
 ### Parte E · Cierre
 
-- [ ] **5 · Repaso final, prueba de punta a punta y documentación.**
+- [x] **5 · Repaso final, prueba de punta a punta y documentación.**
   *Modelo sugerido:* Gemini Neon · **Low** (revisión final **Medium** si hace falta).
   - Prueba manual completa en emulador contra backend local: subir JSON inválido → Rechazado → Ver
     motivos → Copiar informe → subir JSON válido → Aceptado (con y sin avisos) → Publicar →
@@ -391,8 +389,14 @@ Se **reescribe** al final de cada sesión; no se acumula.
   `ScreenMyCoursesTest` en `emulator-5554`, previews claro/oscuro de `ScreenCourseGuide`
   verificadas, 0 avisos nuevos) completado y revisado. **Parte D cerrada.**
 
+- 2026-11-28: Parte E · Paso 5 (Cierre) completado: batería completa en limpio en verde (932/932
+  en `backend/`, 1 219/1 219 en `sharedLogic/`, 630/630 en `:app:testDebugUnitTest` y 661/661 en
+  `:app:connectedDebugAndroidTest`, tras alinear `RoomCourseCopyStoreTest`, `GradusNavHostStartTest`
+  e `InSpanish.kt` con `ProgressDatabase` v3 y `MyCoursesRoute`, 0 avisos nuevos); prueba manual
+  E2E en emulador contra `./gradus.sh` verificada en todos los escenarios; `docs/especificacion.md`
+  (§4, §5 y §8) y este documento actualizados. **Funcionalidad completada.**
+
 ## Siguiente paso
 
-Completar la **Parte E · Paso 5 (Cierre)**: batería completa de tests (`backend`, `sharedLogic` y
-`app`), prueba manual de punta a punta en el emulador contra el backend local y actualización de
-`docs/especificacion.md` §5 («Mis cursos»).
+Ninguno en esta tarea: la funcionalidad **Subida de cursos («Mis cursos»)** queda completada y
+cerrada.
