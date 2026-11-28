@@ -5,12 +5,18 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
@@ -47,15 +53,13 @@ import es.ulpgc.pamn.dominio.ui.components.moduleCountText
 import es.ulpgc.pamn.dominio.ui.text.asString
 import es.ulpgc.pamn.dominio.ui.theme.GradusTheme
 
-// Cabecera tintada de la ficha de un curso (docs/tareas/ficha-curso-ui.md, tarea C3).
+// Cabecera tintada de la ficha de un curso (docs/tareas/ficha-curso-ui.md, tareas C3–C4).
 // Sin estado de negocio: recibe CourseDetailState.Ready y avisa hacia fuera con lambdas.
-// Los valores por defecto en onBack y onOpenUnenrollDialog mantienen la compilación de
-// ScreenCourseDetail hasta C4.
 @Composable
 fun CourseDetailHeader(
     state: CourseDetailState.Ready,
-    onBack: () -> Unit = {},
-    onOpenUnenrollDialog: () -> Unit = {},
+    onBack: () -> Unit,
+    onOpenUnenrollDialog: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val course = state.course
@@ -69,6 +73,8 @@ fun CourseDetailHeader(
                 modifier = Modifier
                     .widthIn(max = 560.dp)
                     .fillMaxWidth()
+                    .statusBarsPadding()
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
                     .padding(horizontal = 20.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
@@ -300,7 +306,11 @@ private val previewPublishedCourse = demoCourse.copy(
 @Composable
 private fun CourseDetailHeaderUnenrolledPreview() {
     GradusTheme {
-        CourseDetailHeader(state = CourseDetailState.Ready(previewPublishedCourse, enrolled = false))
+        CourseDetailHeader(
+            state = CourseDetailState.Ready(previewPublishedCourse, enrolled = false),
+            onBack = {},
+            onOpenUnenrollDialog = {},
+        )
     }
 }
 
@@ -314,6 +324,8 @@ private fun CourseDetailHeaderEnrolledPreview() {
                 mastered = demoMastered,
                 enrolled = true,
             ),
+            onBack = {},
+            onOpenUnenrollDialog = {},
         )
     }
 }
@@ -322,6 +334,10 @@ private fun CourseDetailHeaderEnrolledPreview() {
 @Composable
 private fun CourseDetailHeaderNoPublicationPreview() {
     GradusTheme {
-        CourseDetailHeader(state = CourseDetailState.Ready(demoCourse, enrolled = false))
+        CourseDetailHeader(
+            state = CourseDetailState.Ready(demoCourse, enrolled = false),
+            onBack = {},
+            onOpenUnenrollDialog = {},
+        )
     }
 }

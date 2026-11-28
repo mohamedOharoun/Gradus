@@ -176,9 +176,6 @@
     </plurals>
     <!-- Ficha del curso -->
     <string name="detail_by_author">por %1$s</string>
-    <string name="detail_start">Empezar el curso</string>
-    <string name="detail_continue">Continuar el curso</string>
-    <string name="detail_review">Repasar el curso</string>
     <string name="detail_learn_title">Qué vas a aprender</string>
     <plurals name="detail_modules_label">
         <item quantity="one">módulo</item>

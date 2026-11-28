@@ -34,40 +34,10 @@ class CourseDetailTextsTest {
         assertNull(course(publication = null).authorText())
     }
 
-    // --- Módulos y fecha (traducidos desde ajustes.md, paso 9a; los mismos textos que la tarjeta) ---
+    // --- Estadísticas y publicación (rediseño de la ficha) ---
 
-    private fun modules(count: Int) = UiText.plural(R.plurals.course_modules, count)
     private val nov2026 = UiText.of(R.string.month_year_short, shortMonth(11), 2026)
     private val publishedNov2026 = UiText.of(R.string.course_published, UiText.of(R.string.month_year_long, longMonth(11), 2026))
-
-    @Test
-    fun `the meta line has the modules and the month, like the card in Search`() {
-        assertEquals(UiText.of(R.string.course_meta, modules(2), nov2026), course().metaText())
-    }
-
-    @Test
-    fun `one module is singular`() {
-        assertEquals(UiText.of(R.string.course_meta, modules(1), nov2026), course(modules = 1).metaText())
-    }
-
-    @Test
-    fun `without publication the meta line has only the modules`() {
-        assertEquals(modules(2), course(publication = null).metaText())
-    }
-
-    @Test
-    fun `a date that cannot be read leaves only the modules`() {
-        assertEquals(modules(2), course(publication = published.copy(publishedAt = "ayer")).metaText())
-    }
-
-    // «nov 2026» se lee mal en voz alta: TalkBack oye el mes entero.
-    @Test
-    fun `TalkBack hears the whole month`() {
-        assertEquals(UiText.of(R.string.list_comma, modules(2), publishedNov2026), course().spokenMetaText())
-        assertEquals(modules(2), course(publication = null).spokenMetaText())
-    }
-
-    // --- Estadísticas y publicación (rediseño de la ficha) ---
 
     @Test
     fun `modules stat label uses plural for zero, singular for one and plural for many`() {
@@ -145,25 +115,5 @@ class CourseDetailTextsTest {
             UiText.of(R.string.detail_unenroll),
             UnenrollDialogState.Failed(FailureReason.SERVER_FAILURE).confirmButtonText(),
         )
-    }
-
-    // --- Progreso y botón (compatibilidad hasta C4) ---
-
-    @Test
-    fun `with nothing mastered the button starts the course and there is no progress line`() {
-        assertEquals(UiText.of(R.string.detail_start), startButtonText(masteredCount = 0))
-        assertNull(progressText(masteredCount = 0, total = 2))
-    }
-
-    @Test
-    fun `with something mastered the button continues and the progress is shown`() {
-        assertEquals(UiText.of(R.string.detail_continue), startButtonText(masteredCount = 1))
-        assertEquals(UiText.of(R.string.course_progress, 1, 2), progressText(masteredCount = 1, total = 2))
-    }
-
-    @Test
-    fun `with everything mastered the course can be reviewed`() {
-        assertEquals(UiText.of(R.string.detail_review), startButtonText(masteredCount = 2, total = 2))
-        assertEquals(UiText.of(R.string.course_progress, 2, 2), progressText(masteredCount = 2, total = 2))
     }
 }

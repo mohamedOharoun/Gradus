@@ -1,32 +1,35 @@
 package es.ulpgc.pamn.dominio.ui.screens.detail
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import es.ulpgc.pamn.dominio.R
-import es.ulpgc.pamn.dominio.ui.components.BackButton
 import es.ulpgc.pamn.dominio.ui.components.PrimaryButton
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseLoadingContent
 import es.ulpgc.pamn.dominio.ui.screens.course.CourseProblemContent
 import es.ulpgc.pamn.dominio.ui.text.asString
 
-// La ficha de un curso (docs/tareas/ficha-curso.md): de qué va antes de entrar en su camino.
+// La ficha de un curso (docs/tareas/ficha-curso-ui.md): de qué va, inscripción, progreso y baja.
 // Sin estado: pinta CourseDetailState y avisa con CourseDetailActions. Las previews están en
 // ScreenCourseDetailPreviews.kt.
 @Composable
@@ -45,56 +48,70 @@ private fun ReadyContent(state: CourseDetailState.Ready, actions: CourseDetailAc
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
-        // El botón queda fijo abajo: se ve aunque la descripción sea larga.
-        bottomBar = { StartBar(state, actions.onStart) },
+        // La cabecera tintada llega hasta detrás de la barra de estado (statusBarsPadding en la
+        // cabecera) y la barra inferior gestiona navigationBarsPadding().
+        contentWindowInsets = WindowInsets(0),
+        bottomBar = { DetailBottomBar(state, actions) },
     ) { innerPadding ->
         Column(
             modifier = Modifier
+                .fillMaxSize()
                 .padding(innerPadding)
                 .consumeWindowInsets(innerPadding)
-                .fillMaxWidth()
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            // En horizontal o en tablet no se estira: como mucho 560 dp, centrado (como la práctica).
-            Column(
-                modifier = Modifier.widthIn(max = 560.dp).fillMaxWidth().safeDrawingPadding().padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp),
-            ) {
-                BackButton(onClick = actions.onBack)
-                CourseDetailHeader(state)
-                LearnList(state)
-            }
+            CourseDetailHeader(
+                state = state,
+                onBack = actions.onBack,
+                onOpenUnenrollDialog = actions.onOpenUnenrollDialog,
+            )
+            // En horizontal o en tablet no se estira: como mucho 560 dp, centrado.
+            CourseDetailBody(
+                state = state,
+                modifier = Modifier
+                    .widthIn(max = 560.dp)
+                    .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                    .padding(horizontal = 20.dp, vertical = 24.dp),
+            )
         }
+    }
+
+    if (state.unenrollDialog !is UnenrollDialogState.Closed) {
+        UnenrollCourseDialog(
+            dialogState = state.unenrollDialog,
+            onConfirm = actions.onConfirmUnenroll,
+            onDismiss = actions.onDismissUnenrollDialog,
+        )
     }
 }
 
-// Abajo: el progreso (si hay) y «Empezar / Continuar / Repasar el curso».
+// Barra inferior fija con el botón principal («Inscribirse al curso» / «Inscribiendo…» o «Ir al curso →»).
 @Composable
-private fun StartBar(state: CourseDetailState.Ready, onStart: () -> Unit) {
-    val total = state.course.modules.size
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface)
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+private fun DetailBottomBar(state: CourseDetailState.Ready, actions: CourseDetailActions) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        color = MaterialTheme.colorScheme.surface,
     ) {
-        progressText(state.masteredCount, total)?.let {
-            Text(
-                it.asString(),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-            )
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal))
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                PrimaryButton(
+                    text = ctaButtonText(state.enrolled, state.enrolling).asString(),
+                    onClick = if (state.enrolled) actions.onStart else actions.onEnroll,
+                    enabled = state.enrolled || !state.enrolling,
+                    trailingIcon = R.drawable.ic_arrow_forward.takeIf { state.enrolled },
+                    modifier = Modifier.widthIn(max = 520.dp),
+                )
+            }
         }
-        PrimaryButton(
-            text = startButtonText(state.masteredCount, total).asString(),
-            onClick = onStart,
-            modifier = Modifier.widthIn(max = 520.dp),
-            trailingIcon = R.drawable.ic_arrow_forward,
-        )
     }
 }

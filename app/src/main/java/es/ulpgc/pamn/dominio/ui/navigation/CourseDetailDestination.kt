@@ -14,8 +14,8 @@ import es.ulpgc.pamn.dominio.ui.screens.detail.ScreenCourseDetail
 // La ficha de un curso, dentro del grafo Main y sin barra (como el camino). Va en su propio fichero
 // para que MainNavGraph.kt, que también edita el compañero, solo tenga una línea más
 // (`courseDetailDestination(navController)`) y no haya conflictos al fusionar.
-// Se llega desde Buscar (Route.CourseDetail(id)); «Empezar el curso» abre el camino y «atrás»
-// vuelve a donde se estaba.
+// Se llega desde Buscar (Route.CourseDetail(id)): permite inscribirse, abrir el camino («Ir al
+// curso»), darse de baja en línea y volver a donde se estaba.
 internal fun NavGraphBuilder.courseDetailDestination(navController: NavController) {
     composable<Route.CourseDetail> { entry ->
         val route = entry.toRoute<Route.CourseDetail>()
@@ -33,8 +33,12 @@ internal fun NavGraphBuilder.courseDetailDestination(navController: NavControlle
         ScreenCourseDetail(
             state = detailViewModel.state,
             actions = CourseDetailActions(
+                onEnroll = detailViewModel::onEnroll,
                 // dropUnlessResumed: dos toques rápidos no abren el camino dos veces.
                 onStart = dropUnlessResumed { navController.navigate(Route.Course(route.courseId)) },
+                onOpenUnenrollDialog = detailViewModel::onOpenUnenrollDialog,
+                onConfirmUnenroll = detailViewModel::onConfirmUnenroll,
+                onDismissUnenrollDialog = detailViewModel::onDismissUnenrollDialog,
                 onRetry = detailViewModel::onRetry,
                 onBack = dropUnlessResumed { navController.popBackStack() },
             ),

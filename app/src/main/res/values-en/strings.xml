@@ -169,9 +169,6 @@
         <item quantity="other">My notes, %1$d photos</item>
     </plurals>
     <string name="detail_by_author">by %1$s</string>
-    <string name="detail_start">Start the course</string>
-    <string name="detail_continue">Continue the course</string>
-    <string name="detail_review">Review the course</string>
     <string name="detail_learn_title">What you\'ll learn</string>
     <plurals name="detail_modules_label">
         <item quantity="one">module</item>

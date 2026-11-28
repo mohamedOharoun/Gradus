@@ -58,15 +58,17 @@ los dos estados principales del estudiante:
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-28): C3 hecha y revisada.** Creados `ic_more_vert.xml`,
-  `CourseDetailHeader.kt` y `UnenrollCourseDialog.kt`, y actualizado `CourseDetailContent.kt`
-  (`CourseDetailBody` + `LearnList` intacto + `TagLabel` al final). Previews renderizadas en claro
-  y oscuro; `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` y
-  `:app:testDebugUnitTest` (659 passed) en verde.
-- **Toca:** implementar y revisar **C4** (rediseño de `ScreenCourseDetail.kt`,
-  `ScreenCourseDetailPreviews.kt`, cableado completo en `CourseDetailDestination.kt` y limpieza de
-  helpers obsoletos en `CourseDetailTexts.kt` si no los usa nadie más).
-- **Pendiente después:** C5 (tests instrumentados de UI y accesibilidad en emulador).
+- **Estado (2026-11-28): C4 hecha y revisada.** Rediseño de `ScreenCourseDetail.kt` (cabecera
+  tintada *edge-to-edge*, barra inferior fija con CTA dinámico y `UnenrollCourseDialog`), 8
+  `@LightDarkPreviews` en `ScreenCourseDetailPreviews.kt`, cableado completo en
+  `CourseDetailDestination.kt` y limpieza de helpers/claves obsoletos (`CourseDetailTexts.kt` y
+  `strings.xml`). En verde: `:app:assembleDebug`, `:app:compileDebugAndroidTestKotlin` y
+  `:app:testDebugUnitTest` (651 passed).
+- **Toca:** implementar y revisar **C5** (tests instrumentados de UI, accesibilidad/TalkBack e
+  inglés en `ScreenCourseDetailTest.kt`, `UnenrollCourseDialogTest.kt` y `CourseInEnglishTest.kt`)
+  para cerrar la Parte C.
+- **Pendiente después:** Parte D (conectar Buscar a `Route.CourseDetail`, retirar
+  `ScreenCourseOverview` con permiso y prueba manual en emulador).
 
 ## Lo que ya hay y sirve de modelo
 
@@ -217,7 +219,7 @@ implementación y tests → revisión → mensaje de commit.
     `@LightDarkPreviews` para `Confirming`, `Sending`, `UNREACHABLE` y `SERVER_FAILURE`).
   - Todo composable acepta `modifier: Modifier = Modifier`; compila sin avisos nuevos.
 
-### [ ] C4. Rediseño de `ScreenCourseDetail`, previews claro/oscuro y cableado en `CourseDetailDestination`
+### [x] C4. Rediseño de `ScreenCourseDetail`, previews claro/oscuro y cableado en `CourseDetailDestination`
 
 - **Modelo y esfuerzo mínimos:** Claude Sonnet 4.6 (esfuerzo **bajo–medio**) · Gemini 2.5 Flash
   (esfuerzo **medio**) o 2.5 Pro (esfuerzo **bajo**).
@@ -246,8 +248,8 @@ implementación y tests → revisión → mensaje de commit.
   **bajo–medio**).
 - **Ficheros:**
   - `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/screens/detail/ScreenCourseDetailTest.kt`
-  - (Opcional si supera ~150 líneas)
-    `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/screens/detail/UnenrollCourseDialogTest.kt`
+  - `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/screens/detail/UnenrollCourseDialogTest.kt` *(opcional si conviene separar para mantener ficheros pequeños)*
+  - `app/src/androidTest/java/es/ulpgc/pamn/dominio/ui/screens/course/CourseInEnglishTest.kt` *(adaptar el test existente de `ScreenCourseDetail` en inglés a los nuevos textos y estados)*
 - **Criterios de aceptación y tests mínimos:**
   - Vista no inscrito: muestra título, autor, módulos, fecha de publicación, descripción, lista de
     módulos, chips de etiquetas y botón «Inscribirse al curso» (llama a `onEnroll`); no muestra
@@ -294,7 +296,17 @@ implementación y tests → revisión → mensaje de commit.
   verificadas en claro y oscuro; `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin` y
   `:app:testDebugUnitTest` (659 passed) en verde.
 
+- 2026-11-28: **C4 hecha y revisada.** Rediseño de `ScreenCourseDetail.kt` (`WindowInsets(0)`,
+  `CourseDetailHeader` con `statusBarsPadding()` + `safeDrawing` horizontal, `CourseDetailBody`
+  centrado hasta 560 dp, `DetailBottomBar` fija con `PrimaryButton` y montaje condicional de
+  `UnenrollCourseDialog`), 8 `@LightDarkPreviews` en `ScreenCourseDetailPreviews.kt` verificadas en
+  claro y oscuro, cableado completo en `CourseDetailDestination.kt` (sin tocar `MainNavGraph.kt` ni
+  `ScreenCourseOverview`) y limpieza de helpers/claves obsoletos (`CourseDetailTexts.kt`,
+  `CourseDetailTextsTest.kt` y `detail_start`/`detail_continue`/`detail_review`). En verde:
+  `:app:assembleDebug`, `:app:compileDebugAndroidTestKotlin` y `:app:testDebugUnitTest` (651
+  passed).
+
 ## Siguiente paso
 
-Lanzar el implementador para **C4** (rediseño de `ScreenCourseDetail.kt`,
-`ScreenCourseDetailPreviews.kt` y cableado completo en `CourseDetailDestination.kt`).
+Lanzar el implementador para **C5** (tests instrumentados de UI, accesibilidad/TalkBack e inglés en
+`ScreenCourseDetailTest.kt`, `UnenrollCourseDialogTest.kt` y `CourseInEnglishTest.kt`).

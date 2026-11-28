@@ -25,21 +25,36 @@ private fun Preview(state: CourseDetailState) {
 
 @LightDarkPreviews
 @Composable
-private fun NewCoursePreview() = Preview(CourseDetailState.Ready(published))
+private fun UnenrolledPreview() = Preview(CourseDetailState.Ready(published, enrolled = false))
 
 @LightDarkPreviews
 @Composable
-private fun WithProgressPreview() = Preview(CourseDetailState.Ready(published, mastered = demoMastered))
+private fun EnrollingPreview() = Preview(CourseDetailState.Ready(published, enrolled = false, enrolling = true))
 
 @LightDarkPreviews
 @Composable
-private fun AllMasteredPreview() =
-    Preview(CourseDetailState.Ready(published, mastered = published.modules.map { it.id }.toSet()))
+private fun EnrolledZeroProgressPreview() = Preview(CourseDetailState.Ready(published, enrolled = true))
+
+@LightDarkPreviews
+@Composable
+private fun EnrolledWithProgressPreview() =
+    Preview(CourseDetailState.Ready(published, mastered = demoMastered, enrolled = true))
+
+@LightDarkPreviews
+@Composable
+private fun EnrolledAllMasteredPreview() = Preview(
+    CourseDetailState.Ready(
+        course = published,
+        mastered = published.modules.map { it.id }.toSet(),
+        enrolled = true,
+    ),
+)
 
 // Sin datos de publicación (sin autor ni fecha) y sin descripción.
 @LightDarkPreviews
 @Composable
-private fun WithoutPublicationPreview() = Preview(CourseDetailState.Ready(demoCourse.copy(description = "")))
+private fun WithoutPublicationPreview() =
+    Preview(CourseDetailState.Ready(demoCourse.copy(description = ""), enrolled = false))
 
 @LightDarkPreviews
 @Composable
