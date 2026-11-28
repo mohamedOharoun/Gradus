@@ -20,7 +20,9 @@ import es.ulpgc.pamn.dominio.backend.application.course.PublishCourse;
 import es.ulpgc.pamn.dominio.backend.application.course.PublishCourseVersion;
 import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourse;
 import es.ulpgc.pamn.dominio.backend.application.course.ValidateCourseVersion;
+import es.ulpgc.pamn.dominio.backend.application.progress.EnrollmentRepository;
 import es.ulpgc.pamn.dominio.backend.application.progress.SyncProgress;
+import es.ulpgc.pamn.dominio.backend.application.progress.UnenrollCourse;
 import es.ulpgc.pamn.dominio.backend.application.submission.DownloadSubmissionPhoto;
 import es.ulpgc.pamn.dominio.backend.application.submission.ListMySubmissions;
 import es.ulpgc.pamn.dominio.backend.application.submission.SubmissionRepository;
@@ -104,9 +106,12 @@ public final class App {
                 new FindCourse(courseRepository), new SearchCourses(courseRepository, clock));
         MyCoursesController myCourses = new MyCoursesController(new ListMyCourses(courseRepository));
 
-        // Progreso: SyncProgress se crea una sola vez (lee el reloj en cada llamada); el lector es inmutable.
-        ProgressController progress = new ProgressController(new ProgressRequestReader(),
-                new SyncProgress(new JdbcEnrollmentRepository(dataSource), new JdbcCourseExistence(dataSource), clock));
+        // Progreso: una sola instancia del repositorio compartida entre sincronización y baja; el lector es inmutable.
+        EnrollmentRepository enrollmentRepository = new JdbcEnrollmentRepository(dataSource);
+        ProgressController progress = new ProgressController(
+                new ProgressRequestReader(),
+                new SyncProgress(enrollmentRepository, new JdbcCourseExistence(dataSource), clock),
+                new UnenrollCourse(enrollmentRepository));
 
         // Entregas con foto (docs/tareas/ejercicio-foto.md): comparten el lector de cursos y el repositorio.
         SubmissionRepository submissionRepository = new JdbcSubmissionRepository(dataSource);
@@ -139,6 +144,7 @@ public final class App {
                     requireSession.around(coursePublication::validateVersion));
             config.routes.post("/api/courses/{id}/versions", requireSession.around(coursePublication::publishVersion));
             config.routes.post("/api/progress/sync", requireSession.around(progress::sync));
+            config.routes.delete("/api/progress/enrollments/{courseId}", requireSession.around(progress::unenroll));
             config.routes.post("/api/courses/{id}/exercises/{exerciseId}/submissions",
                     requireSession.around(submissions::submit));
             config.routes.get("/api/submissions/mine", requireSession.around(submissions::mine));

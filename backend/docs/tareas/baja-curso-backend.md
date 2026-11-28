@@ -8,18 +8,19 @@ Proyecto: `backend/` (Maven, Java 25, Javalin, PostgreSQL en Docker). Tests con 
 dobles en memoria (`./gradus.sh test` / `mvn test`, sin base de datos). Commits (los hacen los
 usuarios): `… (course-detail task A<N>)`.
 
-Estado: **A1 hecha y revisada — lista para empezar A2** (2026-11-28).
+Estado: **A2 hecha y revisada — pendiente permiso de BD para A3** (2026-11-28).
 
 ## Relevo
 
 Lo que necesita quien coja la parte A (orquestador o revisor). **Se reescribe** al terminar cada
 sesión; no se acumula.
 
-- **Dónde estamos (2026-11-28):** **A1 terminada y revisada** (946 tests en verde en `mvn test`, sin
-  avisos ni cambios fuera de alcance). `EnrollmentRepository.delete`, `UnenrollCourse` y
-  `JdbcEnrollmentRepository.delete` están implementados y cubiertos con 14 tests nuevos (10 en
-  `UnenrollCourseTest` y 4 en `JdbcEnrollmentRepositoryDeleteTest`). Todavía no se ha tocado `web/`,
-  `App.java`, `backend/docs/api-progreso.md` ni PostgreSQL.
+- **Dónde estamos (2026-11-28):** **A1 y A2 terminadas y revisadas** (968 tests en verde en
+  `mvn test`, sin avisos ni dependencias nuevas). `CanonicalUuid` está compartido entre `web.course`
+  y `web.progress`, `ProgressController.unenroll` está implementado y la ruta
+  `DELETE /api/progress/enrollments/{courseId}` está registrada en `App.java` con `RequireSession`.
+  Faltan **A3** (Yaak + comprobación real contra PostgreSQL) y **A4** (congelar `api-progreso.md` y
+  pasar el relevo a Parte B).
 - **Decisiones aprobadas para la Parte A:**
   - Ruta: `DELETE /api/progress/enrollments/{courseId}` con sesión (`RequireSession`).
   - `POST /api/progress/sync` no cambia (Decisión 3).
@@ -28,15 +29,13 @@ sesión; no se acumula.
     `RequireSession`) y **`404 Not Found`** (`field: "courseId"`, `code: "COURSE_NOT_FOUND"`) si
     `{courseId}` no es un UUID canónico (`8-4-4-4-12` hex), coherente con `web/course/PathIds` y sin
     añadir `ErrorCode` nuevos.
-  - **Permiso aprobado para A2:** extraer/compartir un helper común de UUID en `web/` para evitar
-    duplicar la validación de formato entre `web.course` y `web.progress` (dejando `version` en
-    `web.course.PathIds`, y sin tocar `web.submission.SubmissionParams` por no estar relacionado).
   - Sin migración SQL: `006_create_enrollments.sql` ya tiene `ON DELETE CASCADE` desde `enrollments`
     hacia `mastered_modules` y clave primaria `(user_id, course_id)`.
-- **Siguiente:** lanzar al implementador de **A2** (helper común de UUID en `web/`,
-  `ProgressController.unenroll`, cableado en `App.java` y tests JUnit del helper y controlador/ruta).
-- **Permisos pendientes:** al llegar a **A3**, pedir permiso explícito a los usuarios antes de
-  escribir nada en PostgreSQL local (qué cuentas/BD usar para la comprobación real).
+- **Siguiente:** pedir permiso explícito a los usuarios para la comprobación real contra PostgreSQL
+  en **A3** y lanzar al implementador de **A3** (nueva petición en `backend/yaak/workspace/` + batería
+  `curl` + verificación de los usuarios en Yaak).
+- **Permisos pendientes:** confirmación de los usuarios para ejecutar las pruebas reales de **A3**
+  contra PostgreSQL local (qué cuentas de prueba usar vía API, sin `UPDATE`/`DELETE` manual en SQL).
 
 ## Objetivo
 
@@ -113,7 +112,7 @@ La casilla `[x]` la marca el orquestador/revisor tras verificar el resultado.
      - `mvn test` en verde sin avisos nuevos; sin tocar PostgreSQL ni capas web.
    - **Commit sugerido:** `add: UnenrollCourse use case and enrollment deletion in repository (course-detail task A1)`.
 
-2. [ ] **A2 · Validación de UUID compartida, `ProgressController.unenroll` y cableado en `App.java`**
+2. [x] **A2 · Validación de UUID compartida, `ProgressController.unenroll` y cableado en `App.java`**
    - **Modelo y esfuerzo mínimos recomendados:** Claude Sonnet (esfuerzo medio) o Gemini Pro
      (razonamiento medio).
    - **Ficheros:**
@@ -174,8 +173,12 @@ La casilla `[x]` la marca el orquestador/revisor tras verificar el resultado.
   con TDD, implementado `JdbcEnrollmentRepository.delete` en transacción y cubierto con 14 tests
   nuevos (`UnenrollCourseTest` y `JdbcEnrollmentRepositoryDeleteTest`). 946 tests en verde en
   `mvn test`, sin avisos ni cambios fuera de alcance.
+- 2026-11-28: **A2 hecha y revisada.** Creado `CanonicalUuid` en `web/` (delegado desde `PathIds`),
+  añadido `ProgressController.unenroll` y registrada `DELETE /api/progress/enrollments/{courseId}` en
+  `App.java` con `RequireSession`. 22 tests nuevos (`CanonicalUuidTest` y `ProgressControllerTest`),
+  968 tests en verde en `mvn test`, sin dependencias nuevas ni avisos.
 
 ## Siguiente paso
 
-Ejecutar **A2** (validación de UUID compartida en `web/`, `ProgressController.unenroll`, cableado en
-`App.java` y tests JUnit del helper y controlador/ruta).
+Confirmar permisos para PostgreSQL local y ejecutar **A3** (petición en `backend/yaak/workspace/` y
+comprobación real contra PostgreSQL).

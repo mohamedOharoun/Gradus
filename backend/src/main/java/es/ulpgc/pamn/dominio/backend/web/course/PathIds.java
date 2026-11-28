@@ -1,5 +1,7 @@
 package es.ulpgc.pamn.dominio.backend.web.course;
 
+import es.ulpgc.pamn.dominio.backend.web.CanonicalUuid;
+
 import java.util.Optional;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -10,9 +12,6 @@ import java.util.regex.Pattern;
  */
 final class PathIds {
 
-    /** Forma canónica: {@code UUID.fromString} sola aceptaría cosas como «1-2-3-4-5». */
-    private static final Pattern UUID_FORMAT = Pattern.compile(
-            "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
     /** Sin ceros a la izquierda ni signos, y sin desbordar un {@code int}. */
     private static final Pattern POSITIVE = Pattern.compile("[1-9][0-9]{0,8}");
 
@@ -20,7 +19,7 @@ final class PathIds {
     }
 
     static Optional<UUID> courseId(String raw) {
-        return Optional.ofNullable(raw).filter(UUID_FORMAT.asMatchPredicate()).map(UUID::fromString);
+        return CanonicalUuid.parse(raw);
     }
 
     static Optional<Integer> version(String raw) {
