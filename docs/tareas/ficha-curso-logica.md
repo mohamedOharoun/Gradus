@@ -38,12 +38,15 @@ y mantener `ProgressDatabase` congelada en **v3** protegiendo las operaciones co
 
 Se **reescribe** al final de cada sesión.
 
-- **Estado (2026-11-28):** **B1 y B2 hechos y revisados** (`ProgressGateway.unenroll` + HTTP/Fake,
-  `EnrollmentStore.unenroll` + `UserProgress.withoutCourse` + `InMemoryProgressStore`; 1257 tests en
-  `:sharedLogic:testAndroidHostTest`, todos en verde). `app/` no compila temporalmente hasta **B4**
-  (esperado: falta `unenroll` en `RoomProgressStore` y posibles fakes en `app/`).
-- **Toca:** paso **B3** (caso de uso `UnenrollFromCourse` y `UnenrollResult`, con tests TDD en
-  `sharedLogic`).
+- **Estado (2026-11-28):** **B1, B2 y B3 hechos y revisados** — toda la lógica multiplataforma en
+  `sharedLogic` está terminada y probada (`ProgressGateway.unenroll` + HTTP/Fake,
+  `EnrollmentStore.unenroll` + `InMemoryProgressStore`, `UnenrollFromCourse` + `UnenrollResult`;
+  1275 tests en `:sharedLogic:testAndroidHostTest`, todos en verde). `app/` sigue pendiente de
+  adaptarse en **B4**.
+- **Toca:** paso **B4** (Room: `ProgressDao`, `RoomProgressStore`, comentario en
+  `MasteredModuleEntity`, `ProgressModule`, `AppContainer.unenrollFromCourse`, adaptación de fakes
+  de `EnrollmentStore` en tests de `app/`, tests instrumentados de Room y actualización de
+  `docs/arquitectura-progreso.md`).
 - **Riesgos y notas técnicas:**
   - En **B2**, añadir `unenroll(userId, courseId)` a `EnrollmentStore` hará que `app/`
     (`RoomProgressStore` y posibles fakes de tests) no compile hasta **B4**; `:sharedLogic` compila
@@ -154,7 +157,7 @@ tests primero (rojo → verde → refactor en lógica pura) → revisión → me
   - `./gradlew :sharedLogic:compileAndroidHostTest --rerun :sharedLogic:testAndroidHostTest --rerun`
     en verde.
 
-### [ ] B3. Caso de uso `UnenrollFromCourse` y `UnenrollResult`
+### [x] B3. Caso de uso `UnenrollFromCourse` y `UnenrollResult`
 
 - **Modelo y esfuerzo mínimos:** Claude Sonnet 4.5 / 4.6 (esfuerzo **medio**) · Gemini 2.5 Pro
   (esfuerzo **medio**).
@@ -225,7 +228,12 @@ tests primero (rojo → verde → refactor en lógica pura) → revisión → me
   `UserProgress.withoutCourse(courseId)` e `InMemoryProgressStore.unenroll` (atómico, limpia
   entradas vacías con `all - userId`), con 15 tests nuevos en `UnenrollStoreTest` (1257 passed en
   `sharedLogic`).
+- 2026-11-28: **B3 hecho y revisado.** Creados `UnenrollResult` (`NoSession | Finished(outcome)`) y
+  `UnenrollFromCourse`, con 18 tests repartidos en `UnenrollFromCourseTest` (10) y
+  `UnenrollFromCourseConcurrencyTest` (8, con `CompletableDeferred` y propagación de
+  `CancellationException`); 1275 passed en `sharedLogic`.
 
 ## Siguiente paso
 
-Ejecutar el paso **B3** con su implementador (`UnenrollFromCourse` y `UnenrollResult`).
+Ejecutar el paso **B4** con su implementador (Room, `ProgressModule`, `AppContainer`, tests
+instrumentados y actualización de `docs/arquitectura-progreso.md`).
